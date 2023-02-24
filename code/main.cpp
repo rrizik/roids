@@ -90,7 +90,7 @@ static s64 get_ticks(){
     return(result.QuadPart);
 }
 
-static f64 get_seconds_elapsed(s64 start, s64 end){
+static f64 get_seconds_elapsed(s64 end, s64 start){
     f64 result;
     result = ((f64)(end - start) / ((f64)clock.frequency));
     return(result);
@@ -308,7 +308,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         }
 
         s64 now_ticks = clock.get_ticks();
-        f64 frame_time = clock.get_seconds_elapsed(last_ticks, now_ticks);
+        f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
@@ -333,7 +333,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         frame_count++;
 		simulations = 0;
-        f64 time_elapsed = clock.get_seconds_elapsed(second_marker, clock.get_ticks());
+        f64 time_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), second_marker);
         if(time_elapsed > 1){
             FPS = (frame_count / time_elapsed);
             second_marker = clock.get_ticks();

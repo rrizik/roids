@@ -21,15 +21,15 @@ typedef struct Entity{
 
     EntityType type;
     u32 flags;
-    v2 position;
-    v2 direction;
-    v2s32 dimension;
+    Rect rect;
     RGBA color;
     s32 border_size;
     RGBA border_color;
+    s32 z;
 
 
-
+    v2 direction;
+    f32 rad;
 
     f32 speed;
 
@@ -38,7 +38,6 @@ typedef struct Entity{
     v2 p2 = p2;
     v2 p3 = p3;
 
-    f32 rad;
     bool fill = fill;
 
     Bitmap image;
@@ -143,9 +142,9 @@ add_entity(PermanentMemory *pm, EntityType type){
 }
 
 static Entity*
-add_pixel(PermanentMemory* pm, v2 position, RGBA color){
+add_pixel(PermanentMemory* pm, Rect rect, RGBA color){
     Entity* e = add_entity(pm, EntityType_Pixel);
-    e->position = position;
+    e->rect = rect;
     e->color = color;
     return(e);
 }
@@ -154,44 +153,33 @@ static Entity*
 add_segment(PermanentMemory* pm, v2 p0, v2 p1, RGBA color){
     Entity* e = add_entity(pm, EntityType_Segment);
     e->color = color;
-    e->position = p0;
     e->p0 = p0;
     e->p1 = p1;
     return(e);
 }
 
 static Entity*
-add_ray(PermanentMemory* pm, v2 position, v2 direction, RGBA color){
+add_ray(PermanentMemory* pm, Rect rect, v2 direction, RGBA color){
     Entity* e = add_entity(pm, EntityType_Ray);
+    e->rect = rect;
     e->color = color;
-    e->position = position;
     e->direction = direction;
     return(e);
 }
 
 static Entity*
-add_line(PermanentMemory* pm, v2 position, v2 direction, RGBA color){
+add_line(PermanentMemory* pm, Rect rect, v2 direction, RGBA color){
     Entity* e = add_entity(pm, EntityType_Line);
+    e->rect = rect;
     e->color = color;
-    e->position = position;
     e->direction = direction;
     return(e);
 }
 
 static Entity*
-add_rect(PermanentMemory* pm, v2 position, v2s32 dimension, RGBA color){
+add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 border_size = 0, RGBA border_color = {0, 0, 0, 0}){
     Entity* e = add_entity(pm, EntityType_Rect);
-    e->position = position;
-    e->dimension = dimension;
-    e->color = color;
-    return(e);
-}
-
-static Entity*
-add_rect_bordered(PermanentMemory* pm, v2 position, v2s32 dimension, RGBA color, s32 border_size, RGBA border_color){
-    Entity* e = add_entity(pm, EntityType_Rect);
-    e->position = position;
-    e->dimension = dimension;
+    e->rect = rect;
     e->color = color;
     e->border_size = border_size;
     e->border_color = border_color;
@@ -199,10 +187,9 @@ add_rect_bordered(PermanentMemory* pm, v2 position, v2s32 dimension, RGBA color,
 }
 
 static Entity*
-add_box(PermanentMemory* pm, v2 position, v2s32 dimension, RGBA color){
+add_box(PermanentMemory* pm, Rect rect, RGBA color){
     Entity* e = add_entity(pm, EntityType_Box);
-    e->position = position;
-    e->dimension = dimension;
+    e->rect = rect;
     e->color = color;
     return(e);
 }
@@ -231,9 +218,9 @@ add_triangle(PermanentMemory *pm, v2 p0, v2 p1, v2 p2, RGBA color, bool fill){
 }
 
 static Entity*
-add_circle(PermanentMemory *pm, v2 pos, u8 rad, RGBA color, bool fill){
+add_circle(PermanentMemory *pm, Rect rect, u8 rad, RGBA color, bool fill){
     Entity* e = add_entity(pm, EntityType_Circle);
-    e->position = pos;
+    e->rect = rect;
     e->color = color;
     e->fill = fill;
     e->rad = rad;
@@ -241,9 +228,9 @@ add_circle(PermanentMemory *pm, v2 pos, u8 rad, RGBA color, bool fill){
 }
 
 static Entity*
-add_bitmap(PermanentMemory* pm, v2 position, Bitmap image){
+add_bitmap(PermanentMemory* pm, Rect rect, Bitmap image){
     Entity* e = add_entity(pm, EntityType_Bitmap);
-    e->position = position;
+    e->rect = make_rect(0, 0, image.width, image.height);
     e->image = image;
     return(e);
 }
@@ -258,68 +245,63 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
         switch(base_command->type){
             case RenderCommand_ClearColor:{
                 ClearColorCommand *command = (ClearColorCommand*)base_command;
-                clear(render_buffer, command->header.pos, command->header.size, command->header.color);
-                at = (u8*)commands->base + command->header.arena_used;
+                clear(render_buffer, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Pixel:{
                 PixelCommand *command = (PixelCommand*)base_command;
-                draw_pixel(render_buffer, command->header.pos, command->header.color);
-                at = (u8*)commands->base + command->header.arena_used;
+                draw_pixel(render_buffer, make_v2(command->ch.rect.x, command->ch.rect.y), command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Segment:{
                 SegmentCommand *command = (SegmentCommand*)base_command;
-                draw_segment(render_buffer, command->p0, command->p1, command->header.color);
-                at = (u8*)commands->base + command->header.arena_used;
+                draw_segment(render_buffer, command->p0, command->p1, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Ray:{
                 RayCommand *command = (RayCommand*)base_command;
-                draw_ray(render_buffer, command->header.pos, command->direction, command->header.color);
-                at = (u8*)commands->base + command->header.arena_used;
+                draw_ray(render_buffer, command->ch.rect, command->ch.direction, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Line:{
                 LineCommand *command = (LineCommand*)base_command;
-                draw_line(render_buffer, command->header.pos, command->direction, command->header.color);
-                at = (u8*)commands->base + command->header.arena_used;
+                draw_line(render_buffer, command->ch.rect, command->ch.direction, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Rect:{
                 RectCommand *command = (RectCommand*)base_command;
                 // draw border if set
-                if(command->border_size){
-                    v2 border_pos;
-                    v2s32 border_dim;
-                    border_pos.x = command->header.pos.x - command->border_size;
-                    border_pos.y = command->header.pos.y - command->border_size;
-                    border_dim.w = command->dim.w + (command->border_size * 2);
-                    border_dim.h = command->dim.h + (command->border_size * 2);
-                    draw_rect(render_buffer, border_pos, border_dim, command->border_color);
+                if(command->ch.border_size){
+                    Rect border_rect = get_border_rect(command->ch.rect, command->ch.border_size);
+                    draw_rect(render_buffer, border_rect, command->ch.border_color);
                 }
-                draw_rect(render_buffer, command->header.pos, command->dim, command->header.color);
-                at = (u8*)commands->base + command->header.arena_used;
+                draw_rect(render_buffer, command->ch.rect, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Box:{
                 BoxCommand *command = (BoxCommand*)base_command;
-                draw_box(render_buffer, command->header.pos, command->dimension, command->header.color);
-                at = (u8*)commands->base + command->header.arena_used;
+                draw_box(render_buffer, command->ch.rect, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Quad:{
                 QuadCommand *command = (QuadCommand*)base_command;
-                draw_quad(render_buffer, command->p0, command->p1, command->p2, command->p3, command->header.color, command->header.fill);
-                at = (u8*)commands->base + command->header.arena_used;
+                draw_quad(render_buffer, command->p0, command->p1, command->p2, command->p3, command->ch.color, command->ch.fill);
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Triangle:{
                 TriangleCommand *command = (TriangleCommand*)base_command;
                 draw_triangle(render_buffer, command->p0, command->p1, command->p2, base_command->color, base_command->fill);
-                at = (u8*)commands->base + command->header.arena_used;
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Circle:{
                 CircleCommand *command = (CircleCommand*)base_command;
-                draw_circle(render_buffer, command->header.pos.x, command->header.pos.y, command->rad, command->header.color, command->header.fill);
-                at = (u8*)commands->base + command->header.arena_used;
+                draw_circle(render_buffer, command->ch.rect.x, command->ch.rect.y, command->ch.rad, command->ch.color, command->ch.fill);
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Bitmap:{
                 BitmapCommand *command = (BitmapCommand*)base_command;
-                draw_bitmap(render_buffer, command->header.pos, command->image);
-                at = (u8*)commands->base + command->header.arena_used;
+                draw_bitmap(render_buffer, command->ch.rect, command->image);
+                at = (u8*)commands->base + command->ch.arena_used;
             } break;
         }
     }
@@ -369,14 +351,15 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Controller* controller,
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        add_rect_bordered(pm, make_v2(500, 500), make_v2s32(100, 100), GREEN, 5, ARMY_GREEN);
+        add_rect(pm, make_rect(100, 100, 100, 100), RED);
+        add_rect(pm, make_rect(500, 500, 100, 100), GREEN, 5, ARMY_GREEN);
 
         dt = clock->dt;
         memory->initialized = true;
     }
 
     arena_free(render_buffer->render_command_arena);
-    push_clear_color(render_buffer->render_command_arena, (v2){0, 0}, (v2){(f32)render_buffer->width, (f32)render_buffer->height}, BLACK);
+    push_clear_color(render_buffer->render_command_arena, BLACK);
 
 
     Arena* render_command_arena = render_buffer->render_command_arena;
@@ -385,27 +368,27 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Controller* controller,
 
         switch(e->type){
             case EntityType_Pixel:{
-                push_pixel(render_command_arena, e->position, e->color);
+                push_pixel(render_command_arena, e->rect, e->color);
             }break;
             case EntityType_Segment:{
                 push_segment(render_command_arena, e->p0, e->p1, e->color);
             }break;
             case EntityType_Line:{
-                push_line(render_command_arena, e->position, e->direction, e->color);
+                push_line(render_command_arena, e->rect, e->direction, e->color);
             }break;
             case EntityType_Ray:{
-                push_ray(render_command_arena, e->position, e->direction, e->color);
+                push_ray(render_command_arena, e->rect, e->direction, e->color);
             }break;
             case EntityType_Rect:{
                 if(e->border_size){
-                    push_rect(render_command_arena, e->position, e->dimension, e->color, e->border_size, e->border_color);
+                    push_rect(render_command_arena, e->rect, e->color, e->border_size, e->border_color);
                 }
                 else{
-                    push_rect(render_command_arena, e->position, e->dimension, e->color);
+                    push_rect(render_command_arena, e->rect, e->color);
                 }
             }break;
             case EntityType_Box:{
-                push_box(render_command_arena, e->position, e->dimension, e->color);
+                push_box(render_command_arena, e->rect, e->color);
             }break;
             case EntityType_Quad:{
                 push_quad(render_command_arena, e->p0, e->p1, e->p2, e->p3, e->color, e->fill);
@@ -414,10 +397,10 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Controller* controller,
                 push_triangle(render_command_arena, e->p0, e->p1, e->p2, e->color, e->fill);
             }break;
             case EntityType_Circle:{
-                push_circle(render_command_arena, e->position, e->rad, e->color, e->fill);
+                push_circle(render_command_arena, e->rect, e->rad, e->color, e->fill);
             }break;
             case EntityType_Bitmap:{
-                push_bitmap(render_command_arena, e->position, e->image);
+                push_bitmap(render_command_arena, e->rect, e->image);
             }break;
             case EntityType_None:{
             }break;

@@ -66,17 +66,17 @@ u32_to_rgba(u32 value){
 typedef struct Rect{
     f32 x;
     f32 y;
-    f32 w;
-    f32 h;
+    s32 w;
+    s32 h;
 } Rect;
 
 static Rect
-rect(v2 pos, v2s32 dim){
+make_rect(f32 x, f32 y, s32 w, s32 h){
     Rect result = {0};
-    result.x = pos.x;
-    result.y = pos.y;
-    result.w = dim.x;
-    result.h = dim.y;
+    result.x = x;
+    result.y = y;
+    result.w = w;
+    result.h = h;
     return(result);
 }
 
@@ -113,6 +113,17 @@ rect_contains_rect(Rect r1, Rect r2){
     return false;
 }
 
+static Rect
+get_border_rect(Rect rect, s32 border_size){
+    Rect result = {
+        rect.x - border_size,
+        rect.y - border_size,
+        rect.w + (border_size * 2),
+        rect.h + (border_size * 2),
+    };
+    return(result);
+}
+
 typedef enum RenderCommandType{
     RenderCommand_ClearColor,
     RenderCommand_Pixel,
@@ -129,52 +140,53 @@ typedef enum RenderCommandType{
 
 typedef struct CommandHeader{
     RenderCommandType type;
-    v2 pos;
-    v2 size;
+    Rect rect;
+    v2    direction;
+    s32   border_size;
+
+    u8 rad;
+
     RGBA color;
-    v4 clip_region;
+    RGBA border_color;
+
+    v4   clip_region;
     bool fill;
+
     size_t arena_used;
 } CommandHeader;
 
 typedef struct ClearColorCommand{
-    CommandHeader header;
+    CommandHeader ch;
 } ClearColorCommand;
 
 typedef struct PixelCommand{
-    CommandHeader header;
+    CommandHeader ch;
 } PixelCommand;
 
 typedef struct SegmentCommand{
-    CommandHeader header;
+    CommandHeader ch;
     v2 p0;
     v2 p1;
 } SegmentCommand;
 
 typedef struct RayCommand{
-    CommandHeader header;
-    v2 direction;
+    CommandHeader ch;
 } RayCommand;
 
 typedef struct LineCommand{
-    CommandHeader header;
-    v2 direction;
+    CommandHeader ch;
 } LineCommand;
 
 typedef struct RectCommand{
-    CommandHeader header;
-    v2s32 dim;
-    s32 border_size;
-    RGBA border_color;
+    CommandHeader ch;
 } RectCommand;
 
 typedef struct BoxCommand{
-    CommandHeader header;
-    v2s32 dimension;
+    CommandHeader ch;
 } BoxCommand;
 
 typedef struct QuadCommand{
-    CommandHeader header;
+    CommandHeader ch;
     v2 p0;
     v2 p1;
     v2 p2;
@@ -182,100 +194,105 @@ typedef struct QuadCommand{
 } QuadCommand;
 
 typedef struct TriangleCommand{
-    CommandHeader header;
+    CommandHeader ch;
     v2 p0;
     v2 p1;
     v2 p2;
 } TriangleCommand;
 
 typedef struct CircleCommand{
-    CommandHeader header;
-    u8 rad;
+    CommandHeader ch;
 } CircleCommand;
 
 typedef struct BitmapCommand{
-    CommandHeader header;
+    CommandHeader ch;
     Bitmap image;
 } BitmapCommand;
 
 static void
-push_clear_color(Arena *arena, v2 position, v2 size, RGBA color){
+push_clear_color(Arena *arena, RGBA color){
     ClearColorCommand* command = push_struct(arena, ClearColorCommand);
-    command->header.type = RenderCommand_ClearColor,
-    command->header.color = color;
-    command->header.pos = position;
-    command->header.size = size;
-    command->header.arena_used = arena->used;
+    command->ch.type = RenderCommand_ClearColor,
+    command->ch.arena_used = arena->used;
+    command->ch.color = color;
 }
 
 static void
-push_pixel(Arena *arena, v2 position, RGBA color){
+push_clear_color_region(Arena *arena, Rect rect, RGBA color){
+    ClearColorCommand* command = push_struct(arena, ClearColorCommand);
+    command->ch.type = RenderCommand_ClearColor,
+    command->ch.color = color;
+    command->ch.rect = rect;
+    command->ch.arena_used = arena->used;
+}
+
+
+static void
+push_pixel(Arena *arena, Rect rect, RGBA color){
     PixelCommand* command = push_struct(arena, PixelCommand);
-    command->header.type = RenderCommand_Pixel;
-    command->header.arena_used = arena->used;
-    command->header.pos = position;
-    command->header.color = color;
+    command->ch.type = RenderCommand_Pixel;
+    command->ch.arena_used = arena->used;
+    command->ch.rect = rect;
+    command->ch.color = color;
 }
 
 static void
 push_segment(Arena *arena, v2 p0, v2 p1, RGBA color){
     SegmentCommand* command = push_struct(arena, SegmentCommand);
-    command->header.type = RenderCommand_Segment;
-    command->header.arena_used = arena->used;
-    command->header.color = color;
+    command->ch.type = RenderCommand_Segment;
+    command->ch.arena_used = arena->used;
+    command->ch.color = color;
     command->p0 = p0;
     command->p1 = p1;
 }
 
 static void
-push_ray(Arena *arena, v2 position, v2 direction, RGBA color){
+push_ray(Arena *arena, Rect rect, v2 direction, RGBA color){
     RayCommand* command = push_struct(arena, RayCommand);
-    command->header.type = RenderCommand_Ray;
-    command->header.arena_used = arena->used;
-    command->header.pos = position;
-    command->header.color = color;
-    command->direction = direction;
+    command->ch.type = RenderCommand_Ray;
+    command->ch.arena_used = arena->used;
+    command->ch.rect = rect;
+    command->ch.direction = direction;
+    command->ch.color = color;
 }
 
 static void
-push_line(Arena *arena, v2 position, v2 direction, RGBA color){
+push_line(Arena *arena, Rect rect, v2 direction, RGBA color){
     LineCommand* command = push_struct(arena, LineCommand);
-    command->header.type = RenderCommand_Line;
-    command->header.arena_used = arena->used;
-    command->header.pos = position;
-    command->header.color = color;
-    command->direction = direction;
+    command->ch.type = RenderCommand_Line;
+    command->ch.arena_used = arena->used;
+    command->ch.rect = rect;
+    command->ch.color = color;
+    command->ch.direction = direction;
 }
 
 static void
-push_rect(Arena *arena, v2 position, v2s32 dimension, RGBA color, s32 border_size = 0, RGBA border_color = {0, 0, 0, 0}){
+push_rect(Arena *arena, Rect rect, RGBA color, s32 border_size = 0, RGBA border_color = {0, 0, 0, 0}){
     RectCommand* command = push_struct(arena, RectCommand);
-    command->header.type = RenderCommand_Rect;
-    command->header.arena_used = arena->used;
-    command->header.color = color;
-    command->header.pos = position;
-    command->dim = dimension;
-    command->border_size = border_size;
-    command->border_color = border_color;
+    command->ch.type = RenderCommand_Rect;
+    command->ch.arena_used = arena->used;
+    command->ch.rect = rect;
+    command->ch.color = color;
+    command->ch.border_size = border_size;
+    command->ch.border_color = border_color;
 }
 
 static void
-push_box(Arena *arena, v2 position, v2s32 dimension, RGBA color){
+push_box(Arena *arena, Rect rect, RGBA color){
     BoxCommand* command = push_struct(arena, BoxCommand);
-    command->header.type = RenderCommand_Box;
-    command->header.arena_used = arena->used;
-    command->header.color = color;
-    command->header.pos = position;
-    command->dimension = dimension;
+    command->ch.type = RenderCommand_Box;
+    command->ch.arena_used = arena->used;
+    command->ch.color = color;
+    command->ch.rect = rect;
 }
 
 static void
 push_quad(Arena *arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, bool fill){
     QuadCommand* command = push_struct(arena, QuadCommand);
-    command->header.type = RenderCommand_Quad;
-    command->header.arena_used = arena->used;
-    command->header.color = color;
-    command->header.fill = fill;
+    command->ch.type = RenderCommand_Quad;
+    command->ch.arena_used = arena->used;
+    command->ch.color = color;
+    command->ch.fill = fill;
     command->p0 = p0;
     command->p1 = p1;
     command->p2 = p2;
@@ -285,32 +302,32 @@ push_quad(Arena *arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, bool fill){
 static void
 push_triangle(Arena *arena, v2 p0, v2 p1, v2 p2, RGBA color, bool fill){
     TriangleCommand* command = push_struct(arena, TriangleCommand);
-    command->header.type = RenderCommand_Triangle;
-    command->header.arena_used = arena->used;
-    command->header.color = color;
-    command->header.fill = fill;
+    command->ch.type = RenderCommand_Triangle;
+    command->ch.arena_used = arena->used;
+    command->ch.color = color;
+    command->ch.fill = fill;
     command->p0 = p0;
     command->p1 = p1;
     command->p2 = p2;
 }
 
 static void
-push_circle(Arena *arena, v2 pos, u8 rad, RGBA color, bool fill){
+push_circle(Arena *arena, Rect rect, u8 rad, RGBA color, bool fill){
     CircleCommand* command = push_struct(arena, CircleCommand);
-    command->header.type = RenderCommand_Circle;
-    command->header.arena_used = arena->used;
-    command->header.pos = pos;
-    command->header.color = color;
-    command->header.fill = fill;
-    command->rad = rad;
+    command->ch.type = RenderCommand_Circle;
+    command->ch.arena_used = arena->used;
+    command->ch.rect = rect;
+    command->ch.color = color;
+    command->ch.fill = fill;
+    command->ch.rad = rad;
 }
 
 static void
-push_bitmap(Arena *arena, v2 position, Bitmap image){
+push_bitmap(Arena *arena, Rect rect, Bitmap image){
     BitmapCommand* command = push_struct(arena, BitmapCommand);
-    command->header.type = RenderCommand_Bitmap;
-    command->header.arena_used = arena->used;
-    command->header.pos = position;
+    command->ch.type = RenderCommand_Bitmap;
+    command->ch.arena_used = arena->used;
+    command->ch.rect = rect;
     command->image = image;
 }
 
@@ -349,10 +366,10 @@ draw_pixel(RenderBuffer *render_buffer, v2 position, RGBA color){
 }
 
 static void
-draw_line(RenderBuffer *render_buffer, v2 position, v2 direction, RGBA color){
-    v2 point1 = round_v2(position);
+draw_line(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
+    v2 point1 = make_v2(round_f32(rect.x), round_f32(rect.y));
     v2 point2 = point1;
-    v2 non_normalized_direction = (v2){position.x + direction.x, position.y + direction.y};
+    v2 non_normalized_direction = (v2){rect.x + direction.x, rect.y + direction.y};
     direction = round_v2(non_normalized_direction);
 
     f32 distance_x =  abs_f32(direction.x - point1.x);
@@ -395,30 +412,31 @@ draw_line(RenderBuffer *render_buffer, v2 position, v2 direction, RGBA color){
 }
 
 static void
-draw_ray(RenderBuffer *render_buffer, v2 position, v2 direction, RGBA color){
-    position = round_v2(position);
+draw_ray(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
+    rect.x = round_f32(rect.x);
+    rect.y = round_f32(rect.y);
     v2 non_normalized_direction = round_v2((v2){(direction.x * 100000), (direction.y * 100000)});
-    v2 new_direction = (v2){position.x + non_normalized_direction.x, position.y + non_normalized_direction.y};
+    v2 new_direction = (v2){rect.x + non_normalized_direction.x, rect.y + non_normalized_direction.y};
 
-    f32 distance_x =  abs_f32(new_direction.x - position.x);
-    f32 distance_y = -abs_f32(new_direction.y - position.y);
-    f32 step_x = position.x < new_direction.x ? 1.0f : -1.0f;
-    f32 step_y = position.y < new_direction.y ? 1.0f : -1.0f;
+    f32 distance_x =  abs_f32(new_direction.x - rect.x);
+    f32 distance_y = -abs_f32(new_direction.y - rect.y);
+    f32 step_x = rect.x < new_direction.x ? 1.0f : -1.0f;
+    f32 step_y = rect.y < new_direction.y ? 1.0f : -1.0f;
 
     f32 error = distance_x + distance_y;
 
     for(;;){
-        draw_pixel(render_buffer, position, color); // NOTE: before break, so you can draw a single position draw_segment (a pixel)
-        if(position.x < 0 || position.x > render_buffer->width || position.y < 0 || position.y > render_buffer->height)break;
+        draw_pixel(render_buffer, make_v2(rect.x, rect.y), color); // NOTE: before break, so you can draw a single position draw_segment (a pixel)
+        if(rect.x < 0 || rect.x > render_buffer->width || rect.y < 0 || rect.y > render_buffer->height)break;
 
         f32 error2 = 2 * error;
         if (error2 >= distance_y){
             error += distance_y;
-            position.x += step_x;
+            rect.x += step_x;
         }
         if (error2 <= distance_x){
             error += distance_x;
-            position.y += step_y;
+            rect.y += step_y;
         }
     }
 }
@@ -551,8 +569,21 @@ draw_triangle(RenderBuffer *render_buffer, v2 p0, v2 p1, v2 p2, RGBA color, bool
     }
 }
 
+// TODO: Fix this clear color. pull out the lookup
 static void
-clear(RenderBuffer *render_buffer, v2 position, v2 size, RGBA color){
+clear(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
+    //(u8*)render_buffer->buffer + (render_buffer->height + position.y * render_buffer->height
+    for(s32 i=0; i < (render_buffer->width * render_buffer->height); ++i){
+        u32 *pixel = (u32 *)((u8 *)(render_buffer->base) + (i * render_buffer->bytes_per_pixel));
+        u32 new_color = (round_f32_s32(color.a * 255.0f) << 24 | round_f32_s32(color.r*255.0f) << 16 | round_f32_s32(color.g*255.0f) << 8 | round_f32_s32(color.b*255.0f) << 0);
+        *pixel = new_color;
+    }
+}
+
+// TODO: Fix this clear color. pull out the lookup
+// TODO: clear only a region
+static void
+clear_region(RenderBuffer *render_buffer, Rect region, RGBA color={0, 0, 0, 1}){
     //(u8*)render_buffer->buffer + (render_buffer->height + position.y * render_buffer->height
     for(s32 i=0; i < (render_buffer->width * render_buffer->height); ++i){
         u32 *pixel = (u32 *)((u8 *)(render_buffer->base) + (i * render_buffer->bytes_per_pixel));
@@ -562,12 +593,12 @@ clear(RenderBuffer *render_buffer, v2 position, v2 size, RGBA color){
 }
 
 static void
-draw_bitmap_clip(RenderBuffer *render_buffer, v2 position, Bitmap image, v4 clip_region){
+draw_bitmap_clip(RenderBuffer *render_buffer, Rect rect, Bitmap image, v4 clip_region){
     //v4 cr = {100, 300, 200, 200};
-    Rect cr = rect((v2){100, 300}, (v2s32){200, 200});
+    Rect cr = make_rect(100, 300, 200, 200);
     if(clip_region == (v4){0,0,0,0}){
-        f32 rounded_x = round_f32(position.x);
-        f32 rounded_y = round_f32(position.y);
+        f32 rounded_x = round_f32(rect.x);
+        f32 rounded_y = round_f32(rect.y);
         for(f32 y=rounded_y; y < rounded_y + image.height; ++y){
             for(f32 x=rounded_x; x < rounded_x + image.width; ++x){
                 RGBA color = u32_to_rgba(*image.pixels++);
@@ -577,19 +608,19 @@ draw_bitmap_clip(RenderBuffer *render_buffer, v2 position, Bitmap image, v4 clip
     }
     else{
         //v4 result = {position.x, position.y, image.width, image.height};
-        Rect result = rect(position, (v2s32){(s32)image.width, (s32)image.height});
+        Rect result = make_rect(rect.x, rect.y, image.width, image.height);
 
-        if(position.x < cr.x){
+        if(rect.x < cr.x){
             result.x = cr.x;
-            result.w = image.width - (cr.x - position.x);
+            result.w = image.width - (cr.x - rect.x);
         }
         if((result.x + result.w) > (cr.x + cr.w)){
             result.w = result.w - ((result.x + result.w) - (cr.x + cr.w));
         }
 
-        if(position.y < cr.y){
+        if(rect.y < cr.y){
             result.y = cr.y;
-            result.h = image.height - (cr.y - position.y);
+            result.h = image.height - (cr.y - rect.y);
         }
         if((result.y + result.h) > (cr.y + cr.h)){
             result.h = result.h - ((result.y + result.h) - (cr.y + cr.h));
@@ -599,8 +630,8 @@ draw_bitmap_clip(RenderBuffer *render_buffer, v2 position, Bitmap image, v4 clip
         u32 rounded_y = round_f32_u32(result.y);
 
         // clamp is wrong here, was 1 n 0 now 0 n 1
-        u32 x_shift = (u32)clamp_f32(0, (cr.x - position.x), 100000);
-        u32 y_shift = (u32)clamp_f32(0, (cr.y - position.y), 100000);
+        u32 x_shift = (u32)clamp_f32(0, (cr.x - rect.x), 100000);
+        u32 y_shift = (u32)clamp_f32(0, (cr.y - rect.y), 100000);
 
         u32 iy = 0;
         for(u32 y = rounded_y; y < rounded_y + result.h; ++y){
@@ -618,16 +649,16 @@ draw_bitmap_clip(RenderBuffer *render_buffer, v2 position, Bitmap image, v4 clip
 }
 
 static void
-draw_bitmap(RenderBuffer *render_buffer, v2 position, Bitmap image){
-    draw_bitmap_clip(render_buffer, position, image, (v4){0,0,0,0});
+draw_bitmap(RenderBuffer *render_buffer, Rect rect, Bitmap image){
+    draw_bitmap_clip(render_buffer, rect, image, (v4){0,0,0,0});
 }
 
 static void
-draw_rect_slow(RenderBuffer *render_buffer, v2 position, v2s32 dimension, RGBA color){
-    v2 p0 = {position.x, position.y};
-    v2 p1 = {position.x + dimension.w, position.y};
-    v2 p2 = {position.x, position.y + dimension.h};
-    v2 p3 = {position.x + dimension.w, position.y + dimension.h};
+draw_rect_slow(RenderBuffer *render_buffer, Rect rect, RGBA color){
+    v2 p0 = {rect.x, rect.y};
+    v2 p1 = {rect.x + rect.w, rect.y};
+    v2 p2 = {rect.x, rect.y + rect.h};
+    v2 p3 = {rect.x + rect.w, rect.y + rect.h};
 
     for(f32 y=p0.y; y <= p2.y; ++y){
         for(f32 x=p0.x; x <= p1.x; ++x){
@@ -636,15 +667,15 @@ draw_rect_slow(RenderBuffer *render_buffer, v2 position, v2s32 dimension, RGBA c
     }
 }
 
-static void draw_rect(RenderBuffer *render_buffer, v2 position, v2s32 dimension, RGBA color){
+static void draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
     // round position
-    v2s32 bottom_left = round_v2_v2s32(position);
+    v2s32 bottom_left = make_v2s32(round_f32(rect.x), round_f32(rect.y));
 
     // get min/max of rect
     s32 min_x = bottom_left.x;
-    s32 max_x = bottom_left.x + dimension.w;
+    s32 max_x = bottom_left.x + rect.w;
     s32 min_y = bottom_left.y;
-    s32 max_y = bottom_left.y + dimension.h;
+    s32 max_y = bottom_left.y + rect.h;
 
     // clamp min/max of rect to render_buffer
     if(min_x < 0) { min_x = 0; }
@@ -758,11 +789,11 @@ static void draw_rect(RenderBuffer *render_buffer, v2 position, v2s32 dimension,
 }
 
 static void
-draw_box(RenderBuffer *render_buffer, v2 position, v2s32 dimension, RGBA color){
-    v2 p0 = {position.x, position.y};
-    v2 p1 = {position.x + dimension.w, position.y};
-    v2 p2 = {position.x + dimension.w, position.y + dimension.h};
-    v2 p3 = {position.x, position.y + dimension.h};
+draw_box(RenderBuffer *render_buffer, Rect rect, RGBA color){
+    v2 p0 = {rect.x, rect.y};
+    v2 p1 = {rect.x + rect.w, rect.y};
+    v2 p2 = {rect.x + rect.w, rect.y + rect.h};
+    v2 p3 = {rect.x, rect.y + rect.h};
 
     draw_segment(render_buffer, p0, p1, color);
     draw_segment(render_buffer, p1, p2, color);
