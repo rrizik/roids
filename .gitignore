@@ -1,0 +1,7 @@
+
+build
+*.*~
+*.rdbg
+*.bat
+*.vim
+todo.txt
