@@ -178,7 +178,7 @@ add_line(PermanentMemory* pm, Rect rect, v2 direction, RGBA color){
 }
 
 static Entity*
-add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 border_size = 0, RGBA border_color = {0, 0, 0, 0}, bool border_extrudes = true){
+add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 border_size = 0, RGBA border_color = {0, 0, 0, 0}, bool border_extrudes = false){
     Entity* e = add_entity(pm, EntityType_Rect);
     e->rect = rect;
     e->color = color;
@@ -349,9 +349,9 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Controller* controller,
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
         add_rect(pm, make_rect(200, 500, 100, 100), ORANGE);
-        add_rect(pm, make_rect(350, 500, 100, 100), TEAL, 10, BLUE, false);
-        add_rect(pm, make_rect(650, 500, 100, 100), RED, 10, YELLOW, false);
-        add_rect(pm, make_rect(500, 500, 100, 100), GREEN, 10, ARMY_GREEN);
+        add_rect(pm, make_rect(350, 500, 100, 100), TEAL, 10, BLUE);
+        add_rect(pm, make_rect(650, 500, 100, 100), RED, 10, YELLOW);
+        add_rect(pm, make_rect(500, 500, 100, 100), GREEN, 10, ARMY_GREEN, true);
 
         dt = clock->dt;
         memory->initialized = true;
