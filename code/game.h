@@ -25,6 +25,7 @@ typedef struct Entity{
     RGBA color;
     s32 border_size;
     RGBA border_color;
+    bool border_extrudes;
     s32 z;
 
 
@@ -177,12 +178,13 @@ add_line(PermanentMemory* pm, Rect rect, v2 direction, RGBA color){
 }
 
 static Entity*
-add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 border_size = 0, RGBA border_color = {0, 0, 0, 0}){
+add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 border_size = 0, RGBA border_color = {0, 0, 0, 0}, bool border_extrudes = true){
     Entity* e = add_entity(pm, EntityType_Rect);
     e->rect = rect;
     e->color = color;
     e->border_size = border_size;
     e->border_color = border_color;
+    e->border_extrudes = border_extrudes;
     return(e);
 }
 
@@ -270,11 +272,6 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
             } break;
             case RenderCommand_Rect:{
                 RectCommand *command = (RectCommand*)base_command;
-                // draw border if set
-                if(command->ch.border_size){
-                    Rect border_rect = get_border_rect(command->ch.rect, command->ch.border_size);
-                    draw_rect(render_buffer, border_rect, command->ch.border_color);
-                }
                 draw_rect(render_buffer, command->ch.rect, command->ch.color);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
@@ -351,8 +348,10 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Controller* controller,
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        add_rect(pm, make_rect(100, 100, 100, 100), RED);
-        add_rect(pm, make_rect(500, 500, 100, 100), GREEN, 5, ARMY_GREEN);
+        add_rect(pm, make_rect(200, 500, 100, 100), ORANGE);
+        add_rect(pm, make_rect(350, 500, 100, 100), TEAL, 10, BLUE, false);
+        add_rect(pm, make_rect(650, 500, 100, 100), RED, 10, YELLOW, false);
+        add_rect(pm, make_rect(500, 500, 100, 100), GREEN, 10, ARMY_GREEN);
 
         dt = clock->dt;
         memory->initialized = true;
@@ -380,11 +379,19 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Controller* controller,
                 push_ray(render_command_arena, e->rect, e->direction, e->color);
             }break;
             case EntityType_Rect:{
-                if(e->border_size){
-                    push_rect(render_command_arena, e->rect, e->color, e->border_size, e->border_color);
+                if(e->border_extrudes){
+                    if(e->border_size){
+                        Rect border_rect = rect_get_border_extruding(e->rect, e->border_size);
+                        push_rect(render_command_arena, border_rect, e->border_color);
+                    }
+                    push_rect(render_command_arena, e->rect, e->color);
                 }
                 else{
-                    push_rect(render_command_arena, e->rect, e->color);
+                    if(e->border_size){
+                        push_rect(render_command_arena, e->rect, e->border_color);
+                    }
+                    Rect border_rect = rect_get_border_intruding(e->rect, e->border_size);
+                    push_rect(render_command_arena, border_rect, e->color);
                 }
             }break;
             case EntityType_Box:{

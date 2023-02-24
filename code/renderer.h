@@ -1,7 +1,11 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-// TODO: I think I can remove this
+// STUDY: Why do I have to import this in this file.
+// why cant I import it in game.h
+#include "rect.h"
+
+// SIMD
 #include <emmintrin.h>
 
 #pragma pack(push, 1)
@@ -61,67 +65,6 @@ u32_to_rgba(u32 value){
 	f32 blue =  ((f32)((value >> 0) & 0xFF) / 255.0f);
     RGBA result = {red, green, blue, alpha};
     return result;
-}
-
-typedef struct Rect{
-    f32 x;
-    f32 y;
-    s32 w;
-    s32 h;
-} Rect;
-
-static Rect
-make_rect(f32 x, f32 y, s32 w, s32 h){
-    Rect result = {0};
-    result.x = x;
-    result.y = y;
-    result.w = w;
-    result.h = h;
-    return(result);
-}
-
-static bool
-rect_collides_rect(Rect r1, Rect r2){
-    if((r1.x < r2.x + r2.w) &&
-       (r1.x + r1.w > r2.x) &&
-       (r1.y < r2.y + r2.h) &&
-       (r1.y + r1.h > r2.y)){
-        return true;
-    }
-    return false;
-}
-
-static bool
-rect_collides_point(Rect r1, v2 p){
-    if((p.x < r1.x + r1.w) &&
-       (p.x > r1.x) &&
-       (p.y < r1.y + r1.h) &&
-       (p.y > r1.y)){
-        return true;
-    }
-    return false;
-}
-
-static bool
-rect_contains_rect(Rect r1, Rect r2){
-    if((r2.x > r1.x) &&
-       (r2.x + r2.w < r1.x + r1.w) &&
-       (r2.y > r1.y) &&
-       (r2.y + r2.h < r1.y + r1.h)){
-        return true;
-    }
-    return false;
-}
-
-static Rect
-get_border_rect(Rect rect, s32 border_size){
-    Rect result = {
-        rect.x - border_size,
-        rect.y - border_size,
-        rect.w + (border_size * 2),
-        rect.h + (border_size * 2),
-    };
-    return(result);
 }
 
 typedef enum RenderCommandType{
@@ -273,8 +216,8 @@ push_rect(Arena *arena, Rect rect, RGBA color, s32 border_size = 0, RGBA border_
     command->ch.arena_used = arena->used;
     command->ch.rect = rect;
     command->ch.color = color;
-    command->ch.border_size = border_size;
-    command->ch.border_color = border_color;
+    //command->ch.border_size = border_size;
+    //command->ch.border_color = border_color;
 }
 
 static void
