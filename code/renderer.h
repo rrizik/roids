@@ -1,10 +1,6 @@
 #ifndef RENDERER_H
 #define RENDERER_H
 
-// STUDY: Why do I have to import this in this file.
-// why cant I import it in game.h
-#include "rect.h"
-
 // SIMD
 #include <emmintrin.h>
 
@@ -217,7 +213,7 @@ push_rect(Arena *arena, Rect rect, RGBA color, s32 border_size = 0, RGBA border_
     command->ch.rect = rect;
     command->ch.color = color;
     //command->ch.border_size = border_size;
-    //command->ch.border_color = border_color;
+    command->ch.border_color = border_color;
 }
 
 static void

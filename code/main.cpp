@@ -74,15 +74,158 @@ typedef struct Memory{
     bool initialized;
 } Memory;
 
+typedef enum KeyCode{
+    UNKOWN,
+
+    L_MOUSE_BUTTON,
+    R_MOUSE_BUTTON,
+    M_MOUSE_BUTTON = 4,
+
+    BACKSPACE = 8,
+    TAB = 9,
+    ENTER = 13,
+    ESCAPE = 27,
+    SPACEBAR = 32,
+
+	EXCLAMATION = 33,
+	QUOTATION = 34,
+	OCTOTHORP = 35,
+	DOLLAR = 36,
+	PERCENT = 37,
+	AMPERSAND = 38,
+	APOSTROPHE = 39,
+	OPEN_PARENTHESIS = 40,
+	CLOSE_PARENTHESIS = 4,
+	ASTERISK = 42,
+	PLUS_SIGN = 43,
+	COMMA = 44,
+	HYPHEN = 45,
+	PERIOD = 46,
+	SLASH = 47,
+	ZERO = 48,
+	ONE = 49,
+	TWO = 50,
+	THREE = 51,
+	FOUR = 52,
+	FIVE = 53,
+	SIX = 54,
+	SEVEN = 55,
+	EIGHT = 56,
+	NINE = 57,
+	COLON   = 58,
+	SEMICOLON = 59,
+	LESS_THAN = 60,
+	EQUALS_TO = 61,
+	GREATER_THAN = 62,
+	QUESTION_MARK = 63,
+	AT_SIGN = 64,
+	A_UPPER = 65,
+	B_UPPER = 66,
+	C_UPPER = 67,
+	D_UPPER = 68,
+	E_UPPER = 69,
+	F_UPPER = 70,
+	G_UPPER = 71,
+	H_UPPER = 72,
+	I_UPPER = 73,
+	J_UPPER = 74,
+	K_UPPER = 75,
+	L_UPPER = 76,
+	M_UPPER = 77,
+	N_UPPER = 78,
+	O_UPPER = 79,
+	P_UPPER = 80,
+	Q_UPPER = 81,
+	R_UPPER = 82,
+	S_UPPER = 83,
+	T_UPPER = 84,
+	U_UPPER = 85,
+	V_UPPER = 86,
+	W_UPPER = 87,
+	X_UPPER = 88,
+	Y_UPPER = 89,
+	Z_UPPER = 90,
+	LEFT_SQUARE_BRACKET = 91,
+	BACKSLASH = 92,
+	RIGHT_SQUARE_BRACKET = 93,
+	CARET = 94,
+	UNDERSCORE = 95,
+	GRAVE_ACCENT = 96,
+	LOWERCASE_A = 97,
+	LOWERCASE_B = 98,
+	LOWERCASE_C = 99,
+ 	LOWERCASE_D = 100,
+ 	LOWERCASE_E = 101,
+ 	LOWERCASE_F = 102,
+ 	LOWERCASE_G = 103,
+ 	LOWERCASE_H = 104,
+ 	LOWERCASE_I = 105,
+ 	LOWERCASE_J = 106,
+ 	LOWERCASE_K = 107,
+ 	LOWERCASE_L = 108,
+ 	LOWERCASE_M = 119,
+ 	LOWERCASE_N = 110,
+ 	LOWERCASE_O = 111,
+ 	LOWERCASE_P = 112,
+ 	LOWERCASE_Q = 113,
+ 	LOWERCASE_R = 114,
+ 	LOWERCASE_S = 115,
+ 	LOWERCASE_T = 116,
+ 	LOWERCASE_U = 117,
+ 	LOWERCASE_V = 118,
+ 	LOWERCASE_W = 119,
+ 	LOWERCASE_X = 120,
+ 	LOWERCASE_Y = 121,
+ 	LOWERCASE_Z = 122,
+ 	LEFT_CURLY_BRACE = 123,
+ 	VERTICAL_BAR = 124,
+ 	RIGHT_CURLY_BRACE = 125,
+ 	TILDE = 126,
+ 	DEL = 127,
+} KeyCode;
+
+typedef enum EventType{
+    KEYBOARD,
+    TEXT_INPUT,
+} EventType;
+
+typedef struct Event{
+    EventType type;
+    u64 keycode;
+
+    bool key_pressed;
+    bool shift_pressed;
+    bool ctrl_pressed;
+    bool alt_pressed;
+    bool repeat;
+} Event;
+
+typedef struct Events{
+    Event e[256];
+    s32 count;
+} Events;
+
 global bool global_running;
 global RenderBuffer render_buffer;
 global Controller controller;
 global Memory memory;
 global Clock clock;
+global Events events;
 
-#include "math.h"
-#include "renderer.h"
-#include "ui.h"
+bool alt_pressed;
+bool shift_pressed;
+bool ctrl_pressed;
+
+static void
+events_add(Events* events, Event event){
+    events->e[++events->count] = event;
+}
+
+static void
+events_flush(Events* events){
+	events->count = -1;
+}
+
 
 static s64 get_ticks(){
     LARGE_INTEGER result;
@@ -169,7 +312,7 @@ update_window(HWND window, RenderBuffer render_buffer){
 
 #include "game.h"
 
-LRESULT win_message_handler_callback(HWND hwnd, UINT message, WPARAM w_param, LPARAM l_param){
+LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
     LRESULT result = 0;
 
     switch(message){
@@ -185,63 +328,71 @@ LRESULT win_message_handler_callback(HWND hwnd, UINT message, WPARAM w_param, LP
             OutputDebugStringA("quiting\n");
             global_running = false;
         } break;
-        case WM_MOUSEMOVE: {
-            controller.mouse_pos.x = (s32)(l_param & 0xFFFF);
+        case WM_MOUSEMOVE:{
+            //controller.mouse_pos.x = (s32)(l_param & 0xFFFF);
             controller.mouse_pos.y = render_buffer.height - (s32)(l_param >> 16);
+            break;
         } break;
-        case WM_LBUTTONUP:{ controller.m_left.held = false; } break;
-        case WM_RBUTTONUP:{ controller.m_right.held = false; } break;
-        case WM_MBUTTONUP:{ controller.m_middle.held = false; } break;
-        case WM_LBUTTONDOWN:{ controller.m_left = {true, true}; } break;
-        case WM_RBUTTONDOWN:{ controller.m_right = {true, true}; } break;
-        case WM_MBUTTONDOWN:{ controller.m_middle = {true, true}; } break;
 
-        case WM_SYSKEYDOWN:
-        case WM_SYSKEYUP:
-        case WM_KEYDOWN:
-        case WM_KEYUP:{
-            bool was_down = ((l_param & (1 << 30)) != 0);
-            bool is_down = ((l_param & (1 << 31)) == 0);
-            if(is_down != was_down){
-                switch(w_param){
-                    case 'W':{
-                        controller.up.held = is_down;
-                        controller.up.pressed = is_down;
-                    } break;
-                    case 'S':{
-                        controller.down.held = is_down;
-                        controller.down.pressed = is_down;
-                    } break;
-                    case 'A':{
-                        controller.left.held = is_down;
-                        controller.left.pressed = is_down;
-                    } break;
-                    case 'D':{
-                        controller.right.held = is_down;
-                        controller.right.pressed = is_down;
-                    } break;
-                    case '1':{
-                        controller.one.held = is_down;
-                        controller.one.pressed = is_down;
-                    } break;
-                    case '2':{
-                        controller.two.held = is_down;
-                        controller.two.pressed = is_down;
-                    } break;
-                    case '3':{
-                        controller.three.held = is_down;
-                        controller.three.pressed = is_down;
-                    } break;
-                    case '4':{
-                        controller.four.held = is_down;
-                        controller.four.pressed = is_down;
-                    } break;
-                    case VK_ESCAPE:{
-                        OutputDebugStringA("quiting\n");
-                        global_running = false;
-                    } break;
-                }
+        //case WM_LBUTTONUP:
+        //case WM_RBUTTONUP:
+        //case WM_MBUTTONUP:
+        //case WM_LBUTTONDOWN:
+        //case WM_RBUTTONDOWN:
+        //case WM_MBUTTONDOWN:{
+        //    print("VK_CODE: %llu\n", w_param);
+        //} break;
+
+        case WM_CHAR:{
+            u64 keycode = w_param;
+
+            if(keycode > 31){
+                Event event;
+                event.type = TEXT_INPUT;
+                event.keycode = keycode;
+                events_add(&events, event);
             }
+
+        } break;
+        case WM_SYSKEYDOWN:
+        case WM_KEYDOWN: {
+            Event event;
+            event.type = KEYBOARD;
+            event.keycode = w_param; // TODO figure out how to use this to get the right keycode
+            event.repeat = ((s32)l_param) & 0x40000000;
+
+            event.key_pressed = 1;
+            event.alt_pressed =   alt_pressed;
+            event.shift_pressed = shift_pressed;
+            event.ctrl_pressed =  ctrl_pressed;
+
+            events_add(&events, event);
+
+            if(w_param == VK_MENU)    { alt_pressed   = true; }
+            if(w_param == VK_SHIFT)   { shift_pressed = true; }
+            if(w_param == VK_CONTROL) { ctrl_pressed  = true; }
+            if(w_param == VK_ESCAPE){
+                OutputDebugStringA("quiting\n");
+                print("%i - %i\n", VK_ESCAPE, ESCAPE);
+                //global_running = false;
+            } break;
+        } break;
+        case WM_SYSKEYUP:
+        case WM_KEYUP:{
+            Event event;
+            event.type = KEYBOARD;
+            event.keycode = w_param; // TODO figure out how to use this to get the right keycode
+
+            event.key_pressed = 0;
+            event.alt_pressed =   alt_pressed;
+            event.shift_pressed = shift_pressed;
+            event.ctrl_pressed =  ctrl_pressed;
+
+            events_add(&events, event);
+
+            if(w_param == VK_MENU)    { alt_pressed   = false; }
+            if(w_param == VK_SHIFT)   { shift_pressed = false; }
+            if(w_param == VK_CONTROL) { ctrl_pressed  = false; }
         } break;
         default:{
             result = DefWindowProcW(hwnd, message, w_param, l_param);
@@ -314,7 +465,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         accumulator += frame_time;
         while(accumulator >= clock.dt){
-            update_game(&memory, &render_buffer, &controller, &clock);
+            update_game(&memory, &render_buffer, &events, &controller, &clock);
             accumulator -= clock.dt;
             simulations++;
             //TODO: put in a function
@@ -339,10 +490,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             second_marker = clock.get_ticks();
             frame_count = 0;
         }
-        print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - time_elapsed: %f\n", FPS, MSPF, clock.dt, accumulator, frame_time, time_elapsed);
+        //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - time_elapsed: %f\n", FPS, MSPF, clock.dt, accumulator, frame_time, time_elapsed);
 
         draw_commands(&render_buffer, render_buffer.render_command_arena);
         update_window(window, render_buffer);
+        events_flush(&events);
 
         if(simulations){
             //handle_debug_counters(simulations);

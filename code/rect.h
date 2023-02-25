@@ -10,11 +10,12 @@ typedef struct Rect{
 
 static Rect
 make_rect(f32 x, f32 y, s32 w, s32 h){
-    Rect result = {0};
-    result.x = x;
-    result.y = y;
-    result.w = w;
-    result.h = h;
+    Rect result = {
+        x = x,
+        y = y,
+        w = w,
+        h = h,
+    };
     return(result);
 }
 

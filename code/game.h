@@ -1,70 +1,10 @@
+#ifndef GAME_H
+#define GAME_H
+
 #include "math.h"
+#include "rect.h"
 #include "renderer.h"
-
-typedef enum {EntityFlag_Movable} EntityFlags;
-typedef enum {EntityType_None, EntityType_Object, EntityType_Pixel, EntityType_Line, EntityType_Ray, EntityType_Segment, EntityType_Triangle, EntityType_Rect, EntityType_Quad, EntityType_Box, EntityType_Circle, EntityType_Bitmap, } EntityType;
-
-typedef struct EntityHandle{
-    u32 index;
-    u32 generation;
-} EntityHandle;
-
-static EntityHandle
-zero_entity_handle(){
-    EntityHandle result = {0};
-    return(result);
-}
-
-typedef struct Entity{
-    u32 index;
-    u32 generation;
-
-    EntityType type;
-    u32 flags;
-    Rect rect;
-    RGBA color;
-    s32 border_size;
-    RGBA border_color;
-    bool border_extrudes;
-    s32 z;
-
-
-    v2 direction;
-    f32 rad;
-
-    f32 speed;
-
-    v2 p0 = p0;
-    v2 p1 = p1;
-    v2 p2 = p2;
-    v2 p3 = p3;
-
-    bool fill = fill;
-
-    Bitmap image;
-    bool render;
-} Entity;
-
-static bool
-has_flags(Entity *e, u32 flags){
-    return(e->flags & flags);
-}
-
-static void
-set_flags(Entity *e, u32 flags){
-    e->flags |= flags;
-}
-
-static void
-clear_flags(Entity *e, u32 flags){
-    e->flags &= ~flags;
-}
-
-typedef struct Array{
-    Entity* element[1000];
-    u32 count = 1000;
-    u32 at = 0;
-} Array;
+#include "entity.h"
 
 typedef struct PermanentMemory{
     Arena arena;
@@ -131,14 +71,6 @@ add_entity(PermanentMemory *pm, EntityType type){
 
         return(e);
     }
-    //if(pm->entities_at < pm->entities_size){
-    //    Entity *result = pm->entities + pm->entities_at;
-    //    result->index = pm->entities_at;
-    //    result->type = type;
-    //    pm->entities_at++;
-
-    //    return(result->index);
-    //}
     return(0);
 }
 
@@ -306,10 +238,10 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
 
 PermanentMemory* pm;
 TransientMemory* tm;
-f64 dt;
+Entity* console;
 
 static void
-update_game(Memory* memory, RenderBuffer* render_buffer, Controller* controller, Clock* clock){
+update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Controller* controller, Clock* clock){
     Assert(sizeof(PermanentMemory) < memory->permanent_size);
     Assert(sizeof(TransientMemory) < memory->transient_size);
     pm = (PermanentMemory*)memory->permanent_base;
@@ -348,17 +280,36 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Controller* controller,
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        add_rect(pm, make_rect(200, 500, 100, 100), ORANGE);
-        add_rect(pm, make_rect(350, 500, 100, 100), TEAL, 10, BLUE);
-        add_rect(pm, make_rect(650, 500, 100, 100), RED, 10, YELLOW);
-        add_rect(pm, make_rect(500, 500, 100, 100), GREEN, 10, ARMY_GREEN, true);
+        console = add_rect(pm, make_rect(0, SCREEN_HEIGHT-100, SCREEN_WIDTH, 500), ARMY_GREEN);
+        console->draw = true;
 
-        dt = clock->dt;
         memory->initialized = true;
     }
-
     arena_free(render_buffer->render_command_arena);
     push_clear_color(render_buffer->render_command_arena, BLACK);
+
+    for(s32 i = 0; i <= events->count; ++i){
+        Event event = events->e[i];
+        if(event.type == KEYBOARD){
+            if(event.key_pressed){
+                if(event.keycode == ESCAPE){
+                    global_running = false;
+                }
+                if(event.keycode == 'D'){
+                    controller->right.pressed = true;
+                }
+            }
+            else{
+                if(event.keycode == 'D'){
+                    controller->right.pressed = false;
+                }
+            }
+        }
+    }
+
+    if(controller->right.pressed){
+        console->rect.x += 100 * clock->dt;
+    }
 
 
     Arena* render_command_arena = render_buffer->render_command_arena;
@@ -416,3 +367,5 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Controller* controller,
         }
     }
 }
+
+#endif
