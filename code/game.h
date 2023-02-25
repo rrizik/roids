@@ -295,7 +295,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                 if(event.keycode == ESCAPE){
                     global_running = false;
                 }
-                if(event.keycode == 'D'){
+                if(event.keycode == '`'){
                     controller->right.pressed = true;
                 }
             }

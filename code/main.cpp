@@ -43,6 +43,8 @@ typedef struct Controller{
     Button m_right;
     Button m_middle;
     v2 mouse_pos;
+
+    bool open_console;
 } Controller;
 
 typedef struct RenderBuffer{
@@ -74,158 +76,13 @@ typedef struct Memory{
     bool initialized;
 } Memory;
 
-typedef enum KeyCode{
-    UNKOWN,
-
-    L_MOUSE_BUTTON,
-    R_MOUSE_BUTTON,
-    M_MOUSE_BUTTON = 4,
-
-    BACKSPACE = 8,
-    TAB = 9,
-    ENTER = 13,
-    ESCAPE = 27,
-    SPACEBAR = 32,
-
-	EXCLAMATION = 33,
-	QUOTATION = 34,
-	OCTOTHORP = 35,
-	DOLLAR = 36,
-	PERCENT = 37,
-	AMPERSAND = 38,
-	APOSTROPHE = 39,
-	OPEN_PARENTHESIS = 40,
-	CLOSE_PARENTHESIS = 4,
-	ASTERISK = 42,
-	PLUS_SIGN = 43,
-	COMMA = 44,
-	HYPHEN = 45,
-	PERIOD = 46,
-	SLASH = 47,
-	ZERO = 48,
-	ONE = 49,
-	TWO = 50,
-	THREE = 51,
-	FOUR = 52,
-	FIVE = 53,
-	SIX = 54,
-	SEVEN = 55,
-	EIGHT = 56,
-	NINE = 57,
-	COLON   = 58,
-	SEMICOLON = 59,
-	LESS_THAN = 60,
-	EQUALS_TO = 61,
-	GREATER_THAN = 62,
-	QUESTION_MARK = 63,
-	AT_SIGN = 64,
-	A_UPPER = 65,
-	B_UPPER = 66,
-	C_UPPER = 67,
-	D_UPPER = 68,
-	E_UPPER = 69,
-	F_UPPER = 70,
-	G_UPPER = 71,
-	H_UPPER = 72,
-	I_UPPER = 73,
-	J_UPPER = 74,
-	K_UPPER = 75,
-	L_UPPER = 76,
-	M_UPPER = 77,
-	N_UPPER = 78,
-	O_UPPER = 79,
-	P_UPPER = 80,
-	Q_UPPER = 81,
-	R_UPPER = 82,
-	S_UPPER = 83,
-	T_UPPER = 84,
-	U_UPPER = 85,
-	V_UPPER = 86,
-	W_UPPER = 87,
-	X_UPPER = 88,
-	Y_UPPER = 89,
-	Z_UPPER = 90,
-	LEFT_SQUARE_BRACKET = 91,
-	BACKSLASH = 92,
-	RIGHT_SQUARE_BRACKET = 93,
-	CARET = 94,
-	UNDERSCORE = 95,
-	GRAVE_ACCENT = 96,
-	LOWERCASE_A = 97,
-	LOWERCASE_B = 98,
-	LOWERCASE_C = 99,
- 	LOWERCASE_D = 100,
- 	LOWERCASE_E = 101,
- 	LOWERCASE_F = 102,
- 	LOWERCASE_G = 103,
- 	LOWERCASE_H = 104,
- 	LOWERCASE_I = 105,
- 	LOWERCASE_J = 106,
- 	LOWERCASE_K = 107,
- 	LOWERCASE_L = 108,
- 	LOWERCASE_M = 119,
- 	LOWERCASE_N = 110,
- 	LOWERCASE_O = 111,
- 	LOWERCASE_P = 112,
- 	LOWERCASE_Q = 113,
- 	LOWERCASE_R = 114,
- 	LOWERCASE_S = 115,
- 	LOWERCASE_T = 116,
- 	LOWERCASE_U = 117,
- 	LOWERCASE_V = 118,
- 	LOWERCASE_W = 119,
- 	LOWERCASE_X = 120,
- 	LOWERCASE_Y = 121,
- 	LOWERCASE_Z = 122,
- 	LEFT_CURLY_BRACE = 123,
- 	VERTICAL_BAR = 124,
- 	RIGHT_CURLY_BRACE = 125,
- 	TILDE = 126,
- 	DEL = 127,
-} KeyCode;
-
-typedef enum EventType{
-    KEYBOARD,
-    TEXT_INPUT,
-} EventType;
-
-typedef struct Event{
-    EventType type;
-    u64 keycode;
-
-    bool key_pressed;
-    bool shift_pressed;
-    bool ctrl_pressed;
-    bool alt_pressed;
-    bool repeat;
-} Event;
-
-typedef struct Events{
-    Event e[256];
-    s32 count;
-} Events;
-
 global bool global_running;
 global RenderBuffer render_buffer;
 global Controller controller;
 global Memory memory;
 global Clock clock;
+#include "input.h"
 global Events events;
-
-bool alt_pressed;
-bool shift_pressed;
-bool ctrl_pressed;
-
-static void
-events_add(Events* events, Event event){
-    events->e[++events->count] = event;
-}
-
-static void
-events_flush(Events* events){
-	events->count = -1;
-}
-
 
 static s64 get_ticks(){
     LARGE_INTEGER result;
@@ -308,8 +165,6 @@ update_window(HWND window, RenderBuffer render_buffer){
     }
 }
 
-
-
 #include "game.h"
 
 LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
@@ -361,6 +216,7 @@ LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_
             event.keycode = w_param; // TODO figure out how to use this to get the right keycode
             event.repeat = ((s32)l_param) & 0x40000000;
 
+            print("KEYCODE: %llu\n", event.keycode);
             event.key_pressed = 1;
             event.alt_pressed =   alt_pressed;
             event.shift_pressed = shift_pressed;
@@ -469,17 +325,17 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             accumulator -= clock.dt;
             simulations++;
             //TODO: put in a function
-            controller.up.pressed = false;
-            controller.down.pressed = false;
-            controller.left.pressed = false;
-            controller.right.pressed = false;
-            controller.one.pressed = false;
-            controller.two.pressed = false;
-            controller.three.pressed = false;
-            controller.four.pressed = false;
-            controller.m_right.pressed = false;
-            controller.m_left.pressed = false;
-            controller.m_middle.pressed = false;
+            //controller.up.pressed = false;
+            //controller.down.pressed = false;
+            //controller.left.pressed = false;
+            //controller.right.pressed = false;
+            //controller.one.pressed = false;
+            //controller.two.pressed = false;
+            //controller.three.pressed = false;
+            //controller.four.pressed = false;
+            //controller.m_right.pressed = false;
+            //controller.m_left.pressed = false;
+            //controller.m_middle.pressed = false;
         }
 
         frame_count++;

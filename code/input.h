@@ -1,0 +1,164 @@
+#ifndef INPUT_H
+#define INPUT_H
+
+typedef enum KeyCode{
+    UNKOWN = 0,
+
+    L_MOUSE_BUTTON = 1,
+    R_MOUSE_BUTTON = 2,
+    M_MOUSE_BUTTON = 4,
+
+    BACKSPACE = 8,
+    TAB       = 9,
+    ENTER     = 13,
+    ESCAPE    = 27,
+    SPACEBAR  = 32,
+    PAGE_UP   = 33,
+    PAGE_DOWN = 34,
+    END       = 35,
+    HOME      = 36,
+    INSERT    = 45,
+    //DELETE    = 46,
+
+	//EXCLAMATION = 33,
+	//QUOTATION =   34,
+	//OCTOTHORP =   35,
+	//DOLLAR =      36,
+	//PERCENT =     37,
+	//AMPERSAND =   38,
+	//APOSTROPHE =  39,
+	//OPEN_PARENTHESIS  = 40,
+	//CLOSE_PARENTHESIS = 41,
+	//ASTERISK =  42,
+	//PLUS_SIGN = 43,
+	//COMMA =  44,
+	//HYPHEN = 45,
+	//PERIOD = 46,
+	//SLASH =  47,
+	ZERO  = 48,
+	ONE   = 49,
+	TWO   = 50,
+	THREE = 51,
+	FOUR  = 52,
+	FIVE  = 53,
+	SIX   = 54,
+	SEVEN = 55,
+	EIGHT = 56,
+	NINE  = 57,
+	COLON = 58,
+	//SEMICOLON = 59,
+	//LESS_THAN = 60,
+	//EQUALS_TO = 61,
+	//GREATER_THAN = 62,
+	//QUESTION_MARK = 63,
+	//AT_SIGN = 64,
+	A_UPPER = 65,
+	B_UPPER = 66,
+	C_UPPER = 67,
+	D_UPPER = 68,
+	E_UPPER = 69,
+	F_UPPER = 70,
+	G_UPPER = 71,
+	H_UPPER = 72,
+	I_UPPER = 73,
+	J_UPPER = 74,
+	K_UPPER = 75,
+	L_UPPER = 76,
+	M_UPPER = 77,
+	N_UPPER = 78,
+	O_UPPER = 79,
+	P_UPPER = 80,
+	Q_UPPER = 81,
+	R_UPPER = 82,
+	S_UPPER = 83,
+	T_UPPER = 84,
+	U_UPPER = 85,
+	V_UPPER = 86,
+	W_UPPER = 87,
+	X_UPPER = 88,
+	Y_UPPER = 89,
+	Z_UPPER = 90,
+	//LEFT_SQUARE_BRACKET = 91,
+	//BACKSLASH = 92,
+	//RIGHT_SQUARE_BRACKET = 93,
+	//CARET = 94,
+	//UNDERSCORE = 95,
+	//GRAVE_ACCENT = 96,
+	//A_LOWER = 97,
+	//B_LOWER = 98,
+	//C_LOWER = 99,
+ 	//D_LOWER = 100,
+ 	//E_LOWER = 101,
+ 	//F_LOWER = 102,
+ 	//G_LOWER = 103,
+ 	//H_LOWER = 104,
+ 	//I_LOWER = 105,
+ 	//J_LOWER = 106,
+ 	//K_LOWER = 107,
+ 	//L_LOWER = 108,
+ 	//M_LOWER = 119,
+ 	//N_LOWER = 110,
+ 	//O_LOWER = 111,
+ 	//P_LOWER = 112,
+ 	//Q_LOWER = 113,
+ 	//R_LOWER = 114,
+ 	//S_LOWER = 115,
+ 	//T_LOWER = 116,
+ 	//U_LOWER = 117,
+ 	//V_LOWER = 118,
+ 	//W_LOWER = 119,
+ 	//X_LOWER = 120,
+ 	//Y_LOWER = 121,
+ 	//Z_LOWER = 122,
+ 	//LEFT_CURLY_BRACE =  123,
+ 	//VERTICAL_BAR =      124,
+ 	//RIGHT_CURLY_BRACE = 125,
+ 	//TILDA = 126,
+    F1 = 112,
+    F2 = 113,
+    F3 = 115,
+    F4 = 116,
+    F5 = 117,
+    F6 = 118,
+    F7 = 119,
+    F8 = 120,
+    F9 = 121,
+    F10 = 122,
+} KeyCode;
+
+typedef enum EventType{
+    KEYBOARD,
+    TEXT_INPUT,
+} EventType;
+
+typedef struct Event{
+    EventType type;
+    u64 keycode;
+
+    bool key_pressed;
+    bool shift_pressed;
+    bool ctrl_pressed;
+    bool alt_pressed;
+    bool repeat;
+} Event;
+
+typedef struct Events{
+    Event e[256];
+    s32 count;
+} Events;
+
+bool alt_pressed;
+bool shift_pressed;
+bool ctrl_pressed;
+
+static void
+events_add(Events* events, Event event){
+    events->e[++events->count] = event;
+}
+
+static void
+events_flush(Events* events){
+	events->count = -1;
+}
+
+#endif
