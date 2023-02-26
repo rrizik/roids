@@ -253,6 +253,7 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
 PermanentMemory* pm;
 TransientMemory* tm;
 
+
 f32 t = 0;
 static void
 update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Controller* controller, Clock* clock){
@@ -294,7 +295,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        pm->console = add_console(pm, make_rect(0, 700, SCREEN_WIDTH, 500), ARMY_GREEN);
+        pm->console = add_console(pm, make_rect(0, SCREEN_HEIGHT, SCREEN_WIDTH, 500), ARMY_GREEN);
 
         memory->initialized = true;
     }
@@ -351,51 +352,29 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     }
     //print("open_console: %i\n", controller->open_console);
 
-    u32 y_open = 550;
-    u32 y_open_big = 350;
-    u32 y_closed = 700;
+    u32 y_open = 500;
+    u32 y_open_big = 300;
+    u32 y_closed = SCREEN_HEIGHT;
     f32 open_speed = 1000.0f;
 
-    f32 lerp_speed =  1.f * clock->dt;
+    f32 lerp_speed =  4.0f * clock->dt;
     //print("console state: %i\n", console->console_state);
-    bool a = true;
     if(console->console_state == CLOSED){
         if(t < 1) {
             t += lerp_speed;
-            if(a){
-                console->rect.y = lerp(console->rect.y, t, y_closed);
-                //print("a\n");
-            }
-            else{
-                //print("not a\n");
-                console->rect.y = lerp(console->start_position, t, y_closed);
-            }
+            console->rect.y = lerp(console->start_position, smoothstep(t), y_closed);
         }
     }
     else if(console->console_state == OPEN){
         if(t < 1) {
             t += lerp_speed;
-            if(a){
-                console->rect.y = lerp(console->rect.y, t, y_open);
-                //print("a\n");
-            }
-            else{
-                //print("not a\n");
-                console->rect.y = lerp(console->start_position, t, y_open);
-            }
+            console->rect.y = lerp(console->start_position, smoothstep(t), y_open);
         }
     }
     else if(console->console_state == OPEN_BIG){
         if(t < 1) {
             t += lerp_speed;
-            if(a){
-                console->rect.y = lerp(console->rect.y, t, y_open_big);
-                //print("a\n");
-            }
-            else{
-                console->rect.y = lerp(console->start_position, t, y_open_big);
-                //print("not a\n");
-            }
+            console->rect.y = lerp(console->start_position, smoothstep(t), y_open_big);
         }
     }
 
