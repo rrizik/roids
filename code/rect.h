@@ -2,6 +2,8 @@
 #define RECT_H
 
 typedef struct Rect{
+    //struct{ f32 x; f32 y;} pos;
+    //struct{ s32 w; s32 h;} dim;
     f32 x;
     f32 y;
     s32 w;

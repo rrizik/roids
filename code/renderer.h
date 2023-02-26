@@ -508,28 +508,32 @@ draw_triangle(RenderBuffer *render_buffer, v2 p0, v2 p1, v2 p2, RGBA color, bool
     }
 }
 
-// TODO: Fix this clear color. pull out the lookup
 static void
-clear(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
-    //(u8*)render_buffer->buffer + (render_buffer->height + position.y * render_buffer->height
+clear_color(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
+    u32 *pixel = (u32 *)((u8 *)(render_buffer->base));
     for(s32 i=0; i < (render_buffer->width * render_buffer->height); ++i){
-        u32 *pixel = (u32 *)((u8 *)(render_buffer->base) + (i * render_buffer->bytes_per_pixel));
         u32 new_color = (round_f32_s32(color.a * 255.0f) << 24 | round_f32_s32(color.r*255.0f) << 16 | round_f32_s32(color.g*255.0f) << 8 | round_f32_s32(color.b*255.0f) << 0);
-        *pixel = new_color;
+        *pixel++ = new_color;
     }
 }
 
-// TODO: Fix this clear color. pull out the lookup
 // TODO: clear only a region
-static void
-clear_region(RenderBuffer *render_buffer, Rect region, RGBA color={0, 0, 0, 1}){
-    //(u8*)render_buffer->buffer + (render_buffer->height + position.y * render_buffer->height
-    for(s32 i=0; i < (render_buffer->width * render_buffer->height); ++i){
-        u32 *pixel = (u32 *)((u8 *)(render_buffer->base) + (i * render_buffer->bytes_per_pixel));
-        u32 new_color = (round_f32_s32(color.a * 255.0f) << 24 | round_f32_s32(color.r*255.0f) << 16 | round_f32_s32(color.g*255.0f) << 8 | round_f32_s32(color.b*255.0f) << 0);
-        *pixel = new_color;
-    }
-}
+//static void
+//clear_color_region(RenderBuffer *render_buffer, Rect rect, RGBA color={0, 0, 0, 1}){
+//    v2s32 pos = round_v2_v2s32(rect.pos);
+//    u8 *row = (u8 *)render_buffer->base +
+//                 ((render_buffer->height - pos.y - 1) * render_buffer->stride) +
+//                 (pos.x * render_buffer->bytes_per_pixel);
+//
+//    for(s32 y=rect.y; y < (rect.y + rect.h); ++y){
+//        u32* pixel = (u32*)row;
+//        for(s32 x=rect.x; x < (rect.x + rect.w); ++x){
+//            u32 new_color = (round_f32_s32(color.a * 255.0f) << 24 | round_f32_s32(color.r*255.0f) << 16 | round_f32_s32(color.g*255.0f) << 8 | round_f32_s32(color.b*255.0f) << 0);
+//            *pixel++ = new_color;
+//        }
+//        row += render_buffer->stride;
+//    }
+//}
 
 static void
 draw_bitmap_clip(RenderBuffer *render_buffer, Rect rect, Bitmap image, v4 clip_region){

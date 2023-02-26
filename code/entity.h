@@ -4,11 +4,18 @@
 typedef enum {EntityFlag_Movable} EntityFlags;
 typedef enum {EntityType_None, EntityType_Object, EntityType_Pixel, EntityType_Line, EntityType_Ray, EntityType_Segment, EntityType_Triangle, EntityType_Rect, EntityType_Quad, EntityType_Box, EntityType_Circle, EntityType_Bitmap, } EntityType;
 
+typedef enum ConsoleState{
+    CLOSED,
+    OPEN,
+    OPEN_BIG,
+} ConsoleState;
+
 typedef struct Entity{
     u32 index;
     u32 generation;
 
     EntityType type;
+    ConsoleState console_state;
     u32 flags;
     Rect rect;
     RGBA color;
@@ -16,6 +23,7 @@ typedef struct Entity{
     RGBA border_color;
     bool border_extrudes;
     s32 z;
+    f32 start_position;
 
 
     v2 direction;

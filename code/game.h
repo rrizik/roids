@@ -18,7 +18,7 @@ typedef struct PermanentMemory{
     Entity entities[100];
     u32 entities_count;
 
-    u32 clip_region_index;
+    Entity* console;
 } PermanentMemory;
 
 typedef struct TransientMemory{
@@ -110,13 +110,27 @@ add_line(PermanentMemory* pm, Rect rect, v2 direction, RGBA color){
 }
 
 static Entity*
-add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 border_size = 0, RGBA border_color = {0, 0, 0, 0}, bool border_extrudes = false){
+add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}, bool bextrudes = false){
     Entity* e = add_entity(pm, EntityType_Rect);
-    e->rect = rect;
+    e->rect =  rect;
     e->color = color;
-    e->border_size = border_size;
-    e->border_color = border_color;
-    e->border_extrudes = border_extrudes;
+    e->border_size =  bsize;
+    e->border_color = bcolor;
+    e->border_extrudes = bextrudes;
+    return(e);
+}
+
+static Entity*
+add_console(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}, bool bextrudes = false){
+    Entity* e = add_entity(pm, EntityType_Rect);
+    e->rect =  rect;
+    e->color = color;
+    e->border_size =     bsize;
+    e->border_color =    bcolor;
+    e->console_state =   CLOSED;
+    e->start_position =  e->rect.y;
+    e->border_extrudes = bextrudes;
+    e->draw = false;
     return(e);
 }
 
@@ -179,7 +193,7 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
         switch(base_command->type){
             case RenderCommand_ClearColor:{
                 ClearColorCommand *command = (ClearColorCommand*)base_command;
-                clear(render_buffer, command->ch.color);
+                clear_color(render_buffer, command->ch.color);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Pixel:{
@@ -238,8 +252,8 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
 
 PermanentMemory* pm;
 TransientMemory* tm;
-Entity* console;
 
+f32 t = 0;
 static void
 update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Controller* controller, Clock* clock){
     Assert(sizeof(PermanentMemory) < memory->permanent_size);
@@ -259,7 +273,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     RGBA LGRAY =   {0.8f, 0.8f, 0.8f,  1.0f};
     RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
     RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
-    RGBA ARMY_GREEN =   {0.15f, 0.15, 0.13,  1.0f};
+    RGBA ARMY_GREEN =   {0.25f, 0.25, 0.23,  1.0f};
 
 
     if(!memory->initialized){
@@ -280,35 +294,109 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        console = add_rect(pm, make_rect(0, SCREEN_HEIGHT-100, SCREEN_WIDTH, 500), ARMY_GREEN);
-        console->draw = true;
+        pm->console = add_console(pm, make_rect(0, 700, SCREEN_WIDTH, 500), ARMY_GREEN);
 
         memory->initialized = true;
     }
     arena_free(render_buffer->render_command_arena);
     push_clear_color(render_buffer->render_command_arena, BLACK);
+    Entity* console = pm->console;
 
-    for(s32 i = 0; i <= events->count; ++i){
-        Event event = events->e[i];
+    // NOTE: Process events.
+    while(!events_empty(events)){
+        Event event = event_get(events);
+
+        if(event.type == TEXT_INPUT){
+            //print("text_input: %i - %c\n", event.keycode, event.keycode);
+            //print("-----------------------------\n");
+        }
         if(event.type == KEYBOARD){
             if(event.key_pressed){
+                //print("key_code: %llu\n", event.keycode);
                 if(event.keycode == ESCAPE){
-                    global_running = false;
+                    print("quiting\n");
+                    should_quit = true;
                 }
-                if(event.keycode == '`'){
-                    controller->right.pressed = true;
+                if(event.keycode == 'Q'){
+                    //print("keycode: %llu - repeat: %i\n", event.keycode, event.repeat);
+                }
+                if(event.keycode == 'Q' && !event.repeat){
+                    //count += 1;
+                    //print("QQQQQ: %i\n", count);
+                }
+                if(event.keycode == TILDE && !event.shift_pressed && !event.repeat){
+                    pm->console->start_position = pm->console->rect.y;
+                    t = 0;
+                    if(pm->console->console_state == OPEN){
+                        pm->console->console_state = CLOSED;
+                    }
+                    else{
+                        pm->console->console_state = OPEN;
+                    }
+                }
+                if(event.keycode == TILDE && event.shift_pressed && !event.repeat){
+                    pm->console->start_position = pm->console->rect.y;
+                    t = 0;
+                    if(pm->console->console_state == OPEN_BIG){
+                        pm->console->console_state = CLOSED;
+                    }
+                    else{
+                        pm->console->console_state = OPEN_BIG;
+                    }
                 }
             }
             else{
-                if(event.keycode == 'D'){
-                    controller->right.pressed = false;
-                }
             }
         }
     }
+    //print("open_console: %i\n", controller->open_console);
 
-    if(controller->right.pressed){
-        console->rect.x += 100 * clock->dt;
+    u32 y_open = 550;
+    u32 y_open_big = 350;
+    u32 y_closed = 700;
+    f32 open_speed = 1000.0f;
+
+    f32 lerp_speed =  1.f * clock->dt;
+    //print("console state: %i\n", console->console_state);
+    bool a = true;
+    if(console->console_state == CLOSED){
+        if(t < 1) {
+            t += lerp_speed;
+            if(a){
+                console->rect.y = lerp(console->rect.y, t, y_closed);
+                //print("a\n");
+            }
+            else{
+                //print("not a\n");
+                console->rect.y = lerp(console->start_position, t, y_closed);
+            }
+        }
+    }
+    else if(console->console_state == OPEN){
+        if(t < 1) {
+            t += lerp_speed;
+            if(a){
+                console->rect.y = lerp(console->rect.y, t, y_open);
+                //print("a\n");
+            }
+            else{
+                //print("not a\n");
+                console->rect.y = lerp(console->start_position, t, y_open);
+            }
+        }
+    }
+    else if(console->console_state == OPEN_BIG){
+        if(t < 1) {
+            t += lerp_speed;
+            if(a){
+                console->rect.y = lerp(console->rect.y, t, y_open_big);
+                //print("a\n");
+            }
+            else{
+                console->rect.y = lerp(console->start_position, t, y_open_big);
+                //print("not a\n");
+            }
+        }
     }
 
 

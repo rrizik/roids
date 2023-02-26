@@ -43,8 +43,6 @@ typedef struct Controller{
     Button m_right;
     Button m_middle;
     v2 mouse_pos;
-
-    bool open_console;
 } Controller;
 
 typedef struct RenderBuffer{
@@ -76,7 +74,7 @@ typedef struct Memory{
     bool initialized;
 } Memory;
 
-global bool global_running;
+global bool should_quit;
 global RenderBuffer render_buffer;
 global Controller controller;
 global Memory memory;
@@ -180,12 +178,12 @@ LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_
         case WM_CLOSE:
         case WM_QUIT:
         case WM_DESTROY:{
-            OutputDebugStringA("quiting\n");
-            global_running = false;
+            print("quiting\n");
+            should_quit = true;
         } break;
         case WM_MOUSEMOVE:{
             //controller.mouse_pos.x = (s32)(l_param & 0xFFFF);
-            controller.mouse_pos.y = render_buffer.height - (s32)(l_param >> 16);
+            //controller.mouse_pos.y = render_buffer.height - (s32)(l_param >> 16);
             break;
         } break;
 
@@ -213,10 +211,9 @@ LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_
         case WM_KEYDOWN: {
             Event event;
             event.type = KEYBOARD;
-            event.keycode = w_param; // TODO figure out how to use this to get the right keycode
+            event.keycode = w_param;
             event.repeat = ((s32)l_param) & 0x40000000;
 
-            print("KEYCODE: %llu\n", event.keycode);
             event.key_pressed = 1;
             event.alt_pressed =   alt_pressed;
             event.shift_pressed = shift_pressed;
@@ -227,11 +224,6 @@ LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_
             if(w_param == VK_MENU)    { alt_pressed   = true; }
             if(w_param == VK_SHIFT)   { shift_pressed = true; }
             if(w_param == VK_CONTROL) { ctrl_pressed  = true; }
-            if(w_param == VK_ESCAPE){
-                OutputDebugStringA("quiting\n");
-                print("%i - %i\n", VK_ESCAPE, ESCAPE);
-                //global_running = false;
-            } break;
         } break;
         case WM_SYSKEYUP:
         case WM_KEYUP:{
@@ -293,8 +285,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     init_memory(&memory);
     init_clock(&clock);
     init_render_buffer(&render_buffer, SCREEN_WIDTH, SCREEN_HEIGHT);
+    events_init(&events);
 
-    global_running = true;
+    should_quit = false;
 
     f64 FPS = 0;
     f64 MSPF = 0;
@@ -307,7 +300,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 	u32 simulations = 0;
 
     render_buffer.device_context = GetDC(window);
-    while(global_running){
+    f64 total_time = 0;
+    while(!should_quit){
         MSG message;
         while(PeekMessageW(&message, window, 0, 0, PM_REMOVE)){
             TranslateMessage(&message);
@@ -323,6 +317,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         while(accumulator >= clock.dt){
             update_game(&memory, &render_buffer, &events, &controller, &clock);
             accumulator -= clock.dt;
+            total_time += clock.dt;
             simulations++;
             //TODO: put in a function
             //controller.up.pressed = false;
@@ -350,7 +345,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         draw_commands(&render_buffer, render_buffer.render_command_arena);
         update_window(window, render_buffer);
-        events_flush(&events);
 
         if(simulations){
             //handle_debug_counters(simulations);

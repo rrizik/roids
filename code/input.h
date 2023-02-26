@@ -1,9 +1,11 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+// CLEANUP: everything that is commented out, I dont think needs to exist.
 typedef enum KeyCode{
     UNKOWN = 0,
 
+    // INCOMPLETE: these need to be looked at again when we do mouse
     L_MOUSE_BUTTON = 1,
     R_MOUSE_BUTTON = 2,
     M_MOUSE_BUTTON = 4,
@@ -113,7 +115,6 @@ typedef enum KeyCode{
  	//LEFT_CURLY_BRACE =  123,
  	//VERTICAL_BAR =      124,
  	//RIGHT_CURLY_BRACE = 125,
- 	//TILDA = 126,
     F1 = 112,
     F2 = 113,
     F3 = 115,
@@ -124,7 +125,13 @@ typedef enum KeyCode{
     F8 = 120,
     F9 = 121,
     F10 = 122,
+
+ 	TILDE = 192,
 } KeyCode;
+
+bool alt_pressed;
+bool shift_pressed;
+bool ctrl_pressed;
 
 typedef enum EventType{
     KEYBOARD,
@@ -142,23 +149,58 @@ typedef struct Event{
     bool repeat;
 } Event;
 
+// NOTE: Must be a size that is a power of 2
 typedef struct Events{
     Event e[256];
-    s32 count;
+    u32 write;
+    u32 read;
+    u32 size;
 } Events;
 
-bool alt_pressed;
-bool shift_pressed;
-bool ctrl_pressed;
-
 static void
-events_add(Events* events, Event event){
-    events->e[++events->count] = event;
+events_init(Events* events){
+    events->size = array_count(events->e);
+}
+
+static u32
+events_count(Events* events){
+    u32 result = events->write - events->read;
+    return(result);
+}
+
+static bool
+events_full(Events* events){
+    bool result = (events_count(events) == events->size);
+    return(result);
+}
+
+static bool
+events_empty(Events* events){
+    bool result = (events->write == events->read);
+    return(result);
+}
+
+static u32
+mask(Events* events, u32 idx){
+    u32 result = idx & (events->size - 1);
+    return(result);
 }
 
 static void
-events_flush(Events* events){
-	events->count = -1;
+events_add(Events* events, Event event){
+    assert(!events_full(events));
+
+    u32 masked_idx = mask(events, events->write++);
+    events->e[masked_idx] = event;
+}
+
+static Event
+event_get(Events* events){
+    assert(!events_empty(events));
+
+    u32 masked_idx = mask(events, events->read++);
+    Event event = events->e[masked_idx];
+    return(event);
 }
 
 #endif

@@ -1,6 +1,7 @@
 #ifndef MATH_H
 #define MATH_H
 // Eventually get rid of this file and everything in it
+// SO CLOSE T_T
 
 
 static v2
@@ -58,14 +59,6 @@ rotate_points(v2 *p, u32 count, f32 angle, v2 origin){
     p -= count;
 }
 
-static void
-swap_v2(v2 *a, v2 *b){
-    v2 t = *a;
-    *a = *b;
-    *b = t;
-}
-
-
 // INCOMPLETE: LOOK AT SIZE_T VS INT DIFFERENCES
 static void
 scale_pts(v2 *p, size_t count, f32 s){
@@ -76,81 +69,8 @@ scale_pts(v2 *p, size_t count, f32 s){
 }
 
 static f32
-dot2(v2 a, v2 b){
-    return((a.x * b.x) + (a.y * b.y));
-}
-
-static f32
-magnitude2(v2 a){
-    return(sqrtf((a.x * a.x) + (a.y * a.y)));
-}
-
-static f32
-magnitude_sq2(v2 a){
-    return((a.x * a.x) + (a.y * a.y));
-}
-
-static v2
-normalize2(v2 a){
-    v2 result = {0};
-
-    f32 mag = magnitude2(a);
-    result.x = (a.x / mag);
-    result.y = (a.y / mag);
-
-    return(result);
-}
-
-static v2
-direction2(v2 a, v2 b){
-    v2 result = {0};
-    result.x = b.x - a.x;
-    result.y = b.y - a.y;
-    result = normalize2(result);
-    return(result);
-}
-
-static f32
-distance2(v2 a, v2 b){
-    v2 result = a - b;
-    return(magnitude2(result));
-}
-
-static f32
-angle2(v2 a, v2 b){
-    f32 result = 0;
-
-    f32 mag = sqrtf(magnitude_sq2(a) * magnitude_sq2(b));
-    result = (f32)acos(dot2(a, b) / mag);
-
-    return(result);
-}
-
-static f32
 full_angle2(v2 dir){
     return(atan2(dir.y, dir.x));
-}
-
-static v2
-project2(v2 a, v2 b){
-    v2 result = {0};
-
-    f32 n = dot2(a, b);
-    f32 d = magnitude_sq2(a);
-    result = (b * (n/d));
-
-    return(result);
-}
-
-static v2
-reflection2(v2 vec, v2 normal){
-    v2 result = {0};
-
-    f32 d = dot2(vec, normal);
-    result.x = vec.x - normal.x * (d * 2.0f);
-    result.y = vec.y - normal.y * (d * 2.0f);
-
-    return(result);
 }
 
 #endif
