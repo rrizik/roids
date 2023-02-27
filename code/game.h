@@ -349,15 +349,13 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
             }
         }
     }
-    //print("open_console: %i\n", controller->open_console);
 
-    f32 y_open = .7f;
+    f32 y_closed   = 1.0f;
+    f32 y_open     = .7f;
     f32 y_open_big = .2f;
-    f32 y_closed = 1.0f;
     f32 open_speed = 0.5f;
 
     f32 lerp_speed =  open_speed * clock->dt;
-    //print("console state: %i\n", console->console_state);
     if(console->console_state == CLOSED){
         if(t < 1) {
             t += lerp_speed;
@@ -396,16 +394,17 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                 push_ray(render_command_arena, e->rect, e->direction, e->color);
             }break;
             case EntityType_Rect:{
+                Rect border;
+                Rect rect = e->rect;
                 if(e->border_size > 0){
-                    Rect border_rect = rect_calc_border(e->rect, e->border_size);
-                    push_rect(render_command_arena, border_rect, e->border_color);
-                    push_rect(render_command_arena, e->rect, e->color);
+                    border = rect_calc_border(e->rect, e->border_size);
                 }
                 if(e->border_size < 0){
-                    Rect border_rect = rect_calc_border(e->rect, e->border_size);
-                    push_rect(render_command_arena, e->rect, e->border_color);
-                    push_rect(render_command_arena, border_rect, e->color);
+                    border = e->rect;
+                    rect = rect_calc_border(e->rect, e->border_size);
                 }
+                push_rect(render_command_arena, border, e->border_color);
+                push_rect(render_command_arena, rect, e->color);
             }break;
             case EntityType_Box:{
                 push_box(render_command_arena, e->rect, e->color);
