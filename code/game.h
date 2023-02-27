@@ -295,7 +295,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        pm->console = add_console(pm, make_rect(0, SCREEN_HEIGHT, SCREEN_WIDTH, 500), ARMY_GREEN);
+        pm->console = add_console(pm, make_rect(0, SCREEN_HEIGHT, SCREEN_WIDTH, 700), ARMY_GREEN);
 
         memory->initialized = true;
     }
@@ -325,24 +325,20 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                     //count += 1;
                     //print("QQQQQ: %i\n", count);
                 }
-                if(event.keycode == TILDE && !event.shift_pressed && !event.repeat){
-                    pm->console->start_position = pm->console->rect.y;
+                if(event.keycode == TILDE && !event.repeat){
                     t = 0;
-                    if(pm->console->console_state == OPEN){
-                        pm->console->console_state = CLOSED;
+                    pm->console->start_position = pm->console->rect.y;
+                    if(event.shift_pressed){
+                        if(pm->console->console_state == OPEN_BIG){
+                            pm->console->console_state = CLOSED;
+                        }
+                        else{ pm->console->console_state = OPEN_BIG; }
                     }
                     else{
-                        pm->console->console_state = OPEN;
-                    }
-                }
-                if(event.keycode == TILDE && event.shift_pressed && !event.repeat){
-                    pm->console->start_position = pm->console->rect.y;
-                    t = 0;
-                    if(pm->console->console_state == OPEN_BIG){
-                        pm->console->console_state = CLOSED;
-                    }
-                    else{
-                        pm->console->console_state = OPEN_BIG;
+                        if(pm->console->console_state == OPEN){
+                            pm->console->console_state = CLOSED;
+                        }
+                        else{ pm->console->console_state = OPEN; }
                     }
                 }
             }
@@ -352,29 +348,29 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     }
     //print("open_console: %i\n", controller->open_console);
 
-    u32 y_open = 500;
-    u32 y_open_big = 300;
-    u32 y_closed = SCREEN_HEIGHT;
-    f32 open_speed = 1000.0f;
+    f32 y_open = .7f;
+    f32 y_open_big = .2f;
+    f32 y_closed = 1.0f;
+    f32 open_speed = 0.5f;
 
-    f32 lerp_speed =  4.0f * clock->dt;
+    f32 lerp_speed =  open_speed * clock->dt;
     //print("console state: %i\n", console->console_state);
     if(console->console_state == CLOSED){
         if(t < 1) {
             t += lerp_speed;
-            console->rect.y = lerp(console->start_position, smoothstep(t), y_closed);
+            console->rect.y = lerp(console->rect.y, y_closed * SCREEN_HEIGHT, t);
         }
     }
     else if(console->console_state == OPEN){
         if(t < 1) {
             t += lerp_speed;
-            console->rect.y = lerp(console->start_position, smoothstep(t), y_open);
+            console->rect.y = lerp(console->rect.y, y_open * SCREEN_HEIGHT, t);
         }
     }
     else if(console->console_state == OPEN_BIG){
         if(t < 1) {
             t += lerp_speed;
-            console->rect.y = lerp(console->start_position, smoothstep(t), y_open_big);
+            console->rect.y = lerp(console->rect.y, y_open_big * SCREEN_HEIGHT, t);
         }
     }
 

@@ -293,14 +293,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     f64 MSPF = 0;
     u64 frame_count = 0;
 
-    clock.dt =  1.0/60.0;
+    clock.dt =  1.0/240.0;
     f64 accumulator = 0.0;
     s64 last_ticks = clock.get_ticks();
     f64 second_marker = clock.get_ticks();
 	u32 simulations = 0;
 
     render_buffer.device_context = GetDC(window);
-    f64 total_time = 0;
+    f64 time_elapsed = 0;
     while(!should_quit){
         MSG message;
         while(PeekMessageW(&message, window, 0, 0, PM_REMOVE)){
@@ -317,7 +317,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         while(accumulator >= clock.dt){
             update_game(&memory, &render_buffer, &events, &controller, &clock);
             accumulator -= clock.dt;
-            total_time += clock.dt;
+            time_elapsed += clock.dt;
             simulations++;
             //TODO: put in a function
             //controller.up.pressed = false;
@@ -335,13 +335,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         frame_count++;
 		simulations = 0;
-        f64 time_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), second_marker);
-        if(time_elapsed > 1){
-            FPS = (frame_count / time_elapsed);
+        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), second_marker);
+        if(second_elapsed > 1){
+            FPS = (frame_count / second_elapsed);
             second_marker = clock.get_ticks();
             frame_count = 0;
         }
-        //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - time_elapsed: %f\n", FPS, MSPF, clock.dt, accumulator, frame_time, time_elapsed);
+        //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed);
 
         draw_commands(&render_buffer, render_buffer.render_command_arena);
         update_window(window, render_buffer);

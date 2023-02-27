@@ -4,14 +4,12 @@
 typedef struct Rect{
     //struct{ f32 x; f32 y;} pos;
     //struct{ s32 w; s32 h;} dim;
-    f32 x;
-    f32 y;
-    s32 w;
-    s32 h;
+    struct {f32 x; f32 y; f32 w; f32 h; };
+    struct {f32 x0; f32 y0; f32 x1; f32 y1; };
 } Rect;
 
 static Rect
-make_rect(f32 x, f32 y, s32 w, s32 h){
+make_rect(f32 x, f32 y, f32 w, f32 h){
     Rect result = {
         x = x,
         y = y,
@@ -19,6 +17,16 @@ make_rect(f32 x, f32 y, s32 w, s32 h){
         h = h,
     };
     return(result);
+}
+
+static f32
+ratio_to_pixel(f32 ratio, f32 max){
+    return(ratio * max);
+}
+
+static f32
+pixel_to_ratio(f32 pixel, f32 max){
+    return(pixel / max);
 }
 
 static bool

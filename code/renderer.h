@@ -212,7 +212,7 @@ push_rect(Arena *arena, Rect rect, RGBA color, s32 border_size = 0, RGBA border_
     command->ch.arena_used = arena->used;
     command->ch.rect = rect;
     command->ch.color = color;
-    //command->ch.border_size = border_size;
+    command->ch.border_size = border_size;
     command->ch.border_color = border_color;
 }
 
