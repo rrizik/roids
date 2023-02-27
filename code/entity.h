@@ -21,7 +21,6 @@ typedef struct Entity{
     RGBA color;
     s32 border_size;
     RGBA border_color;
-    bool border_extrudes;
     s32 z;
     f32 start_position;
 

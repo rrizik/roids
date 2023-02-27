@@ -16,7 +16,7 @@ typedef union Rect {
         v2 min;
         v2 max;
     };
-} Rect;
+} Rect, RectPixelSpace, RectScreenSpace;
 
 static Rect
 make_rect(f32 x0, f32 y0, f32 x1, f32 y1){
@@ -28,30 +28,33 @@ make_rect(f32 x0, f32 y0, f32 x1, f32 y1){
     return(result);
 }
 
-static v2
-screen_to_pixel(v2 point, v2s32 resolution){
-    v2 result = {
-        point.x * resolution.w,
-        point.y * resolution.h
+static Rect
+screen_to_pixel(Rect r, v2s32 resolution){
+    Rect result = {
+        r.x0 * resolution.w,
+        r.y0 * resolution.h,
+        r.x1 * resolution.w,
+        r.y1 * resolution.h,
     };
     return(result);
 }
 
-static v2
-pixel_to_screen(v2 point, v2s32 max){
-    v2 result = {
-        point.x / resolution.w,
-        point.y / resolution.h
+static Rect
+pixel_to_screen(Rect r, v2s32 resolution){
+    Rect result = {
+        r.x0 / resolution.w,
+        r.y0 / resolution.h,
+        r.x1 / resolution.w,
+        r.y1 / resolution.h,
     };
     return(result);
 }
 
 static v2
 rect_width_height(Rect rect){
-    v2 p_min = screen_to_pixel(rect.min, resolution);
-    v2 p_max = screen_to_pixel(rect.max, resolution);
+    Rect ps_rect = screen_to_pixel(rect, resolution);
 
-    v2 result = p_max - p_min;
+    v2 result = ps_rect.max - ps_rect.min;
     return(result);
 }
 
@@ -89,26 +92,24 @@ rect_contains_rect(Rect r1, Rect r2){
 }
 
 static Rect
-rect_get_border_extruding(Rect rect, s32 border_size){
-    Rect result = {
-        rect.x0 - border_size,
-        rect.y0 - border_size,
-        rect.x1 + (border_size * 2),
-        rect.y1 + (border_size * 2),
-    };
+rect_calc_border(Rect rect, s32 border_size){
+    RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+    rect_ps.x0 -= border_size;
+    rect_ps.y0 -= border_size;
+    rect_ps.x1 += border_size;
+    rect_ps.y1 += border_size;
+
+    RectScreenSpace result = pixel_to_screen(rect_ps, resolution);
     return(result);
 }
 
-static Rect
-rect_get_border_intruding(Rect rect, s32 border_size){
-    Rect result = {
-        rect.x0 + border_size,
-        rect.y0 + border_size,
-        rect.x1 - (border_size * 2),
-        rect.y1 - (border_size * 2),
-    };
-    return(result);
-}
+//static Rect
+//rect_get_border_intruding(Rect rect, s32 border_size){
+//    RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+//
+//    RectScreenSpace result = pixel_to_screen(rect_ps, resolution);
+//    return(result);
+//}
 
 
 #endif

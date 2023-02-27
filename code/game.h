@@ -110,13 +110,12 @@ add_line(PermanentMemory* pm, Rect rect, v2 direction, RGBA color){
 }
 
 static Entity*
-add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}, bool bextrudes = false){
+add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}){
     Entity* e = add_entity(pm, EntityType_Rect);
     e->rect =  rect;
     e->color = color;
     e->border_size =  bsize;
     e->border_color = bcolor;
-    e->border_extrudes = bextrudes;
     return(e);
 }
 
@@ -127,9 +126,8 @@ add_console(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcol
     e->color = color;
     e->border_size     = bsize;
     e->border_color    = bcolor;
-    e->console_state   = OPEN_BIG;
+    e->console_state   = CLOSED;
     e->start_position  = e->rect.y0;
-    e->border_extrudes = bextrudes;
     e->draw = false;
     return(e);
 }
@@ -178,8 +176,7 @@ add_circle(PermanentMemory *pm, Rect rect, u8 rad, RGBA color, bool fill){
 static Entity*
 add_bitmap(PermanentMemory* pm, Rect rect, Bitmap image){
     Entity* e = add_entity(pm, EntityType_Bitmap);
-    v2 screen_max = pixel_to_screen(make_v2(image.width, image.height), resolution);
-    e->rect = make_rect(0, 0, screen_max.x, screen_max.y);
+    e->rect = rect;
     e->image = image;
     return(e);
 }
@@ -220,7 +217,6 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
             case RenderCommand_Rect:{
                 RectCommand *command = (RectCommand*)base_command;
                 draw_rect(render_buffer, command->ch.rect, command->ch.color);
-                //draw_rect_slow(render_buffer, command->ch.rect, command->ch.color);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Box:{
@@ -266,8 +262,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
     RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
     RGBA GREEN =   {0.0f, 1.0f, 0.0f,  1.0f};
-    RGBA BLUE =    {0.0f, 0.0f, 1.0f,  0.5f};
-    RGBA MAGENTA = {1.0f, 0.0f, 1.0f,  0.1f};
+    RGBA BLUE =    {0.0f, 0.0f, 1.0f,  1.0f};
+    RGBA MAGENTA = {1.0f, 0.0f, 1.0f,  1.0f};
     RGBA TEAL =    {0.0f, 1.0f, 1.0f,  1.0f};
     RGBA PINK =    {0.92f, 0.62f, 0.96f, 1.0f};
     RGBA YELLOW =  {0.9f, 0.9f, 0.0f,  1.0f};
@@ -297,14 +293,18 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        pm->console = add_console(pm, make_rect(0, .2f, 1, 1), ARMY_GREEN);
+        pm->console = add_console(pm, make_rect(0, 1, 1, 1), ARMY_GREEN);
+        add_rect(pm, make_rect(.1, .1f, .2, .2), MAGENTA, 20, RED);
+        add_rect(pm, make_rect(.3, .1f, .4, .2), MAGENTA, -20, GREEN);
+        add_rect(pm, make_rect(.5, .1f, .6, .2), MAGENTA, 20, BLUE);
+        add_rect(pm, make_rect(.7, .1f, .8, .2), MAGENTA, -20, TEAL);
+//add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}, bool bextrudes = false){
 
         memory->initialized = true;
     }
     arena_free(render_buffer->render_command_arena);
     push_clear_color(render_buffer->render_command_arena, BLACK);
     Entity* console = pm->console;
-    //draw_rect_slow(render_buffer, make_rect(.2f, .2f, .4f, .4f), RED);
 
     // NOTE: Process events.
     while(!events_empty(events)){
@@ -396,18 +396,14 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                 push_ray(render_command_arena, e->rect, e->direction, e->color);
             }break;
             case EntityType_Rect:{
-                if(e->border_extrudes){
-                    if(e->border_size){
-                        Rect border_rect = rect_get_border_extruding(e->rect, e->border_size);
-                        push_rect(render_command_arena, border_rect, e->border_color);
-                    }
+                if(e->border_size > 0){
+                    Rect border_rect = rect_calc_border(e->rect, e->border_size);
+                    push_rect(render_command_arena, border_rect, e->border_color);
                     push_rect(render_command_arena, e->rect, e->color);
                 }
-                else{
-                    if(e->border_size){
-                        push_rect(render_command_arena, e->rect, e->border_color);
-                    }
-                    Rect border_rect = rect_get_border_intruding(e->rect, e->border_size);
+                if(e->border_size < 0){
+                    Rect border_rect = rect_calc_border(e->rect, e->border_size);
+                    push_rect(render_command_arena, e->rect, e->border_color);
                     push_rect(render_command_arena, border_rect, e->color);
                 }
             }break;
