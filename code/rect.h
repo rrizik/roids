@@ -6,12 +6,13 @@
 // INCOMPLETE We changed our Rect type, make sure all rect functions work on screenspace
 // CLEANUP
 
-typedef struct Rect {
-    union {
-        struct {
-            f32 x0, y0;
-            f32 x1, y1;
-        };
+// NOTE: Rect by default is in screenspace
+typedef union Rect {
+    struct {
+        f32 x0, y0;
+        f32 x1, y1;
+    };
+    struct {
         v2 min;
         v2 max;
     };
@@ -37,20 +38,21 @@ screen_to_pixel(v2 point, v2s32 resolution){
 }
 
 static v2
-rect_width_height(Rect rect){
-    v2 p_min = screen_to_pixel(rect.min, resolution);
-    v2 p_max = screen_to_pixel(rect.max, resolution);
-
+pixel_to_screen(v2 point, v2s32 max){
     v2 result = {
-        p_max.x - p_min.x,
-        p_max.y - p_min.y,
+        point.x / resolution.w,
+        point.y / resolution.h
     };
     return(result);
 }
 
-static f32
-pixel_to_screen(f32 pixel, f32 max){
-    return(pixel / max);
+static v2
+rect_width_height(Rect rect){
+    v2 p_min = screen_to_pixel(rect.min, resolution);
+    v2 p_max = screen_to_pixel(rect.max, resolution);
+
+    v2 result = p_max - p_min;
+    return(result);
 }
 
 static bool

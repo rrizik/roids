@@ -5,7 +5,7 @@
 #include <emmintrin.h>
 
 // IMPORTANT
-// INCOMPLETE We changed our Rect type, make sure all the draw functions convert to pixelspace before drawing
+// UNTESTED We changed our Rect type to screenspace, and changed all functions. Some tested, some not.
 // CLEANUP
 #pragma pack(push, 1)
 typedef struct BitmapHeader {
@@ -307,11 +307,12 @@ draw_pixel(RenderBuffer *render_buffer, v2 position, RGBA color){
     }
 }
 
+// UNTESTED: untested with rect screenspace change
 static void
 draw_line(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
-    v2 pos = screen_to_pixel(rect.min, make_v2s32(SCREEN_WIDTH, SCREEN_HEIGHT));
+    v2 pos = screen_to_pixel(rect.min, resolution);
 
-    v2 point1 = make_v2(round_f32(pos.x), round_f32(pos.y));
+    v2 point1 = round_v2(pos);
     v2 point2 = point1;
     v2 non_normalized_direction = (v2){pos.x + direction.x, pos.y + direction.y};
     direction = round_v2(non_normalized_direction);
@@ -355,12 +356,12 @@ draw_line(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
     }
 }
 
+// UNTESTED: untested with rect screenspace change
 static void
 draw_ray(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
     v2 pos = screen_to_pixel(rect.min, resolution);
+    pos = round_v2(pos);
 
-    pos.x = round_f32(pos.x);
-    pos.y = round_f32(pos.y);
     v2 non_normalized_direction = round_v2((v2){(direction.x * 100000), (direction.y * 100000)});
     v2 new_direction = (v2){pos.x + non_normalized_direction.x, pos.y + non_normalized_direction.y};
 
@@ -543,60 +544,53 @@ clear_color(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
 //    }
 //}
 
-// NOTE: IMPORTANT: UNTESTED: assuming Rect comes in as actual x0, y0, x1, y1 we can just use those values.
-// otherwise we will have to use image.height, image.width
-// UNTESTED: clip part
+
+// UNTESTED: untested with rect screenspace change
 static void
 draw_bitmap_clip(RenderBuffer *render_buffer, Rect rect, Bitmap image, v4 clip_region){
-    //v4 cr = {100, 300, 200, 200};
-    if(clip_region == (v4){0,0,0,0}){
-        v2 pos0 = screen_to_pixel(rect.min, resolution);
-        v2 pos1 = screen_to_pixel(rect.max, resolution);
+    v2 pixel_min = screen_to_pixel(rect.min, resolution);
+    v2 pixel_max = screen_to_pixel(rect.max, resolution);
+    pixel_min = round_v2(pixel_min);
+    pixel_max = round_v2(pixel_max);
 
-        f32 rounded_x0 = round_f32(pos0.x);
-        f32 rounded_y0 = round_f32(pos0.y);
-        f32 rounded_x1 = round_f32(pos1.x);
-        f32 rounded_y1 = round_f32(pos1.y);
-        for(f32 y=rounded_y0; rounded_y1; ++y){
-            for(f32 x=rounded_x0; x < rounded_x1; ++x){
+    if(clip_region == (v4){0,0,0,0}){
+        for(f32 y=pixel_min.y; y < pixel_max.y; ++y){
+            for(f32 x=pixel_min.x; x < pixel_max.x; ++x){
                 RGBA color = u32_to_rgba(*image.pixels++);
                 draw_pixel(render_buffer, (v2){x, y}, color);
             }
         }
     }
     else{
-        //v4 result = {position.x, position.y, image.width, image.height};
-        Rect cr = make_rect(100, 300, 200, 200);
-        Rect result = make_rect(rect.x0, rect.y0, rect.x0 + image.width, rect.y0 + image.height);
-        v2 dim = rect_width_height(result);
+        Rect cr = make_rect(.1f, .15f, .2f, .25f);
 
-        if(rect.x0 < cr.x0){
-            result.x0 = cr.x0;
-            dim.w = image.width - (cr.x0 - rect.x0);
+        if(pixel_min.x < cr.x0){
+            pixel_min.x = cr.x0;
+            pixel_max.x = image.width - (cr.x0 - pixel_min.x);
         }
-        if((result.x0 + dim.w) > (cr.x0 + cr.x1)){
-            dim.w = dim.w - ((result.x0 + dim.w) - (cr.x0 + cr.x1));
+        if((pixel_min.x + pixel_max.x) > (cr.x0 + cr.x1)){
+            pixel_max.x = pixel_max.x - ((pixel_min.x + pixel_max.x) - (cr.x0 + cr.x1));
         }
 
-        if(rect.y0 < cr.y0){
-            result.y0 = cr.y0;
-            dim.h = image.height - (cr.y0 - rect.y0);
+        if(pixel_min.y < cr.y0){
+            pixel_min.y = cr.y0;
+            pixel_max.y = image.height - (cr.y0 - pixel_min.y);
         }
-        if((result.y0 + dim.h) > (cr.y0 + cr.y1)){
-            dim.h = dim.h - ((result.y0 + dim.h) - (cr.y0 + cr.y1));
+        if((pixel_min.y + pixel_max.y) > (cr.y0 + cr.y1)){
+            pixel_max.y = pixel_max.y - ((pixel_min.y + pixel_max.y) - (cr.y0 + cr.y1));
         }
 
-        u32 rounded_x = round_f32_u32(result.x0);
-        u32 rounded_y = round_f32_u32(result.y0);
+        u32 rounded_x = round_f32_u32(pixel_min.x);
+        u32 rounded_y = round_f32_u32(pixel_min.y);
 
         // clamp is wrong here, was 1 n 0 now 0 n 1
-        u32 x_shift = (u32)clamp_f32(0, (cr.x0 - rect.x0), 100000);
-        u32 y_shift = (u32)clamp_f32(0, (cr.y0 - rect.y0), 100000);
+        u32 x_shift = (u32)clamp_f32(0, (cr.x0 - pixel_min.x), 100000);
+        u32 y_shift = (u32)clamp_f32(0, (cr.y0 - pixel_min.y), 100000);
 
         u32 iy = 0;
-        for(u32 y = rounded_y; y < rounded_y + dim.h; ++y){
+        for(u32 y = rounded_y; y < rounded_y + pixel_max.y; ++y){
             u32 ix = 0;
-            for(u32 x = rounded_x; x < rounded_x + dim.w; ++x){
+            for(u32 x = rounded_x; x < rounded_x + pixel_max.x; ++x){
                 u8 *byte = (u8 *)image.pixels + ((y_shift + iy) * image.width * 4) + ((x_shift + ix) * 4);
                 u32 *c = (u32 *)byte;
                 RGBA color = u32_to_rgba(*c);
@@ -608,6 +602,7 @@ draw_bitmap_clip(RenderBuffer *render_buffer, Rect rect, Bitmap image, v4 clip_r
     }
 }
 
+// UNTESTED: untested with rect screenspace change
 static void
 draw_bitmap(RenderBuffer *render_buffer, Rect rect, Bitmap image){
     draw_bitmap_clip(render_buffer, rect, image, (v4){0,0,0,0});
@@ -615,33 +610,34 @@ draw_bitmap(RenderBuffer *render_buffer, Rect rect, Bitmap image){
 
 static void
 draw_rect_slow(RenderBuffer *render_buffer, Rect rect, RGBA color){
-    v2 p0 = {rect.x0, rect.y0};
-    v2 p1 = {rect.x1, rect.y0};
-    v2 p3 = {rect.x1, rect.y1};
-    v2 p2 = {rect.x0, rect.y1};
+    v2 pos0 = screen_to_pixel(rect.min, resolution);
+    v2 pos1 = screen_to_pixel(rect.max, resolution);
 
-    for(f32 y=p0.y; y <= p2.y; ++y){
-        for(f32 x=p0.x; x <= p1.x; ++x){
+    for(f32 y=pos0.y; y <= pos1.y; ++y){
+        for(f32 x=pos0.x; x <= pos1.x; ++x){
             draw_pixel(render_buffer, (v2){x, y}, color);
         }
     }
 }
 
+//static void draw_rect_fast(RenderBuffer *render_buffer, v2 position, v2s32 dimension, RGBA color){
 static void draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
-    // conver from ratio to pixel space
-    v2 pos = screen_to_pixel(rect.min, resolution);
+    // get pixelspace rect coordinates
+    v2 p_min_f32 = screen_to_pixel(rect.min, resolution);
+    v2 p_max_f32 = screen_to_pixel(rect.max, resolution);
 
-    // round position
-    v2s32 bottom_left = make_v2s32(round_f32(pos.x), round_f32(pos.y));
+    // round min/max
+    v2s32 pixel_min = round_v2_v2s32(p_min_f32);
+    v2s32 pixel_max = round_v2_v2s32(p_max_f32);
 
     // clamp min/max of rect to render_buffer
-    if(rect.min.x < 0) { rect.min.x = 0; }
-    if(rect.min.y < 0) { rect.min.y = 0; }
-    if(rect.max.x > render_buffer->width) { rect.max.x = render_buffer->width; }
-    if(rect.max.y > render_buffer->height) { rect.max.y = render_buffer->height; }
+    if(pixel_min.x < 0) { pixel_min.x = 0; }
+    if(pixel_min.y < 0) { pixel_min.y = 0; }
+    if(pixel_max.x > render_buffer->width) { pixel_max.x = render_buffer->width; }
+    if(pixel_max.y > render_buffer->height) { pixel_max.y = render_buffer->height; }
 
     // helper 4x variables
-    __m128i max_x_4x = _mm_set1_epi32(rect.max.x);
+    __m128i max_x_4x = _mm_set1_epi32(pixel_max.x);
     __m128 color_255_4x = _mm_set_ps1(255.0f);
     __m128 color_one_4x = _mm_set_ps1(1.0f);
     __m128 color_zero_4x = _mm_set_ps1(0.0f);
@@ -665,7 +661,7 @@ static void draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
     __m128 new_color_b_4x = (color_a_4x * scaled_color_b_4x);
 
     // compute initial increment
-    s32 width = rect.max.x - rect.min.x;
+    s32 width = pixel_max.x - pixel_min.x;
     s32 remainder = width % 4;
     s32 increment = remainder ? remainder : 4;
 
@@ -673,21 +669,21 @@ static void draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
     __m128i mask = _mm_setr_epi32(-(increment > 0), -(increment > 1), -(increment > 2), -(increment > 3));
     __m128i ones_mask = _mm_cmpeq_epi32(mask, mask);
 
-    // get row based of clamped rect.min.x/rect.min.y
+    // get row based of clamped pixel_min.x/pixel_min.y
     u8 *row = (u8 *)render_buffer->base +
-              ((render_buffer->height - 1 - (s32)rect.min.y) * render_buffer->stride) +
-              ((s32)rect.min.x * render_buffer->bytes_per_pixel);
+              ((render_buffer->height - 1 - pixel_min.y) * render_buffer->stride) +
+              (pixel_min.x * render_buffer->bytes_per_pixel);
 
-    // iterate over clamped rect.min.x/rect.min.y
+    // iterate over clamped pixel_min.x/pixel_min.y
     //BEGIN_CYCLE_COUNTER(draw_rect_fast)
-    for(s32 y=rect.min.y; y < rect.max.y; ++y){
+    for(s32 y=pixel_min.y; y < pixel_max.y; ++y){
         u32* pixel = (u32*)row;
 
-        for(s32 x=rect.min.x; x < rect.max.x; ){
+        for(s32 x=pixel_min.x; x < pixel_max.x; ){
             // if x in dead zone, load last 4 pixels and set mask appropriately
             if(x > render_buffer->width - 4){
                 row = (u8 *)render_buffer->base +
-                      ((render_buffer->height - 1 - (s32)rect.min.y) * render_buffer->stride) +
+                      ((render_buffer->height - 1 - pixel_min.y) * render_buffer->stride) +
                       ((render_buffer->width - 4) * render_buffer->bytes_per_pixel);
                 pixel = (u32*)row;
                 mask = ~mask;
@@ -745,12 +741,16 @@ static void draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
     //END_CYCLE_COUNTER(draw_rect_fast)
 }
 
+// UNTESTED: untested with rect screenspace change
 static void
 draw_box(RenderBuffer *render_buffer, Rect rect, RGBA color){
-    v2 p0 = {rect.x0, rect.y0};
-    v2 p1 = {rect.x0 + rect.x1, rect.y0};
-    v2 p2 = {rect.x0 + rect.x1, rect.y0 + rect.y1};
-    v2 p3 = {rect.x0, rect.y0 + rect.y1};
+    v2 p_min = screen_to_pixel(rect.min, resolution);
+    v2 p_max = screen_to_pixel(rect.max, resolution);
+
+    v2 p0 = p_min;
+    v2 p1 = {p_max.x, p_min.y};
+    v2 p2 = p_max;
+    v2 p3 = {p_min.x, p_max.y};
 
     draw_segment(render_buffer, p0, p1, color);
     draw_segment(render_buffer, p1, p2, color);

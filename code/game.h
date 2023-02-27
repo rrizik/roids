@@ -127,7 +127,7 @@ add_console(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcol
     e->color = color;
     e->border_size     = bsize;
     e->border_color    = bcolor;
-    e->console_state   = OPEN;
+    e->console_state   = OPEN_BIG;
     e->start_position  = e->rect.y0;
     e->border_extrudes = bextrudes;
     e->draw = false;
@@ -178,7 +178,8 @@ add_circle(PermanentMemory *pm, Rect rect, u8 rad, RGBA color, bool fill){
 static Entity*
 add_bitmap(PermanentMemory* pm, Rect rect, Bitmap image){
     Entity* e = add_entity(pm, EntityType_Bitmap);
-    e->rect = make_rect(0, 0, image.width, image.height);
+    v2 screen_max = pixel_to_screen(make_v2(image.width, image.height), resolution);
+    e->rect = make_rect(0, 0, screen_max.x, screen_max.y);
     e->image = image;
     return(e);
 }
@@ -219,6 +220,7 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
             case RenderCommand_Rect:{
                 RectCommand *command = (RectCommand*)base_command;
                 draw_rect(render_buffer, command->ch.rect, command->ch.color);
+                //draw_rect_slow(render_buffer, command->ch.rect, command->ch.color);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Box:{
@@ -295,13 +297,14 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        pm->console = add_console(pm, make_rect(0, .5f, 1, 1), ARMY_GREEN);
+        pm->console = add_console(pm, make_rect(0, .2f, 1, 1), ARMY_GREEN);
 
         memory->initialized = true;
     }
     arena_free(render_buffer->render_command_arena);
     push_clear_color(render_buffer->render_command_arena, BLACK);
     Entity* console = pm->console;
+    //draw_rect_slow(render_buffer, make_rect(.2f, .2f, .4f, .4f), RED);
 
     // NOTE: Process events.
     while(!events_empty(events)){
@@ -358,19 +361,19 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     if(console->console_state == CLOSED){
         if(t < 1) {
             t += lerp_speed;
-            //console->rect.y0 = lerp(console->rect.y0, y_closed, t);
+            console->rect.y0 = lerp(console->rect.y0, y_closed, t);
         }
     }
     else if(console->console_state == OPEN){
         if(t < 1) {
             t += lerp_speed;
-            //console->rect.y0 = lerp(console->rect.y0, y_open, t);
+            console->rect.y0 = lerp(console->rect.y0, y_open, t);
         }
     }
     else if(console->console_state == OPEN_BIG){
         if(t < 1) {
             t += lerp_speed;
-            //console->rect.y0 = lerp(console->rect.y0, y_open_big, t);
+            console->rect.y0 = lerp(console->rect.y0, y_open_big, t);
         }
     }
 
