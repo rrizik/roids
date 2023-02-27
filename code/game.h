@@ -125,10 +125,10 @@ add_console(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcol
     Entity* e = add_entity(pm, EntityType_Rect);
     e->rect =  rect;
     e->color = color;
-    e->border_size =     bsize;
-    e->border_color =    bcolor;
-    e->console_state =   CLOSED;
-    e->start_position =  e->rect.y;
+    e->border_size     = bsize;
+    e->border_color    = bcolor;
+    e->console_state   = OPEN;
+    e->start_position  = e->rect.y0;
     e->border_extrudes = bextrudes;
     e->draw = false;
     return(e);
@@ -198,7 +198,7 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
             } break;
             case RenderCommand_Pixel:{
                 PixelCommand *command = (PixelCommand*)base_command;
-                draw_pixel(render_buffer, make_v2(command->ch.rect.x, command->ch.rect.y), command->ch.color);
+                draw_pixel(render_buffer, make_v2(command->ch.rect.x0, command->ch.rect.y0), command->ch.color);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Segment:{
@@ -238,7 +238,7 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
             } break;
             case RenderCommand_Circle:{
                 CircleCommand *command = (CircleCommand*)base_command;
-                draw_circle(render_buffer, command->ch.rect.x, command->ch.rect.y, command->ch.rad, command->ch.color, command->ch.fill);
+                draw_circle(render_buffer, command->ch.rect.x0, command->ch.rect.y0, command->ch.rad, command->ch.color, command->ch.fill);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Bitmap:{
@@ -295,7 +295,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        pm->console = add_console(pm, make_rect(0, SCREEN_HEIGHT, SCREEN_WIDTH, 700), ARMY_GREEN);
+        pm->console = add_console(pm, make_rect(0, .5f, 1, 1), ARMY_GREEN);
 
         memory->initialized = true;
     }
@@ -327,7 +327,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                 }
                 if(event.keycode == TILDE && !event.repeat){
                     t = 0;
-                    pm->console->start_position = pm->console->rect.y;
+                    pm->console->start_position = pm->console->rect.y0;
                     if(event.shift_pressed){
                         if(pm->console->console_state == OPEN_BIG){
                             pm->console->console_state = CLOSED;
@@ -358,19 +358,19 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     if(console->console_state == CLOSED){
         if(t < 1) {
             t += lerp_speed;
-            console->rect.y = lerp(console->rect.y, y_closed * SCREEN_HEIGHT, t);
+            //console->rect.y0 = lerp(console->rect.y0, y_closed, t);
         }
     }
     else if(console->console_state == OPEN){
         if(t < 1) {
             t += lerp_speed;
-            console->rect.y = lerp(console->rect.y, y_open * SCREEN_HEIGHT, t);
+            //console->rect.y0 = lerp(console->rect.y0, y_open, t);
         }
     }
     else if(console->console_state == OPEN_BIG){
         if(t < 1) {
             t += lerp_speed;
-            console->rect.y = lerp(console->rect.y, y_open_big * SCREEN_HEIGHT, t);
+            //console->rect.y0 = lerp(console->rect.y0, y_open_big, t);
         }
     }
 

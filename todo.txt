@@ -1,0 +1,43 @@
+----------------------
+------- To-Dos -------
+----------------------
+
+convert everything screenspace
+use screenspace for openness as opposed to pixels
+
+draw console text bar
+draw text in console text bar
+produce output in console
+
+events:
+    add mouse events
+
+UI:
+    make it
+    
+
+serialization/deserialization
+improve render pipeline
+add directx render pipeline
+maybe dynamic array
+
+
+
+----------------------
+--- What I learned ---
+----------------------
+
+2/24/2023:
+    - learned the value of rect and rect helper functions
+
+2/26/2023:
+    - learned an easier way to do events from our good man JB
+    - nice file separation
+
+2/27/2023:
+    - learned about worldspace, screenspace, pixelspace.
+        worldspace is usually some real world unit of measurement that represent everything in the game
+        screenspace is usualyl a (0 - 1) ratio of the screen w/h, which makes it easier to deal with UI elements and such
+        pixelspace can be used as a representation, but it causes problems such as old games drawing small, and it is resolution dependent (Yuk!)
+    - changed how I represent rects
+

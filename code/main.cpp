@@ -4,6 +4,11 @@
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 
+v2s32 resolution = {
+    SCREEN_WIDTH,
+    SCREEN_HEIGHT
+};
+
 typedef s64 GetTicks(void);
 typedef f64 GetSecondsElapsed(s64 start, s64 end);
 typedef f64 GetMsElapsed(s64 start, s64 end);
