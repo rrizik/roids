@@ -29,7 +29,7 @@ make_rect(f32 x0, f32 y0, f32 x1, f32 y1){
 }
 
 static Rect
-screen_to_pixel(Rect r, v2s32 resolution){
+screen_to_pixel(Rect r){
     Rect result = {
         r.x0 * resolution.w,
         r.y0 * resolution.h,
@@ -40,7 +40,7 @@ screen_to_pixel(Rect r, v2s32 resolution){
 }
 
 static Rect
-pixel_to_screen(Rect r, v2s32 resolution){
+pixel_to_screen(Rect r){
     Rect result = {
         r.x0 / resolution.w,
         r.y0 / resolution.h,
@@ -52,9 +52,9 @@ pixel_to_screen(Rect r, v2s32 resolution){
 
 static v2
 rect_width_height(Rect rect){
-    Rect ps_rect = screen_to_pixel(rect, resolution);
+    //Rect ps_rect = screen_to_pixel(rect);
 
-    v2 result = ps_rect.max - ps_rect.min;
+    v2 result = rect.max - rect.min;
     return(result);
 }
 
@@ -93,21 +93,23 @@ rect_contains_rect(Rect r1, Rect r2){
 
 static Rect
 rect_calc_border(Rect rect, s32 border_size){
-    RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
-    rect_ps.x0 -= border_size;
-    rect_ps.y0 -= border_size;
-    rect_ps.x1 += border_size;
-    rect_ps.y1 += border_size;
+    //RectPixelSpace rect_ps = screen_to_pixel(rect);
+    Rect result = {
+        rect.x0 - border_size,
+        rect.y0 - border_size,
+        rect.x1 + border_size,
+        rect.y1 + border_size,
+    };
 
-    RectScreenSpace result = pixel_to_screen(rect_ps, resolution);
+    //RectScreenSpace result = pixel_to_screen(rect_ps);
     return(result);
 }
 
 //static Rect
 //rect_get_border_intruding(Rect rect, s32 border_size){
-//    RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+//    RectPixelSpace rect_ps = screen_to_pixel(rect);
 //
-//    RectScreenSpace result = pixel_to_screen(rect_ps, resolution);
+//    RectScreenSpace result = pixel_to_screen(rect_ps);
 //    return(result);
 //}
 

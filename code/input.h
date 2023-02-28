@@ -158,7 +158,7 @@ typedef struct Events{
 } Events;
 
 static void
-events_init(Events* events){
+init_events(Events* events){
     events->size = array_count(events->e);
 }
 

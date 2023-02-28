@@ -127,22 +127,22 @@ init_memory(Memory* memory){
 
 static void
 init_render_buffer(RenderBuffer* render_buffer, s32 width, s32 height){
-    render_buffer->width = width;
-    render_buffer->height = height;
+    render_buffer->width   = width;
+    render_buffer->height  = height;
     render_buffer->padding = 10;
 
-    render_buffer->bitmap_info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    render_buffer->bitmap_info.bmiHeader.biWidth = width;
-    render_buffer->bitmap_info.bmiHeader.biHeight = -height;
-    render_buffer->bitmap_info.bmiHeader.biPlanes = 1;
+    render_buffer->bitmap_info.bmiHeader.biSize     = sizeof(BITMAPINFOHEADER);
+    render_buffer->bitmap_info.bmiHeader.biWidth    = width;
+    render_buffer->bitmap_info.bmiHeader.biHeight   = -height;
+    render_buffer->bitmap_info.bmiHeader.biPlanes   = 1;
     render_buffer->bitmap_info.bmiHeader.biBitCount = 32;
     render_buffer->bitmap_info.bmiHeader.biCompression = BI_RGB;
 
     s32 bytes_per_pixel = 4;
     render_buffer->bytes_per_pixel = bytes_per_pixel;
     render_buffer->stride = width * bytes_per_pixel;
-    render_buffer->size = width * height * bytes_per_pixel;
-    render_buffer->base = os_virtual_alloc(render_buffer->size);
+    render_buffer->size   = width * height * bytes_per_pixel;
+    render_buffer->base   = os_virtual_alloc(render_buffer->size);
 
     render_buffer->render_command_arena = alloc_arena(MB(16));
     render_buffer->arena = alloc_arena(MB(4));
@@ -290,7 +290,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     init_memory(&memory);
     init_clock(&clock);
     init_render_buffer(&render_buffer, SCREEN_WIDTH, SCREEN_HEIGHT);
-    events_init(&events);
+    init_events(&events);
 
     should_quit = false;
 
@@ -324,18 +324,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             accumulator -= clock.dt;
             time_elapsed += clock.dt;
             simulations++;
-            //TODO: put in a function
-            //controller.up.pressed = false;
-            //controller.down.pressed = false;
-            //controller.left.pressed = false;
-            //controller.right.pressed = false;
-            //controller.one.pressed = false;
-            //controller.two.pressed = false;
-            //controller.three.pressed = false;
-            //controller.four.pressed = false;
-            //controller.m_right.pressed = false;
-            //controller.m_left.pressed = false;
-            //controller.m_middle.pressed = false;
         }
 
         frame_count++;

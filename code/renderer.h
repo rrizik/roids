@@ -310,9 +310,9 @@ draw_pixel(RenderBuffer *render_buffer, v2 position, RGBA color){
 // UNTESTED: untested with rect screenspace change
 static void
 draw_line(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
-    RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+    //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
 
-    v2 point1 = round_v2(rect_ps.min);
+    v2 point1 = round_v2(rect.min);
     v2 point2 = point1;
     v2 non_normalized_direction = (v2){point1.x + direction.x, point1.y + direction.y};
     direction = round_v2(non_normalized_direction);
@@ -359,8 +359,8 @@ draw_line(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
 // UNTESTED: untested with rect screenspace change
 static void
 draw_ray(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
-    RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
-    v2 pos = round_v2(rect_ps.min);
+    //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+    v2 pos = round_v2(rect.min);
 
     v2 non_normalized_direction = round_v2((v2){(direction.x * 100000), (direction.y * 100000)});
     v2 new_direction = (v2){pos.x + non_normalized_direction.x, pos.y + non_normalized_direction.y};
@@ -548,9 +548,9 @@ clear_color(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
 // UNTESTED: untested with rect screenspace change
 static void
 draw_bitmap_clip(RenderBuffer *render_buffer, Rect rect, Bitmap image, v4 clip_region){
-    RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
-    v2s32 pixel_min = round_v2_v2s32(rect_ps.min);
-    v2s32 pixel_max = round_v2_v2s32(rect_ps.max);
+    //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+    v2s32 pixel_min = round_v2_v2s32(rect.min);
+    v2s32 pixel_max = round_v2_v2s32(rect.max);
 
     if(clip_region == (v4){0,0,0,0}){
         for(f32 y=pixel_min.y; y < pixel_max.y; ++y){
@@ -609,10 +609,10 @@ draw_bitmap(RenderBuffer *render_buffer, Rect rect, Bitmap image){
 
 static void
 draw_rect_slow(RenderBuffer *render_buffer, Rect rect, RGBA color){
-    RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+    //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
 
-    for(f32 y=rect_ps.y0; y <= rect_ps.y1; ++y){
-        for(f32 x=rect_ps.x0; x <= rect_ps.x1; ++x){
+    for(f32 y=rect.y0; y <= rect.y1; ++y){
+        for(f32 x=rect.x0; x <= rect.x1; ++x){
             draw_pixel(render_buffer, (v2){x, y}, color);
         }
     }
@@ -621,11 +621,11 @@ draw_rect_slow(RenderBuffer *render_buffer, Rect rect, RGBA color){
 //static void draw_rect_fast(RenderBuffer *render_buffer, v2 position, v2s32 dimension, RGBA color){
 static void draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
     // get pixelspace rect coordinates
-    RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+    //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
 
     // round min/max
-    v2s32 pixel_min = round_v2_v2s32(rect_ps.min);
-    v2s32 pixel_max = round_v2_v2s32(rect_ps.max);
+    v2s32 pixel_min = round_v2_v2s32(rect.min);
+    v2s32 pixel_max = round_v2_v2s32(rect.max);
 
     // clamp min/max of rect to render_buffer
     if(pixel_min.x < 0) { pixel_min.x = 0; }
@@ -741,12 +741,12 @@ static void draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
 // UNTESTED: untested with rect screenspace change
 static void
 draw_box(RenderBuffer *render_buffer, Rect rect, RGBA color){
-    RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+    //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
 
-    v2 p0 = rect_ps.min;
-    v2 p1 = {rect_ps.max.x, rect_ps.min.y};
-    v2 p2 = rect_ps.max;
-    v2 p3 = {rect_ps.min.x, rect_ps.max.y};
+    v2 p0 = rect.min;
+    v2 p1 = {rect.max.x, rect.min.y};
+    v2 p2 = rect.max;
+    v2 p3 = {rect.min.x, rect.max.y};
 
     draw_segment(render_buffer, p0, p1, color);
     draw_segment(render_buffer, p1, p2, color);

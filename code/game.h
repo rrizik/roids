@@ -5,6 +5,7 @@
 #include "rect.h"
 #include "renderer.h"
 #include "entity.h"
+#include "console.h"
 
 typedef struct PermanentMemory{
     Arena arena;
@@ -18,7 +19,7 @@ typedef struct PermanentMemory{
     Entity entities[100];
     u32 entities_count;
 
-    Entity* console;
+    //Console* console;
 } PermanentMemory;
 
 typedef struct TransientMemory{
@@ -119,18 +120,18 @@ add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor 
     return(e);
 }
 
-static Entity*
-add_console(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}, bool bextrudes = false){
-    Entity* e = add_entity(pm, EntityType_Rect);
-    e->rect =  rect;
-    e->color = color;
-    e->border_size     = bsize;
-    e->border_color    = bcolor;
-    e->console_state   = CLOSED;
-    e->start_position  = e->rect.y0;
-    e->draw = false;
-    return(e);
-}
+//static Entity*
+//add_console(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}, bool bextrudes = false){
+//    Entity* e = add_entity(pm, EntityType_Rect);
+//    e->rect =  rect;
+//    e->color = color;
+//    e->border_size     = bsize;
+//    e->border_color    = bcolor;
+//    e->console_state   = CLOSED;
+//    e->start_position  = e->rect.y0;
+//    e->draw = false;
+//    return(e);
+//}
 
 static Entity*
 add_box(PermanentMemory* pm, Rect rect, RGBA color){
@@ -252,7 +253,6 @@ PermanentMemory* pm;
 TransientMemory* tm;
 
 
-f32 t = 0;
 static void
 update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Controller* controller, Clock* clock){
     Assert(sizeof(PermanentMemory) < memory->permanent_size);
@@ -293,18 +293,20 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        pm->console = add_console(pm, make_rect(0, 1, 1, 1), ARMY_GREEN);
-        add_rect(pm, make_rect(.1, .1f, .2, .2), MAGENTA, 20, RED);
-        add_rect(pm, make_rect(.3, .1f, .4, .2), MAGENTA, -20, GREEN);
-        add_rect(pm, make_rect(.5, .1f, .6, .2), MAGENTA, 20, BLUE);
-        add_rect(pm, make_rect(.7, .1f, .8, .2), MAGENTA, -20, TEAL);
+        //pm->console = add_console(pm, make_rect(0, 1, 1, 1), ARMY_GREEN);
+        add_rect(pm, screen_to_pixel(make_rect(.1, .1f, .2, .2)), MAGENTA);
+        add_rect(pm, screen_to_pixel(make_rect(.3, .1f, .4, .2)), MAGENTA, 4, GREEN);
+        add_rect(pm, screen_to_pixel(make_rect(.5, .1f, .6, .2)), MAGENTA, 0, BLUE);
+        add_rect(pm, screen_to_pixel(make_rect(.7, .1f, .8, .2)), MAGENTA, -20000, TEAL);
 //add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}, bool bextrudes = false){
+
+        init_console();
 
         memory->initialized = true;
     }
     arena_free(render_buffer->render_command_arena);
     push_clear_color(render_buffer->render_command_arena, BLACK);
-    Entity* console = pm->console;
+    //Entity* console = pm->console;
 
     // NOTE: Process events.
     while(!events_empty(events)){
@@ -321,60 +323,32 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                     print("quiting\n");
                     should_quit = true;
                 }
-                if(event.keycode == 'Q'){
-                    //print("keycode: %llu - repeat: %i\n", event.keycode, event.repeat);
-                }
-                if(event.keycode == 'Q' && !event.repeat){
-                    //count += 1;
-                    //print("QQQQQ: %i\n", count);
-                }
+
                 if(event.keycode == TILDE && !event.repeat){
-                    t = 0;
-                    pm->console->start_position = pm->console->rect.y0;
+                    console_mark();
+
                     if(event.shift_pressed){
-                        if(pm->console->console_state == OPEN_BIG){
-                            pm->console->console_state = CLOSED;
+                        if(console_state == OPEN_BIG){
+                            console_set_state(CLOSED);
                         }
-                        else{ pm->console->console_state = OPEN_BIG; }
+                        else{ console_set_state(OPEN_BIG); }
                     }
                     else{
-                        if(pm->console->console_state == OPEN){
-                            pm->console->console_state = CLOSED;
+                        if(console_state == OPEN){
+                            console_set_state(CLOSED);
                         }
-                        else{ pm->console->console_state = OPEN; }
+                        else{ console_set_state(OPEN); }
+
                     }
                 }
+
             }
             else{
             }
         }
     }
 
-    f32 y_closed   = 1.0f;
-    f32 y_open     = .7f;
-    f32 y_open_big = .2f;
-    f32 open_speed = 0.5f;
-
-    f32 lerp_speed =  open_speed * clock->dt;
-    if(console->console_state == CLOSED){
-        if(t < 1) {
-            t += lerp_speed;
-            console->rect.y0 = lerp(console->rect.y0, y_closed, t);
-        }
-    }
-    else if(console->console_state == OPEN){
-        if(t < 1) {
-            t += lerp_speed;
-            console->rect.y0 = lerp(console->rect.y0, y_open, t);
-        }
-    }
-    else if(console->console_state == OPEN_BIG){
-        if(t < 1) {
-            t += lerp_speed;
-            console->rect.y0 = lerp(console->rect.y0, y_open_big, t);
-        }
-    }
-
+    update_console();
 
     Arena* render_command_arena = render_buffer->render_command_arena;
     for(u32 entity_index = pm->free_entities_at; entity_index < ArrayCount(pm->entities); ++entity_index){
@@ -426,6 +400,10 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
             case EntityType_Object:{
             }break;
         }
+    }
+
+    if(console_is_open()){
+        draw_console(render_command_arena);
     }
 }
 
