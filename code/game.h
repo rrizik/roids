@@ -6,11 +6,13 @@
 #include "renderer.h"
 #include "entity.h"
 #include "console.h"
+#include "font.h"
 
 typedef struct PermanentMemory{
     Arena arena;
     String8 cwd; // CONSIDER: this might be something we want to be set on the platform side
-    String8 dir_assets; // CONSIDER: this might be something we want to be set on the platform side
+    String8 data_dir; // CONSIDER: this might be something we want to be set on the platform side
+    String8 fonts_dir; // CONSIDER: this might be something we want to be set on the platform side
 
     u32 generation[100];
     u32 free_entities[100];
@@ -19,6 +21,10 @@ typedef struct PermanentMemory{
     Entity entities[100];
     u32 entities_count;
 
+    Entity* image;
+    Entity* circle;
+
+    Font font_incon;
     //Console* console;
 } PermanentMemory;
 
@@ -175,9 +181,9 @@ add_circle(PermanentMemory *pm, Rect rect, u8 rad, RGBA color, bool fill){
 }
 
 static Entity*
-add_bitmap(PermanentMemory* pm, Rect rect, Bitmap image){
+add_bitmap(PermanentMemory* pm, v2 pos, Bitmap image){
     Entity* e = add_entity(pm, EntityType_Bitmap);
-    e->rect = rect;
+    e->rect = make_rect(pos.x, pos.y, pos.x + image.width, pos.y + image.height);
     e->image = image;
     return(e);
 }
@@ -252,6 +258,7 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
 PermanentMemory* pm;
 TransientMemory* tm;
 
+u32 x_offset = 0;
 
 static void
 update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Controller* controller, Clock* clock){
@@ -280,7 +287,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         init_arena(&pm->arena, (u8*)memory->permanent_base + sizeof(PermanentMemory), memory->permanent_size - sizeof(PermanentMemory));
         init_arena(&tm->arena, (u8*)memory->transient_base + sizeof(TransientMemory), memory->transient_size - sizeof(TransientMemory));
         pm->cwd = os_get_cwd(&pm->arena);
-        pm->dir_assets = str8_concatenate(&pm->arena, pm->cwd, str8_literal("\\data\\"));
+        pm->data_dir = str8_concatenate(&pm->arena, pm->cwd, str8_literal("\\data\\"));
+        pm->fonts_dir = str8_concatenate(&pm->arena, pm->data_dir, str8_literal("\\fonts\\"));
 
         tm->render_command_arena = push_arena(&tm->arena, MB(16));
         tm->frame_arena = push_arena(&tm->arena, MB(100));
@@ -294,27 +302,44 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
         //pm->console = add_console(pm, make_rect(0, 1, 1, 1), ARMY_GREEN);
-        add_rect(pm, screen_to_pixel(make_rect(.1, .1f, .2, .2)), MAGENTA);
-        add_rect(pm, screen_to_pixel(make_rect(.3, .1f, .4, .2)), MAGENTA, 4, GREEN);
-        add_rect(pm, screen_to_pixel(make_rect(.5, .1f, .6, .2)), MAGENTA, 0, BLUE);
-        add_rect(pm, screen_to_pixel(make_rect(.7, .1f, .8, .2)), MAGENTA, -20000, TEAL);
-//add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}, bool bextrudes = false){
+        add_rect(pm, screen_to_pixel(make_rect(.1, .1f, .2, .2), resolution), MAGENTA);
+        add_rect(pm, screen_to_pixel(make_rect(.3, .1f, .4, .2), resolution), MAGENTA, 4, GREEN);
+        add_rect(pm, screen_to_pixel(make_rect(.5, .1f, .6, .2), resolution), MAGENTA, 0, BLUE);
+        add_rect(pm, screen_to_pixel(make_rect(.7, .1f, .8, .2), resolution), MAGENTA, -20000, TEAL);
 
+#if 0
+
+        String8 image = str8_literal("image.bmp");
+        String8 circle = str8_literal("circle.bmp");
+        Bitmap bmp_image = load_bitmap(&tm->arena, pm->data_dir, image);
+        Bitmap bmp_circle = load_bitmap(&tm->arena, pm->data_dir, circle);
+        pm->image = add_bitmap(pm, make_v2(300, 300), bmp_image);
+        pm->circle = add_bitmap(pm, make_v2(500, 500), bmp_circle);
+#endif
+        //Inconsolata-Regular
+        Bitmap inconsolate[128];
+
+        String8 incon = str8_literal("Inconsolata-Regular.ttf");
+        pm->font_incon = load_font_ttf(&pm->arena, pm->fonts_dir, incon);
+        load_font_glyphs(&pm->arena, &pm->font_incon, 50);
         init_console();
 
         memory->initialized = true;
     }
     arena_free(render_buffer->render_command_arena);
     push_clear_color(render_buffer->render_command_arena, BLACK);
-    //Entity* console = pm->console;
 
     // NOTE: Process events.
     while(!events_empty(events)){
         Event event = event_get(events);
 
         if(event.type == TEXT_INPUT){
-            //print("text_input: %i - %c\n", event.keycode, event.keycode);
-            //print("-----------------------------\n");
+
+            Bitmap glyph = pm->font_incon.glyphs[event.keycode];
+            add_bitmap(pm, make_v2(10 + x_offset, 10), glyph);
+            x_offset += glyph.width;
+            print("text_input: %i - %c\n", event.keycode, event.keycode);
+            print("-----------------------------\n");
         }
         if(event.type == KEYBOARD){
             if(event.key_pressed){
@@ -403,8 +428,11 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     }
 
     if(console_is_open()){
-        draw_console(render_command_arena);
+        //draw_console(render_command_arena);
     }
+
+    String8 s = str8_literal("Rafik hahahah LOLOLOLOL");
+    draw_string(render_buffer, make_v2(500, 300), s, 0xF8DB5E);
 }
 
 #endif

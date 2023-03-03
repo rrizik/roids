@@ -53,6 +53,7 @@ console_mark(){
     start_position = output_rect.y0;
 }
 
+// maybe draw_console should just draw? What is imm in this case
 static void
 draw_console(Arena* command_arena){
     push_rect(command_arena, output_rect, output_color);

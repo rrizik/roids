@@ -47,7 +47,7 @@ typedef enum KeyCode{
 	SEVEN = 55,
 	EIGHT = 56,
 	NINE  = 57,
-	COLON = 58,
+	//COLON = 58,
 	//SEMICOLON = 59,
 	//LESS_THAN = 60,
 	//EQUALS_TO = 61,

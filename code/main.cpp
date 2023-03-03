@@ -144,8 +144,8 @@ init_render_buffer(RenderBuffer* render_buffer, s32 width, s32 height){
     render_buffer->size   = width * height * bytes_per_pixel;
     render_buffer->base   = os_virtual_alloc(render_buffer->size);
 
-    render_buffer->render_command_arena = alloc_arena(MB(16));
-    render_buffer->arena = alloc_arena(MB(4));
+    render_buffer->render_command_arena = make_arena(MB(16));
+    render_buffer->arena = make_arena(MB(4));
 }
 
 static void
@@ -272,7 +272,7 @@ win32_init(){
     return(false);
 }
 
-Arena* global_arena = os_alloc_arena(KB(1));
+Arena* global_arena = os_make_arena(KB(1));
 
 static HWND
 win32_window_create(wchar* window_name, u32 width, u32 height){

@@ -29,7 +29,7 @@ make_rect(f32 x0, f32 y0, f32 x1, f32 y1){
 }
 
 static Rect
-screen_to_pixel(Rect r){
+screen_to_pixel(Rect r, v2s32 resolution){
     Rect result = {
         r.x0 * resolution.w,
         r.y0 * resolution.h,
@@ -40,7 +40,7 @@ screen_to_pixel(Rect r){
 }
 
 static Rect
-pixel_to_screen(Rect r){
+pixel_to_screen(Rect r, v2s32 resolution){
     Rect result = {
         r.x0 / resolution.w,
         r.y0 / resolution.h,

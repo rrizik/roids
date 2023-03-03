@@ -33,12 +33,15 @@ typedef struct BitmapHeader {
 
 typedef struct Bitmap{
     BitmapHeader* header; //maybe i dont want this here?
+    u32 *pixels;
 	u32  width;
 	u32  height;
-    u32 *pixels;
+	u32  x_offset;
+	u32  y_offset;
 } Bitmap;
 
 // UNTESTED: test this again, changed how os_file_read() works
+// CONSIDER: do we need to pass in arena here? and if we do, why don't we use it to allocate an arena type instead of using it for os_file_read()
 static Bitmap
 load_bitmap(Arena *arena, String8 dir, String8 file_name){
     Bitmap result = {0};
@@ -618,11 +621,8 @@ draw_rect_slow(RenderBuffer *render_buffer, Rect rect, RGBA color){
     }
 }
 
-//static void draw_rect_fast(RenderBuffer *render_buffer, v2 position, v2s32 dimension, RGBA color){
-static void draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
-    // get pixelspace rect coordinates
-    //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
-
+static void
+draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
     // round min/max
     v2s32 pixel_min = round_v2_v2s32(rect.min);
     v2s32 pixel_max = round_v2_v2s32(rect.max);
