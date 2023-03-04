@@ -36,8 +36,6 @@ typedef struct Bitmap{
     u32 *pixels;
 	u32  width;
 	u32  height;
-	u32  x_offset;
-	u32  y_offset;
 } Bitmap;
 
 // UNTESTED: test this again, changed how os_file_read() works
@@ -550,8 +548,9 @@ clear_color(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
 
 // UNTESTED: untested with rect screenspace change
 static void
-draw_bitmap_clip(RenderBuffer *render_buffer, Rect rect, Bitmap image, v4 clip_region){
+draw_bitmap_clip(RenderBuffer *render_buffer, v2 pos, Bitmap image, v4 clip_region){
     //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+    Rect rect = make_rect(pos.x, pos.y, pos.x + image.width, pos.y + image.height);
     v2s32 pixel_min = round_v2_v2s32(rect.min);
     v2s32 pixel_max = round_v2_v2s32(rect.max);
 
@@ -606,8 +605,8 @@ draw_bitmap_clip(RenderBuffer *render_buffer, Rect rect, Bitmap image, v4 clip_r
 
 // UNTESTED: untested with rect screenspace change
 static void
-draw_bitmap(RenderBuffer *render_buffer, Rect rect, Bitmap image){
-    draw_bitmap_clip(render_buffer, rect, image, (v4){0,0,0,0});
+draw_bitmap(RenderBuffer *render_buffer, v2 pos, Bitmap image){
+    draw_bitmap_clip(render_buffer, pos, image, (v4){0,0,0,0});
 }
 
 static void

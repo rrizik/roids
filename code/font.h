@@ -2,7 +2,6 @@
 #define FONT_H
 
 #define STB_TRUETYPE_IMPLEMENTATION
-#define STBTT_STATIC
 #include "stb_truetype.h"
 
 #define GLYPH_WIDTH 9
@@ -81,15 +80,18 @@ typedef struct Font{
     FileData data;
     stbtt_fontinfo info;
     Bitmap glyphs[128];
+    f32 scale;
+    s32 ascent, descent, line_gap;
+    s32 baseline;
 } Font;
 
-static Font
-load_font_ttf(Arena* arena, String8 dir, String8 file){
-    Font font = {0};
-
-    font.data = os_file_read(arena, dir, file);
-    stbtt_InitFont(&font.info, (u8*)font.data.base, 0);
-    return(font);
+static bool
+load_font_ttf(Arena* arena, String8 dir, String8 file, Font* font){
+    font->data = os_file_read(arena, dir, file);
+    if(!stbtt_InitFont(&font->info, (u8*)font->data.base, 0)){
+        return(false);
+    }
+    return(true);
 }
 
 //   Character advance/positioning
@@ -99,26 +101,30 @@ load_font_ttf(Arena* arena, String8 dir, String8 file){
 //           stbtt_GetCodepointKernAdvance()
 
 static void
-load_font_glyphs(Arena* arena, Font* font, f32 size){
-    for(u32 i='!'; i<='~'; ++i){
-        s32 width, height, x_offset, y_offset;
-        u8* codepoint_bitmap = stbtt_GetCodepointBitmap(&font->info, 0, stbtt_ScaleForPixelHeight(&font->info, size), i, &width, &height, &x_offset, &y_offset);
-        Bitmap* bitmap = &font->glyphs[i];
-        bitmap->width = width;
-        bitmap->height = height;
-        // TODO: I dont think I want the offsets in the bitmap
-        bitmap->x_offset = x_offset;
-        bitmap->y_offset = y_offset;
-        bitmap->pixels = push_array(arena, u32, (width*height)); // already a u32, doesn't need *4 multiple
+load_font_glyphs(Arena* arena, f32 size, Font* font){
+    font->scale = stbtt_ScaleForPixelHeight(&font->info, size);
 
-        u8* dest_row = (u8*)bitmap->pixels + (height - 1) * (width * 4);
-        for(s32 y=0; y < height; ++y){
+    s32 descent = 0;
+    stbtt_GetFontVMetrics(&font->info, &font->ascent, &font->descent, &font->line_gap);
+    font->baseline = (s32)(font->ascent * font->scale);
+
+    for(u32 i=' '; i<='~'; ++i){
+
+        s32 w, h, xoff, yoff;
+        u8* codepoint_bitmap = stbtt_GetCodepointBitmap(&font->info, 0, font->scale, i, &w, &h, &xoff, &yoff);
+        Bitmap* bitmap = &font->glyphs[i];
+        bitmap->width = w;
+        bitmap->height = h;
+        bitmap->pixels = push_array(arena, u32, (w*h)); // already a u32, doesn't need *4 multiple
+
+        u8* dest_row = (u8*)bitmap->pixels + (h - 1) * (w * 4);
+        for(s32 y=0; y < h; ++y){
             u32* dest = (u32*)dest_row;
-            for(s32 x=0; x < width; ++x){
+            for(s32 x=0; x < w; ++x){
                 u8 alpha = *codepoint_bitmap++;
                 *dest++ = ((alpha << 24) | 0xFFFFFF);
             }
-            dest_row -= width * 4;
+            dest_row -= w * 4;
         }
         //stbtt_FreeBitmap(codepoint_bitmap, 0); not sure why this causes it to fail or why we need to call this at all
     }

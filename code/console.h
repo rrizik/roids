@@ -55,9 +55,14 @@ console_mark(){
 
 // maybe draw_console should just draw? What is imm in this case
 static void
-draw_console(Arena* command_arena){
+push_console(Arena* command_arena){
     push_rect(command_arena, output_rect, output_color);
     push_rect(command_arena, input_rect, input_color);
+    //for(u32 i=0; i < history_length; ++i){
+    //    String8 next_string = history_length[i];
+    //    push_text(command_arena, next_string);
+    //}
+    //push_text(command_arena, String8 console_input_string);
 }
 
 static void
