@@ -201,8 +201,12 @@ static void push_text(Arena* command_arena, v2 pos, String8 string){
     f32 scale = font_incon.scale;
     s32 baseline = font_incon.baseline;
     v2s32 unscaled_offset = {0, 0};
+    f32 x = pos.x;
+    f32 y = pos.y;
     for(u32 i=0; i < string.size; ++i){
         c = string.str + i;
+        stbtt_aligned_quad q;
+        stbtt_GetBakedQuad(font_incon.g, 512,512, *c-32, &x,&y,&q,1);//1=opengl & d3d10+,0=d3d9
         Bitmap glyph = font_incon.glyphs[*c];
 
         //f32 x_shift = pos.x - floor_f32(pos.x);
@@ -217,12 +221,17 @@ static void push_text(Arena* command_arena, v2 pos, String8 string){
         // <current_point+SF*x0, baseline+SF*y0> to <current_point+SF*x1,baseline+SF*y1)
         // Not clear to me what to do with them
 
+        //Rect rect = {
+        //    q.x0,
+        //    //q.y0,
+        //    //q.y0 + glyph.height + y0,
+        //    pos.y - (glyph.height + y0),
+        //    0,
+        //    0
+        //};
         Rect rect = {
-            pos.x + round_f32_s32(unscaled_offset.x + lsb) * scale,
-            pos.y + (font_incon.descent * scale),
-            //pos.y + y0,
-            //pos.y + baseline+scale*y0,
-            //pos.y - ((font_incon.descent * scale) - glyph.height),
+            pos.x + round_f32_s32((unscaled_offset.x + lsb) * scale),
+            pos.y - (glyph.height + y0),
             0,
             0
         };
@@ -231,7 +240,6 @@ static void push_text(Arena* command_arena, v2 pos, String8 string){
         unscaled_offset.x += advance_width;
         if(string.str[i + 1]){
             s32 kern = stbtt_GetCodepointKernAdvance(&font_incon.info, *c, string.str[i+1]);
-            print("kern: %i\n", kern);
             unscaled_offset.x += kern;
         }
     }
@@ -495,6 +503,11 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     push_text(render_command_arena, make_v2(10, resolution.h - 150), three);
     push_text(render_command_arena, make_v2(10, resolution.h - 200), four);
     push_text(render_command_arena, make_v2(10, resolution.h - 250), five);
+    push_segment(render_command_arena, make_v2(0, resolution.h - 50), make_v2(700, resolution.h - 50), RED);
+    push_segment(render_command_arena, make_v2(0, resolution.h - 100), make_v2(700, resolution.h - 100), RED);
+    push_segment(render_command_arena, make_v2(0, resolution.h - 150), make_v2(700, resolution.h - 150), RED);
+    push_segment(render_command_arena, make_v2(0, resolution.h - 200), make_v2(700, resolution.h - 200), RED);
+    push_segment(render_command_arena, make_v2(0, resolution.h - 250), make_v2(700, resolution.h - 250), RED);
 
 
     String8 s = str8_literal("Rafik hahahah LOLOLOLOL");

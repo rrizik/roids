@@ -80,6 +80,7 @@ typedef struct Font{
     FileData data;
     stbtt_fontinfo info;
     Bitmap glyphs[128];
+    stbtt_bakedchar g[96];
     f32 scale;
     s32 ascent, descent, line_gap;
     s32 baseline;
@@ -103,8 +104,9 @@ load_font_ttf(Arena* arena, String8 dir, String8 file, Font* font){
 static void
 load_font_glyphs(Arena* arena, f32 size, Font* font){
     font->scale = stbtt_ScaleForPixelHeight(&font->info, size);
+    unsigned char temp_bitmap[512*512];
+    s32 result = stbtt_BakeFontBitmap((unsigned char*)font->data.base,0, 50.0, temp_bitmap,512,512, 32,96, font->g);
 
-    s32 descent = 0;
     stbtt_GetFontVMetrics(&font->info, &font->ascent, &font->descent, &font->line_gap);
     font->baseline = (s32)(font->ascent * font->scale);
 
