@@ -77,44 +77,31 @@ draw_string(RenderBuffer* render_buffer, v2 pos, String8 string, u32 color){
 // --------------------------
 
 typedef struct Font{
-    FileData data;
     stbtt_fontinfo info;
     Bitmap glyphs[128];
-    stbtt_bakedchar g[96];
     f32 scale;
-    s32 ascent, descent, line_gap;
-    s32 baseline;
+    s32 ascent, descent, line_gap, vertical_offset;
 } Font;
 
 static bool
 load_font_ttf(Arena* arena, String8 dir, String8 file, Font* font){
-    font->data = os_file_read(arena, dir, file);
-    if(!stbtt_InitFont(&font->info, (u8*)font->data.base, 0)){
+    FileData data = os_file_read(arena, dir, file);
+    if(!stbtt_InitFont(&font->info, (u8*)data.base, 0)){
         return(false);
     }
     return(true);
 }
 
-//   Character advance/positioning
-//           stbtt_GetCodepointHMetrics()
-//           stbtt_GetFontVMetrics()
-//           stbtt_GetFontVMetricsOS2()
-//           stbtt_GetCodepointKernAdvance()
-
 static void
 load_font_glyphs(Arena* arena, f32 size, Font* font){
     font->scale = stbtt_ScaleForPixelHeight(&font->info, size);
-    unsigned char temp_bitmap[512*512];
-    s32 result = stbtt_BakeFontBitmap((unsigned char*)font->data.base,0, 50.0, temp_bitmap,512,512, 32,96, font->g);
-
     stbtt_GetFontVMetrics(&font->info, &font->ascent, &font->descent, &font->line_gap);
-    font->baseline = (s32)(font->ascent * font->scale);
+    font->vertical_offset = font->ascent - font->descent + font->line_gap;
 
     for(u32 i=' '; i<='~'; ++i){
-
         s32 w, h, xoff, yoff;
         u8* codepoint_bitmap = stbtt_GetCodepointBitmap(&font->info, 0, font->scale, i, &w, &h, &xoff, &yoff);
-        Bitmap* bitmap = &font->glyphs[i];
+        Bitmap* bitmap = font->glyphs + i;
         bitmap->width = w;
         bitmap->height = h;
         bitmap->pixels = push_array(arena, u32, (w*h)); // already a u32, doesn't need *4 multiple
@@ -128,7 +115,6 @@ load_font_glyphs(Arena* arena, f32 size, Font* font){
             }
             dest_row -= w * 4;
         }
-        //stbtt_FreeBitmap(codepoint_bitmap, 0); not sure why this causes it to fail or why we need to call this at all
     }
 }
 

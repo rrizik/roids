@@ -189,58 +189,86 @@ add_bitmap(PermanentMemory* pm, v2 pos, Bitmap image){
     return(e);
 }
 
-static void push_text(Arena* command_arena, v2 pos, String8 string){
-    //v2int pixel_origin = { 100, 200 };
-    //v2int unscaled_offset = { 0, 0 };
+//static void push_text_array(Arena* command_arena, v2 pos, String8 strings[]){
+//    u8* c;
+//    f32 scale = font_incon.scale;
+//    v2s32 unscaled_offset = {0, 0};
+//    //for(u32 i=0; i < array_count(strings); ++i){
+//        //String8* string = strings + i;
+//
+//        for(u32 i=0; i < string->size; ++i){
+//            c = string->str + i;
+//            if(*c != '\n'){
+//                Bitmap glyph = font_incon.glyphs[*c];
+//
+//                // get codepoint info
+//                s32 advance_width, lsb;
+//                stbtt_GetCodepointHMetrics(&font_incon.info, *c, &advance_width, &lsb);
+//                s32 x0, y0, x1, y1;
+//                stbtt_GetCodepointBitmapBox(&font_incon.info, *c, scale, scale, &x0,&y0,&x1,&y1);
+//
+//                // setup rect
+//                Rect rect = {
+//                    pos.x + round_f32_s32((unscaled_offset.x + lsb) * scale),
+//                    pos.y - (round_f32_s32(unscaled_offset.y * scale) + (glyph.height + y0)),
+//                    0,
+//                    0
+//                };
+//                push_bitmap(command_arena, rect, glyph);
+//
+//                // advance on x
+//                unscaled_offset.x += advance_width;
+//                if(string->str[i + 1]){
+//                    s32 kern = stbtt_GetCodepointKernAdvance(&font_incon.info, *c, string->str[i+1]);
+//                    unscaled_offset.x += kern;
+//                }
+//            }
+//            else{
+//                // advance to next line
+//                unscaled_offset.y += font_incon.vertical_offset;
+//                unscaled_offset.x = 0;
+//            }
+//        //}
+//        unscaled_offset.y += font_incon.vertical_offset;
+//        unscaled_offset.x = 0;
+//    }
+//}
 
-    //for (glyph : glyphs) {
-    //   draw_glyph(pixel_origin.x + round((unscaled_offset.x + glyph.lsb) * scale), ...);
-    //   unscaled_offset.x += glyph.advance;
-    //}
+static void push_text(Arena* command_arena, v2 pos, String8 string){
     u8* c;
     f32 scale = font_incon.scale;
-    s32 baseline = font_incon.baseline;
     v2s32 unscaled_offset = {0, 0};
-    f32 x = pos.x;
-    f32 y = pos.y;
     for(u32 i=0; i < string.size; ++i){
         c = string.str + i;
-        stbtt_aligned_quad q;
-        stbtt_GetBakedQuad(font_incon.g, 512,512, *c-32, &x,&y,&q,1);//1=opengl & d3d10+,0=d3d9
-        Bitmap glyph = font_incon.glyphs[*c];
+        if(*c != '\n'){
+            Bitmap glyph = font_incon.glyphs[*c];
 
-        //f32 x_shift = pos.x - floor_f32(pos.x);
-        s32 advance_width, lsb;
-        stbtt_GetCodepointHMetrics(&font_incon.info, *c, &advance_width, &lsb);
+            // get codepoint info
+            s32 advance_width, lsb;
+            stbtt_GetCodepointHMetrics(&font_incon.info, *c, &advance_width, &lsb);
+            s32 x0, y0, x1, y1;
+            stbtt_GetCodepointBitmapBox(&font_incon.info, *c, scale, scale, &x0,&y0,&x1,&y1);
 
-        s32 x0, y0, x1, y1;
-        stbtt_GetCodepointBitmapBox(&font_incon.info, *c, scale, scale, &x0,&y0,&x1,&y1);
-        //s32 xx0, yy0, xx1, yy1;
-        //stbtt_GetCodepointBitmapBoxSubpixel(&font_incon.info, *c, scale, scale, x_shift,0, &xx0,&yy0,&xx1,&yy1);
-        // docs use x0, y0 like this &screen[baseline + y0][(int) xpos + x0], but also says to use them like this
-        // <current_point+SF*x0, baseline+SF*y0> to <current_point+SF*x1,baseline+SF*y1)
-        // Not clear to me what to do with them
+            // setup rect
+            Rect rect = {
+                pos.x + round_f32_s32((unscaled_offset.x + lsb) * scale),
+                pos.y - (round_f32_s32(unscaled_offset.y * scale) + (glyph.height + y0)),
+                0,
+                0
+            };
+            push_bitmap(command_arena, rect, glyph);
 
-        //Rect rect = {
-        //    q.x0,
-        //    //q.y0,
-        //    //q.y0 + glyph.height + y0,
-        //    pos.y - (glyph.height + y0),
-        //    0,
-        //    0
-        //};
-        Rect rect = {
-            pos.x + round_f32_s32((unscaled_offset.x + lsb) * scale),
-            pos.y - (glyph.height + y0),
-            0,
-            0
-        };
-        push_bitmap(command_arena, rect, glyph);
-
-        unscaled_offset.x += advance_width;
-        if(string.str[i + 1]){
-            s32 kern = stbtt_GetCodepointKernAdvance(&font_incon.info, *c, string.str[i+1]);
-            unscaled_offset.x += kern;
+            // advance on x
+            unscaled_offset.x += advance_width;
+            if(string.str[i + 1]){
+                s32 kern = stbtt_GetCodepointKernAdvance(&font_incon.info, *c, string.str[i+1]);
+                unscaled_offset.x += kern;
+            }
+        }
+        else{
+            // advance to next line
+            unscaled_offset.y += font_incon.vertical_offset;
+            unscaled_offset.x = 0;
         }
     }
 }
@@ -381,6 +409,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         //String8 incon = str8_literal("Rock Jack Writing.ttf");
         //String8 incon = str8_literal("Inconsolata-Regular.ttf");
         String8 incon = str8_literal("GolosText-Regular.ttf");
+        //String8 incon = str8_literal("arial.ttf");
         bool succeed = load_font_ttf(&pm->arena, pm->fonts_dir, incon, &font_incon);
         assert(succeed);
         load_font_glyphs(&pm->arena, 50, &font_incon);
@@ -493,21 +522,25 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     if(console_is_open()){
         //push_console(render_command_arena);
     }
-    String8 one   = str8_literal("get! This is my program.");
-    String8 two   = str8_literal("It renders fonts.");
-    String8 three = str8_literal("Here is some dummy text 123.");
-    String8 four  = str8_literal("More Dummy Text ONETWOTHREE");
-    String8 five  = str8_literal("END OF DUMMY_TEXT_TEST.H OK");
+    String8 one   = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
+    String8 strings[] = {
+        str8_literal("get! This is my program."),
+        str8_literal("It renders fonts."),
+        str8_literal("Here is some dummy text 123."),
+        str8_literal("More Dummy Text ONETWOTHREE"),
+        str8_literal("END OF DUMMY_TEXT_TEST.H OK"),
+    };
+    //push_text_array(render_command_arena, make_v2(10, resolution.h - 50), strings);
     push_text(render_command_arena, make_v2(10, resolution.h - 50), one);
-    push_text(render_command_arena, make_v2(10, resolution.h - 100), two);
-    push_text(render_command_arena, make_v2(10, resolution.h - 150), three);
-    push_text(render_command_arena, make_v2(10, resolution.h - 200), four);
-    push_text(render_command_arena, make_v2(10, resolution.h - 250), five);
-    push_segment(render_command_arena, make_v2(0, resolution.h - 50), make_v2(700, resolution.h - 50), RED);
-    push_segment(render_command_arena, make_v2(0, resolution.h - 100), make_v2(700, resolution.h - 100), RED);
-    push_segment(render_command_arena, make_v2(0, resolution.h - 150), make_v2(700, resolution.h - 150), RED);
-    push_segment(render_command_arena, make_v2(0, resolution.h - 200), make_v2(700, resolution.h - 200), RED);
-    push_segment(render_command_arena, make_v2(0, resolution.h - 250), make_v2(700, resolution.h - 250), RED);
+    //push_text(render_command_arena, make_v2(10, resolution.h - 100), two);
+    //push_text(render_command_arena, make_v2(10, resolution.h - 150), three);
+    //push_text(render_command_arena, make_v2(10, resolution.h - 200), four);
+    //push_text(render_command_arena, make_v2(10, resolution.h - 250), five);
+    //push_segment(render_command_arena, make_v2(0, resolution.h - 50), make_v2(700, resolution.h - 50), RED);
+    //push_segment(render_command_arena, make_v2(0, resolution.h - 100), make_v2(700, resolution.h - 100), RED);
+    //push_segment(render_command_arena, make_v2(0, resolution.h - 150), make_v2(700, resolution.h - 150), RED);
+    //push_segment(render_command_arena, make_v2(0, resolution.h - 200), make_v2(700, resolution.h - 200), RED);
+    //push_segment(render_command_arena, make_v2(0, resolution.h - 250), make_v2(700, resolution.h - 250), RED);
 
 
     String8 s = str8_literal("Rafik hahahah LOLOLOLOL");
