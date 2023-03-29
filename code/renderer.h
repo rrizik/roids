@@ -32,13 +32,11 @@ typedef struct BitmapHeader {
 #pragma pack(pop)
 
 typedef struct Bitmap{
-    BitmapHeader* header; //maybe i dont want this here?
-    u32 *pixels;
+    u8*  pixels;
 	u32  width;
 	u32  height;
 } Bitmap;
 
-// UNTESTED: test this again, changed how os_file_read() works
 // CONSIDER: do we need to pass in arena here? and if we do, why don't we use it to allocate an arena type instead of using it for os_file_read()
 static Bitmap
 load_bitmap(Arena *arena, String8 dir, String8 file_name){
@@ -47,16 +45,16 @@ load_bitmap(Arena *arena, String8 dir, String8 file_name){
     FileData bitmap_file = os_file_read(arena, dir, file_name);
     if(bitmap_file.size > 0){
         BitmapHeader *header = (BitmapHeader *)bitmap_file.base;
-        result.pixels = (u32 *)((u8 *)bitmap_file.base + header->bitmap_offset);
+        result.pixels = (u8 *)bitmap_file.base + header->bitmap_offset;
         result.width = header->width;
         result.height = header->height;
-        result.header = header;
         // IMPORTANT: depending on compression type you might have to re order the bytes to make it AA RR GG BB
         // as well as consider the masks for each color included in the header
     }
     return(result);
 }
 
+// TODO: make this simpler {}
 static RGBA
 u32_to_rgba(u32 value){
 	f32 alpha = ((f32)((value >> 24) & 0xFF) / 255.0f);
@@ -79,13 +77,14 @@ typedef enum RenderCommandType{
     RenderCommand_Triangle,
     RenderCommand_Circle,
     RenderCommand_Bitmap,
+    RenderCommand_Glyph,
 } RenderCommandType;
 
 typedef struct CommandHeader{
     RenderCommandType type;
     Rect rect;
-    v2    direction;
-    s32   border_size;
+    v2  direction;
+    s32 border_size;
 
     u8 rad;
 
@@ -151,6 +150,11 @@ typedef struct BitmapCommand{
     CommandHeader ch;
     Bitmap image;
 } BitmapCommand;
+
+typedef struct GlyphCommand{
+    CommandHeader ch;
+    Glyph image;
+} GlyphCommand;
 
 static void
 push_clear_color(Arena *arena, RGBA color){
@@ -269,6 +273,15 @@ static void
 push_bitmap(Arena *arena, Rect rect, Bitmap image){
     BitmapCommand* command = push_struct(arena, BitmapCommand);
     command->ch.type = RenderCommand_Bitmap;
+    command->ch.arena_used = arena->used;
+    command->ch.rect = rect;
+    command->image = image;
+}
+
+static void
+push_glyph(Arena *arena, Rect rect, Glyph image){
+    GlyphCommand* command = push_struct(arena, GlyphCommand);
+    command->ch.type = RenderCommand_Glyph;
     command->ch.arena_used = arena->used;
     command->ch.rect = rect;
     command->image = image;
@@ -555,9 +568,10 @@ draw_bitmap_clip(RenderBuffer *render_buffer, v2 pos, Bitmap image, v4 clip_regi
     v2s32 pixel_max = round_v2_v2s32(rect.max);
 
     if(clip_region == (v4){0,0,0,0}){
+        u32* at = (u32*)image.pixels;
         for(f32 y=pixel_min.y; y < pixel_max.y; ++y){
             for(f32 x=pixel_min.x; x < pixel_max.x; ++x){
-                RGBA color = u32_to_rgba(*image.pixels++);
+                RGBA color = u32_to_rgba(*at++);
                 draw_pixel(render_buffer, (v2){x, y}, color);
             }
         }

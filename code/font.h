@@ -1,9 +1,6 @@
 #ifndef FONT_H
 #define FONT_H
 
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"
-
 #define GLYPH_WIDTH 9
 #define GLYPH_HEIGHT 16
 
@@ -76,11 +73,20 @@ draw_string(RenderBuffer* render_buffer, v2 pos, String8 string, u32 color){
 // stb_truetype implementation
 // --------------------------
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
+typedef struct Glyph{
+    u8*  pixels;
+	u32  width;
+	u32  height;
+} Glyph;
+
 typedef struct Font{
     stbtt_fontinfo info;
-    Bitmap glyphs[128];
+    Glyph glyphs[128];
     f32 scale;
-    s32 ascent, descent, line_gap, vertical_offset;
+    s32 vertical_offset;
 } Font;
 
 static bool
@@ -93,25 +99,34 @@ load_font_ttf(Arena* arena, String8 dir, String8 file, Font* font){
 }
 
 static void
-load_font_glyphs(Arena* arena, f32 size, Font* font){
+load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
+    s32 ascent, descent, line_gap;
+    stbtt_GetFontVMetrics(&font->info, &ascent, &descent, &line_gap);
+    font->vertical_offset = ascent - descent + line_gap;
     font->scale = stbtt_ScaleForPixelHeight(&font->info, size);
-    stbtt_GetFontVMetrics(&font->info, &font->ascent, &font->descent, &font->line_gap);
-    font->vertical_offset = font->ascent - font->descent + font->line_gap;
 
     for(u32 i=' '; i<='~'; ++i){
         s32 w, h, xoff, yoff;
         u8* codepoint_bitmap = stbtt_GetCodepointBitmap(&font->info, 0, font->scale, i, &w, &h, &xoff, &yoff);
-        Bitmap* bitmap = font->glyphs + i;
-        bitmap->width = w;
-        bitmap->height = h;
-        bitmap->pixels = push_array(arena, u32, (w*h)); // already a u32, doesn't need *4 multiple
+        Glyph* glyph = font->glyphs + i;
+        glyph->width = w;
+        glyph->height = h;
+        glyph->pixels = push_array(arena, u8, (w*h*4));
 
-        u8* dest_row = (u8*)bitmap->pixels + (h - 1) * (w * 4);
+        u8* dest_row = (u8*)glyph->pixels + (h - 1) * (w * 4);
         for(s32 y=0; y < h; ++y){
             u32* dest = (u32*)dest_row;
             for(s32 x=0; x < w; ++x){
                 u8 alpha = *codepoint_bitmap++;
+                f32 linear_alpha = alpha/255.0f;
+                RGBA c = {color.r, color.g, color.b, (f32)alpha};
+
+                //*dest++ = (((alpha) << 24) |
+                //           ((u32)(c.r + 0.5f) << 16) |
+                //           ((u32)(c.g + 0.5f) <<  8) |
+                //           ((u32)(c.b + 0.5f) <<  0));
                 *dest++ = ((alpha << 24) | 0xFFFFFF);
+
             }
             dest_row -= w * 4;
         }

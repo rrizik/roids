@@ -2,7 +2,7 @@
 #define ENTITY_H
 
 typedef enum {EntityFlag_Movable} EntityFlags;
-typedef enum {EntityType_None, EntityType_Object, EntityType_Pixel, EntityType_Line, EntityType_Ray, EntityType_Segment, EntityType_Triangle, EntityType_Rect, EntityType_Quad, EntityType_Box, EntityType_Circle, EntityType_Bitmap, } EntityType;
+typedef enum {EntityType_None, EntityType_Object, EntityType_Pixel, EntityType_Line, EntityType_Ray, EntityType_Segment, EntityType_Triangle, EntityType_Rect, EntityType_Quad, EntityType_Box, EntityType_Circle, EntityType_Bitmap, EntityType_Glyph} EntityType;
 
 typedef struct Entity{
     u32 index;
@@ -33,6 +33,7 @@ typedef struct Entity{
     bool fill;
 
     Bitmap image;
+    Glyph glyph;
     bool render;
 } Entity;
 

@@ -3,8 +3,9 @@
 
 #include "math.h"
 #include "rect.h"
-#include "renderer.h"
 #include "font.h"
+#include "renderer.h"
+
 #include "entity.h"
 #include "console.h"
 
@@ -21,7 +22,7 @@ typedef struct PermanentMemory{
     u32 free_entities_at;
 
     Entity entities[100];
-    u32 entities_count;
+    u32 entity_count;
 
     Entity* image;
     Entity* circle;
@@ -61,8 +62,8 @@ handle_from_entity(PermanentMemory* pm, Entity *e){
 static void
 remove_entity(PermanentMemory* pm, Entity* e){
     e->type = EntityType_None;
-    pm->free_entities_at++;
-    pm->free_entities[pm->free_entities_at] = e->index;
+    pm->free_entities[++pm->free_entities_at] = e->index;
+    pm->entity_count--;
     e->index = 0;
     e->generation = 0;
 }
@@ -73,7 +74,8 @@ add_entity(PermanentMemory *pm, EntityType type){
         s32 free_entity_index = pm->free_entities[pm->free_entities_at--];
         Entity *e = pm->entities + free_entity_index;
         e->index = free_entity_index;
-        pm->generation[e->index] += 1;
+        pm->generation[e->index]++;
+        pm->entity_count++;
         e->generation = pm->generation[e->index];
         e->type = type;
 
@@ -189,59 +191,71 @@ add_bitmap(PermanentMemory* pm, v2 pos, Bitmap image){
     return(e);
 }
 
-//static void push_text_array(Arena* command_arena, v2 pos, String8 strings[]){
-//    u8* c;
-//    f32 scale = font_incon.scale;
-//    v2s32 unscaled_offset = {0, 0};
-//    //for(u32 i=0; i < array_count(strings); ++i){
-//        //String8* string = strings + i;
-//
-//        for(u32 i=0; i < string->size; ++i){
-//            c = string->str + i;
-//            if(*c != '\n'){
-//                Bitmap glyph = font_incon.glyphs[*c];
-//
-//                // get codepoint info
-//                s32 advance_width, lsb;
-//                stbtt_GetCodepointHMetrics(&font_incon.info, *c, &advance_width, &lsb);
-//                s32 x0, y0, x1, y1;
-//                stbtt_GetCodepointBitmapBox(&font_incon.info, *c, scale, scale, &x0,&y0,&x1,&y1);
-//
-//                // setup rect
-//                Rect rect = {
-//                    pos.x + round_f32_s32((unscaled_offset.x + lsb) * scale),
-//                    pos.y - (round_f32_s32(unscaled_offset.y * scale) + (glyph.height + y0)),
-//                    0,
-//                    0
-//                };
-//                push_bitmap(command_arena, rect, glyph);
-//
-//                // advance on x
-//                unscaled_offset.x += advance_width;
-//                if(string->str[i + 1]){
-//                    s32 kern = stbtt_GetCodepointKernAdvance(&font_incon.info, *c, string->str[i+1]);
-//                    unscaled_offset.x += kern;
-//                }
-//            }
-//            else{
-//                // advance to next line
-//                unscaled_offset.y += font_incon.vertical_offset;
-//                unscaled_offset.x = 0;
-//            }
-//        //}
-//        unscaled_offset.y += font_incon.vertical_offset;
-//        unscaled_offset.x = 0;
-//    }
-//}
+static Entity*
+add_glyph(PermanentMemory* pm, v2 pos, Glyph glyph){
+    Entity* e = add_entity(pm, EntityType_Glyph);
+    e->rect = make_rect(pos.x, pos.y, 0, 0);
+    e->glyph = glyph;
+    return(e);
+}
 
-static void push_text(Arena* command_arena, v2 pos, String8 string){
+#define push_text_array(arena, pos, strings) _push_text_array(arena, pos, strings, array_count(strings))
+static void _push_text_array(Arena* command_arena, v2 pos, String8 strings[], u32 count){
     u8* c;
     f32 scale = font_incon.scale;
     v2s32 unscaled_offset = {0, 0};
+    for(u32 i=0; i < count; ++i){
+       String8* string = strings + i;
+
+        for(u32 i=0; i < string->size; ++i){
+            c = string->str + i;
+            if(*c != '\n'){
+                Glyph glyph = font_incon.glyphs[*c];
+
+                // get codepoint info
+                s32 advance_width, lsb;
+                stbtt_GetCodepointHMetrics(&font_incon.info, *c, &advance_width, &lsb);
+                s32 x0, y0, x1, y1;
+                stbtt_GetCodepointBitmapBox(&font_incon.info, *c, scale, scale, &x0,&y0,&x1,&y1);
+
+                // setup rect
+                Rect rect = {
+                    pos.x + round_f32_s32((unscaled_offset.x + lsb) * scale),
+                    pos.y - (round_f32_s32(unscaled_offset.y * scale) + (glyph.height + y0)),
+                    0,
+                    0
+                };
+                push_glyph(command_arena, rect, glyph);
+
+                // advance on x
+                unscaled_offset.x += advance_width;
+                if(string->str[i + 1]){
+                    s32 kern = stbtt_GetCodepointKernAdvance(&font_incon.info, *c, string->str[i+1]);
+                    unscaled_offset.x += kern;
+                }
+            }
+            else{
+                // advance to next line
+                unscaled_offset.y += font_incon.vertical_offset;
+                unscaled_offset.x = 0;
+            }
+        }
+        unscaled_offset.y += font_incon.vertical_offset;
+        unscaled_offset.x = 0;
+    }
+}
+
+static void
+push_text(Arena* command_arena, v2 pos, String8 string, bool split_down = true){
+    u8* c;
+    s32 kern;
+    f32 scale = font_incon.scale;
+    v2s32 unscaled_offset = {0, 0};
+
     for(u32 i=0; i < string.size; ++i){
         c = string.str + i;
         if(*c != '\n'){
-            Bitmap glyph = font_incon.glyphs[*c];
+            Glyph glyph = font_incon.glyphs[*c];
 
             // get codepoint info
             s32 advance_width, lsb;
@@ -249,25 +263,29 @@ static void push_text(Arena* command_arena, v2 pos, String8 string){
             s32 x0, y0, x1, y1;
             stbtt_GetCodepointBitmapBox(&font_incon.info, *c, scale, scale, &x0,&y0,&x1,&y1);
 
-            // setup rect
+            // setup rect to be pushed to command_arena
             Rect rect = {
-                pos.x + round_f32_s32((unscaled_offset.x + lsb) * scale),
-                pos.y - (round_f32_s32(unscaled_offset.y * scale) + (glyph.height + y0)),
-                0,
-                0
+                pos.x + (s32)round_f32_s32((unscaled_offset.x + lsb) * scale),
+                pos.y - (s32)(round_f32_s32(unscaled_offset.y * scale) + (glyph.height + y0)),
+                0, 0 // no x1, y1 needed for bitmap
             };
-            push_bitmap(command_arena, rect, glyph);
+            push_glyph(command_arena, rect, glyph);
 
-            // advance on x
+            // advance x + kern
             unscaled_offset.x += advance_width;
             if(string.str[i + 1]){
-                s32 kern = stbtt_GetCodepointKernAdvance(&font_incon.info, *c, string.str[i+1]);
+                kern = stbtt_GetCodepointKernAdvance(&font_incon.info, *c, string.str[i+1]);
                 unscaled_offset.x += kern;
             }
         }
         else{
             // advance to next line
-            unscaled_offset.y += font_incon.vertical_offset;
+            if(split_down){
+                unscaled_offset.y += font_incon.vertical_offset;
+            }
+            else{
+                unscaled_offset.y -= font_incon.vertical_offset;
+            }
             unscaled_offset.x = 0;
         }
     }
@@ -336,6 +354,11 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
                 draw_bitmap(render_buffer, command->ch.rect.min, command->image);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
+            case RenderCommand_Glyph:{
+                BitmapCommand *command = (BitmapCommand*)base_command;
+                draw_bitmap(render_buffer, command->ch.rect.min, command->image);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
         }
     }
 }
@@ -380,7 +403,6 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
         // setup free entities array
         pm->free_entities_at = ArrayCount(pm->free_entities) - 1;
-        pm->entities_count = array_count(pm->entities) - 1;
         for(s32 i = ArrayCount(pm->free_entities) - 1; i >= 0; --i){
             pm->free_entities[i] = ArrayCount(pm->free_entities) - 1 - i;
         }
@@ -412,7 +434,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         //String8 incon = str8_literal("arial.ttf");
         bool succeed = load_font_ttf(&pm->arena, pm->fonts_dir, incon, &font_incon);
         assert(succeed);
-        load_font_glyphs(&pm->arena, 50, &font_incon);
+        load_font_glyphs(&pm->arena, 50, ORANGE, &font_incon);
         init_console();
 
         memory->initialized = true;
@@ -426,9 +448,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         Event event = event_get(events);
 
         if(event.type == TEXT_INPUT){
-
-            Bitmap glyph = font_incon.glyphs[event.keycode];
-            add_bitmap(pm, make_v2(10 + x_offset, 10), glyph);
+            Glyph glyph = font_incon.glyphs[event.keycode];
+            add_glyph(pm, make_v2(10 + x_offset, 10), glyph);
             x_offset += glyph.width;
             print("text_input: %i - %c\n", event.keycode, event.keycode);
             print("-----------------------------\n");
@@ -512,6 +533,9 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
             case EntityType_Bitmap:{
                 push_bitmap(render_command_arena, e->rect, e->image);
             }break;
+            case EntityType_Glyph:{
+                push_glyph(render_command_arena, e->rect, e->glyph);
+            }break;
             case EntityType_None:{
             }break;
             case EntityType_Object:{
@@ -523,6 +547,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         //push_console(render_command_arena);
     }
     String8 one   = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
+    //String8 one   = str8_literal("g");
     String8 strings[] = {
         str8_literal("get! This is my program."),
         str8_literal("It renders fonts."),
@@ -530,12 +555,13 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         str8_literal("More Dummy Text ONETWOTHREE"),
         str8_literal("END OF DUMMY_TEXT_TEST.H OK"),
     };
-    //push_text_array(render_command_arena, make_v2(10, resolution.h - 50), strings);
-    push_text(render_command_arena, make_v2(10, resolution.h - 50), one);
-    //push_text(render_command_arena, make_v2(10, resolution.h - 100), two);
-    //push_text(render_command_arena, make_v2(10, resolution.h - 150), three);
-    //push_text(render_command_arena, make_v2(10, resolution.h - 200), four);
-    //push_text(render_command_arena, make_v2(10, resolution.h - 250), five);
+    push_text_array(render_command_arena, make_v2(10, resolution.h - 50), strings);
+    push_text(render_command_arena, make_v2(100, 600), one);
+
+    //push_text(render_command_arena, make_v2(0, resolution.h - 100), two);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 150), three);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 200), four);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 250), five);
     //push_segment(render_command_arena, make_v2(0, resolution.h - 50), make_v2(700, resolution.h - 50), RED);
     //push_segment(render_command_arena, make_v2(0, resolution.h - 100), make_v2(700, resolution.h - 100), RED);
     //push_segment(render_command_arena, make_v2(0, resolution.h - 150), make_v2(700, resolution.h - 150), RED);

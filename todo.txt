@@ -1,11 +1,26 @@
 ----------------------
+----- Questions ------
+----------------------
+
+Ask about code/file organization
+immediate draw? how does it work, do you immediately apply the pixels to the back buffer? do you immediately update the back buffer?
+
+
+----------------------
 ------- To-Dos -------
 ----------------------
 
-convert everything screenspace
-use screenspace for openness as opposed to pixels
+remove bitmaps from font.h, only save the u8 data and make a bitmap later when you do add_bitmap, or somewhere else
+SIDE STEP A LITTLE:
+    figure out how to do a bilinear blend and what SRGB is
 
-draw console text bar
+Rect:
+    something not quite right with borders, especially when they are big and intrude
+
+Fonts:
+    fix gamma colors. Do a linear blend.
+    let text input use font vertical/horizontal adjustment.
+
 draw text in console text bar
 produce output in console
 
@@ -40,4 +55,53 @@ maybe dynamic array
         screenspace is usualyl a (0 - 1) ratio of the screen w/h, which makes it easier to deal with UI elements and such
         pixelspace can be used as a representation, but it causes problems such as old games drawing small, and it is resolution dependent (Yuk!)
     - changed how I represent rects
+
+3/5/2023:
+    - Discord link (hopefully it doesnt expire): https://discord.com/channels/239737791225790464/1081457412977983509
+    - Drawing text. Learned a lot from this. Used stb_truetype.h to load fonts and glyph bitmaps.
+        Used this as reference for what the terms mean: https://i.stack.imgur.com/aWQMj.png
+        baseline, left/right bearing, w/h, (x0, y0, x1, y2) rises again, kerning, advance.
+        I draw bottom up, stb draws top down, was confusing for Y even though it said multiple times
+            it draws top down (Should have figured it out sooner)
+            visualization is never wasted
+    - From here I move to
+
+3/6/2023:
+    - Bilinear filtering. I'm not doing it, and I should.
+        From what I understand now, its a sample of 4 pixels. Linear blend between A`=(A, B), B`=(C, D), (A`, B`)
+        and you set dest to that color.
+        thats where sRGB and gamma blending comes from.
+
+
+3/23/2023:
+    - Back. Starting HMH vids on renderer. Gonna take a second pass on it. Hopefully it wont take too long (1/2) weeks.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
