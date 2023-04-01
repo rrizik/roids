@@ -26,6 +26,7 @@ typedef struct PermanentMemory{
 
     Entity* image;
     Entity* circle;
+    Entity* basis;
 
     //Console* console;
 } PermanentMemory;
@@ -126,6 +127,15 @@ add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor 
     e->color = color;
     e->border_size =  bsize;
     e->border_color = bcolor;
+    return(e);
+}
+
+static Entity*
+add_basis(PermanentMemory* pm, Rect rect, Basis basis, RGBA color){
+    Entity* e = add_entity(pm, EntityType_Basis);
+    e->rect =  rect;
+    e->basis =  basis;
+    e->color = color;
     return(e);
 }
 
@@ -326,7 +336,8 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
             } break;
             case RenderCommand_Rect:{
                 RectCommand *command = (RectCommand*)base_command;
-                draw_rect(render_buffer, command->ch.rect, command->ch.color);
+                //draw_rect(render_buffer, command->ch.rect, command->ch.color);
+                draw_rect_slow(render_buffer, command->ch.rect, command->ch.color);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Box:{
@@ -367,6 +378,8 @@ PermanentMemory* pm;
 TransientMemory* tm;
 
 u32 x_offset = 0;
+f32 scale;
+f32 angle;
 
 static void
 update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Controller* controller, Clock* clock){
@@ -391,6 +404,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
 
     if(!memory->initialized){
+        angle = 0;
 
         init_arena(&pm->arena, (u8*)memory->permanent_base + sizeof(PermanentMemory), memory->permanent_size - sizeof(PermanentMemory));
         init_arena(&tm->arena, (u8*)memory->transient_base + sizeof(TransientMemory), memory->transient_size - sizeof(TransientMemory));
@@ -409,10 +423,19 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
         //pm->console = add_console(pm, make_rect(0, 1, 1, 1), ARMY_GREEN);
-        add_rect(pm, screen_to_pixel(make_rect(.1, .1f, .2, .2), resolution), MAGENTA);
-        add_rect(pm, screen_to_pixel(make_rect(.3, .1f, .4, .2), resolution), MAGENTA, 4, GREEN);
-        add_rect(pm, screen_to_pixel(make_rect(.5, .1f, .6, .2), resolution), MAGENTA, 0, BLUE);
-        add_rect(pm, screen_to_pixel(make_rect(.7, .1f, .8, .2), resolution), MAGENTA, -20000, TEAL);
+        //add_rect(pm, screen_to_pixel(make_rect(.1, .1f, .2, .2), resolution), MAGENTA);
+        //add_rect(pm, screen_to_pixel(make_rect(.3, .1f, .4, .2), resolution), MAGENTA, 4, GREEN);
+        //add_rect(pm, screen_to_pixel(make_rect(.5, .1f, .6, .2), resolution), MAGENTA, 0, BLUE);
+        //add_rect(pm, screen_to_pixel(make_rect(.7, .1f, .8, .2), resolution), MAGENTA, -20000, TEAL);
+
+
+        // basis test
+        Basis basis;
+		basis.origin = make_v2(resolution.x/2, resolution.y/2),
+		basis.x_axis = 100.0f * make_v2(cos_f32(angle), sin_f32(angle)),
+		basis.y_axis = make_v2(-basis.x_axis.y, basis.x_axis.x),
+
+        pm->basis = add_basis(pm, make_rect(100, 100, 125, 125), basis, RED);
 
 #if 0
 
@@ -441,6 +464,9 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     }
     arena_free(render_buffer->render_command_arena);
     push_clear_color(render_buffer->render_command_arena, BLACK);
+    angle += clock->dt;
+    print("angle: %f\n", angle);
+
 
 
     // NOTE: Process events.
@@ -518,6 +544,28 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                 push_rect(render_command_arena, border, e->border_color);
                 push_rect(render_command_arena, rect, e->color);
             }break;
+            case EntityType_Basis:{
+				v2 dim = {5, 5};
+				v2 min = e->basis.origin;
+                RGBA color = {1, 1, 0, 1};
+                e->basis.origin = make_v2(resolution.x/2, resolution.y/2);
+                e->basis.x_axis = 100.0f * make_v2(cos_f32(angle * 2), sin_f32(angle * 2));
+                e->basis.y_axis = make_v2(-e->basis.x_axis.y, e->basis.x_axis.x);
+
+                v2 max = e->basis.origin + e->basis.x_axis + e->basis.y_axis;
+
+                push_rect(render_command_arena, make_rect(e->basis.origin, max), RED);
+
+                push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
+
+				min = e->basis.origin + e->basis.x_axis;
+                push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
+
+				min = e->basis.origin + e->basis.y_axis;
+                push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
+                push_rect(render_command_arena, make_rect(max - dim, max + dim), color);
+
+            }break;
             case EntityType_Box:{
                 push_box(render_command_arena, e->rect, e->color);
             }break;
@@ -540,13 +588,14 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
             }break;
             case EntityType_Object:{
             }break;
+            invalid_default_case;
         }
     }
 
     if(console_is_open()){
         //push_console(render_command_arena);
     }
-    String8 one   = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
+    String8 one = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
     //String8 one   = str8_literal("g");
     String8 strings[] = {
         str8_literal("get! This is my program."),
@@ -555,8 +604,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         str8_literal("More Dummy Text ONETWOTHREE"),
         str8_literal("END OF DUMMY_TEXT_TEST.H OK"),
     };
-    push_text_array(render_command_arena, make_v2(10, resolution.h - 50), strings);
-    push_text(render_command_arena, make_v2(100, 600), one);
+    //push_text_array(render_command_arena, make_v2(10, resolution.h - 50), strings);
+    //push_text(render_command_arena, make_v2(100, 600), one);
 
     //push_text(render_command_arena, make_v2(0, resolution.h - 100), two);
     //push_text(render_command_arena, make_v2(0, resolution.h - 150), three);

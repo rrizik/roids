@@ -29,6 +29,14 @@ make_rect(f32 x0, f32 y0, f32 x1, f32 y1){
 }
 
 static Rect
+make_rect(v2 min, v2 max){
+    Rect result;
+    result.min = min;
+    result.max = max;
+    return(result);
+}
+
+static Rect
 screen_to_pixel(Rect r, v2s32 resolution){
     Rect result = {
         r.x0 * resolution.w,

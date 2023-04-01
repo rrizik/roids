@@ -30,14 +30,14 @@ translate(v2 *p, u32 count, v2 translation){
     p -= count;
 }
 
-static void
-scale(v2 *p, u32 count, f32 scalar, v2 origin){
-    for(u32 i=0; i<count; ++i){
-        *p = ((*p - origin) * scalar) + origin;
-        p++;
-    }
-    p -= count;
-}
+//static void
+//scale(v2 *p, u32 count, f32 scalar, v2 origin){
+//    for(u32 i=0; i<count; ++i){
+//        *p = ((*p - origin) * scalar) + origin;
+//        p++;
+//    }
+//    p -= count;
+//}
 
 static v2
 rotate_point(v2 p, f32 angle, v2 origin){

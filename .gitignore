@@ -5,3 +5,4 @@ build
 *.bat
 *.vim
 cake.txt
+*video_docs

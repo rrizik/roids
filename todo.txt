@@ -18,6 +18,8 @@ Rect:
     something not quite right with borders, especially when they are big and intrude
 
 Fonts:
+    add_text() maybe?
+    add_text_array() maybe?
     fix gamma colors. Do a linear blend.
     let text input use font vertical/horizontal adjustment.
 
@@ -72,11 +74,12 @@ maybe dynamic array
         and you set dest to that color.
         thats where sRGB and gamma blending comes from.
 
-
 3/23/2023:
     - Back. Starting HMH vids on renderer. Gonna take a second pass on it. Hopefully it wont take too long (1/2) weeks.
 
-
+4/1/2023:
+    - Got my basis(origin, x_axis, y_axis) working.
+    - Video captured for web documentation.
 
 
 
