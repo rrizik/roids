@@ -4,6 +4,8 @@
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 
+#define BYTES_PER_PIXEL 4
+
 v2s32 resolution = {
     SCREEN_WIDTH,
     SCREEN_HEIGHT

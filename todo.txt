@@ -79,7 +79,10 @@ maybe dynamic array
 
 4/1/2023:
     - Got my basis(origin, x_axis, y_axis) working.
+    - Got scale rotation sheer working
     - Video captured for web documentation.
+        a) rotating 3 small rects
+        b) rotating 1 large rect with 4 small rects on point (step between A and C)
 
 
 

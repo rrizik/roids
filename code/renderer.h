@@ -25,17 +25,38 @@ typedef struct BitmapHeader {
 	s32 VertResolution;
 	u32 ColorsUsed;
 	u32 ColorsImportant;
-//    u32 RedMask;
-//    u32 GreenMask;
-//    u32 BlueMask;
+    u32 RedMask;
+    u32 GreenMask;
+    u32 BlueMask;
 } BitmapHeader;
 #pragma pack(pop)
 
 typedef struct Bitmap{
-    u8*  pixels;
+    u8*  base;
 	u32  width;
 	u32  height;
+	s32  stride;
 } Bitmap;
+
+
+typedef struct BitScanResult{
+    bool found;
+    u32 index;
+} BitScanResult;
+
+static BitScanResult
+find_first_set_bit(u32 value){
+    BitScanResult result = {0};
+
+    for(u32 i=0; i < 32; ++i){
+        if(value & (1 << i)){
+            result.index = i;
+            result.found = true;
+            break;
+        }
+    }
+    return(result);
+}
 
 // CONSIDER: do we need to pass in arena here? and if we do, why don't we use it to allocate an arena type instead of using it for os_file_read()
 static Bitmap
@@ -45,23 +66,46 @@ load_bitmap(Arena *arena, String8 dir, String8 file_name){
     FileData bitmap_file = os_file_read(arena, dir, file_name);
     if(bitmap_file.size > 0){
         BitmapHeader *header = (BitmapHeader *)bitmap_file.base;
-        result.pixels = (u8 *)bitmap_file.base + header->bitmap_offset;
+        result.base = (u8 *)bitmap_file.base + header->bitmap_offset;
         result.width = header->width;
         result.height = header->height;
-        // IMPORTANT: depending on compression type you might have to re order the bytes to make it AA RR GG BB
-        // as well as consider the masks for each color included in the header
+        result.stride = header->width * 4;
+
+        // NOTE: As bmps can have ARGB or RGBA or ..., we need to find where our color
+        // shifts are and position the each 8 bit into a ARGB format.
+        u32 alpha_mask = ~(header->RedMask | header->GreenMask | header->BlueMask);
+        BitScanResult red_shift = find_first_set_bit(header->RedMask);
+        BitScanResult green_shift = find_first_set_bit(header->GreenMask);
+        BitScanResult blue_shift = find_first_set_bit(header->BlueMask);
+        BitScanResult alpha_shift = find_first_set_bit(alpha_mask);
+
+        assert(alpha_shift.found);
+        assert(red_shift.found);
+        assert(green_shift.found);
+        assert(blue_shift.found);
+
+        u32* pixel = (u32*)result.base;
+        for(u32 y=0; y < result.height; ++y){
+            for(u32 x=0; x < result.width; ++x){
+                u32 color = *pixel;
+                *pixel++ = ((((color >> alpha_shift.index) & 0xFF) << 24) |
+                            (((color >> red_shift.index) & 0xFF)   << 16) |
+                            (((color >> green_shift.index) & 0xFF)  << 8) |
+                            (((color >> blue_shift.index) & 0xFF)   << 0));
+            }
+        }
     }
     return(result);
 }
 
 // TODO: make this simpler {}
 static RGBA
-u32_to_rgba(u32 value){
-	f32 alpha = ((f32)((value >> 24) & 0xFF) / 255.0f);
-	f32 red =   ((f32)((value >> 16) & 0xFF) / 255.0f);
-	f32 green = ((f32)((value >> 8) & 0xFF) / 255.0f);
-	f32 blue =  ((f32)((value >> 0) & 0xFF) / 255.0f);
-    RGBA result = {red, green, blue, alpha};
+u32_to_rgba_normal(u32 value){
+    RGBA result = {0};
+	result.a = ((f32)((value >> 24) & 0xFF) / 255.0f);
+	result.r = ((f32)((value >> 16) & 0xFF) / 255.0f);
+	result.g = ((f32)((value >> 8) & 0xFF) / 255.0f);
+	result.b = ((f32)((value >> 0) & 0xFF) / 255.0f);
     return result;
 }
 
@@ -72,6 +116,7 @@ typedef enum RenderCommandType{
     RenderCommand_Line,
     RenderCommand_Ray,
     RenderCommand_Rect,
+    RenderCommand_Basis,
     RenderCommand_Box,
     RenderCommand_Quad,
     RenderCommand_Triangle,
@@ -84,6 +129,9 @@ typedef struct CommandHeader{
     RenderCommandType type;
     Rect rect;
     v2  direction;
+    v2  origin;
+    v2  x_axis;
+    v2  y_axis;
     s32 border_size;
 
     u8 rad;
@@ -123,6 +171,11 @@ typedef struct RectCommand{
     CommandHeader ch;
 } RectCommand;
 
+typedef struct BasisCommand{
+    CommandHeader ch;
+    Bitmap texture;
+} BasisCommand;
+
 typedef struct BoxCommand{
     CommandHeader ch;
 } BoxCommand;
@@ -148,12 +201,12 @@ typedef struct CircleCommand{
 
 typedef struct BitmapCommand{
     CommandHeader ch;
-    Bitmap image;
+    Bitmap texture;
 } BitmapCommand;
 
 typedef struct GlyphCommand{
     CommandHeader ch;
-    Glyph image;
+    Glyph texture;
 } GlyphCommand;
 
 static void
@@ -225,6 +278,18 @@ push_rect(Arena *arena, Rect rect, RGBA color, s32 border_size = 0, RGBA border_
 }
 
 static void
+push_basis(Arena *arena, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, RGBA color){
+    BasisCommand* command = push_struct(arena, BasisCommand);
+    command->ch.type = RenderCommand_Basis;
+    command->ch.arena_used = arena->used;
+    command->ch.color = color;
+    command->ch.origin = origin;
+    command->ch.x_axis = x_axis;
+    command->ch.y_axis = y_axis;
+    command->texture = texture;
+}
+
+static void
 push_box(Arena *arena, Rect rect, RGBA color){
     BoxCommand* command = push_struct(arena, BoxCommand);
     command->ch.type = RenderCommand_Box;
@@ -270,21 +335,21 @@ push_circle(Arena *arena, Rect rect, u8 rad, RGBA color, bool fill){
 }
 
 static void
-push_bitmap(Arena *arena, Rect rect, Bitmap image){
+push_bitmap(Arena *arena, Rect rect, Bitmap texture){
     BitmapCommand* command = push_struct(arena, BitmapCommand);
     command->ch.type = RenderCommand_Bitmap;
     command->ch.arena_used = arena->used;
     command->ch.rect = rect;
-    command->image = image;
+    command->texture = texture;
 }
 
 static void
-push_glyph(Arena *arena, Rect rect, Glyph image){
+push_glyph(Arena *arena, Rect rect, Glyph texture){
     GlyphCommand* command = push_struct(arena, GlyphCommand);
     command->ch.type = RenderCommand_Glyph;
     command->ch.arena_used = arena->used;
     command->ch.rect = rect;
-    command->image = image;
+    command->texture = texture;
 }
 
 static void
@@ -561,78 +626,169 @@ clear_color(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
 
 // UNTESTED: untested with rect screenspace change
 static void
-draw_bitmap_clip(RenderBuffer *render_buffer, v2 pos, Bitmap image, v4 clip_region){
-    //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
-    Rect rect = make_rect(pos.x, pos.y, pos.x + image.width, pos.y + image.height);
+draw_bitmap_clip(RenderBuffer *render_buffer, v2 pos, Bitmap* texture, v4 clip_region){
+    Rect rect = make_rect(pos.x, pos.y, pos.x + texture->width, pos.y + texture->height);
     v2s32 pixel_min = round_v2_v2s32(rect.min);
     v2s32 pixel_max = round_v2_v2s32(rect.max);
 
     if(clip_region == (v4){0,0,0,0}){
-        u32* at = (u32*)image.pixels;
+        u32* at = (u32*)texture->base;
         for(f32 y=pixel_min.y; y < pixel_max.y; ++y){
             for(f32 x=pixel_min.x; x < pixel_max.x; ++x){
-                RGBA color = u32_to_rgba(*at++);
+                RGBA color = u32_to_rgba_normal(*at++);
                 draw_pixel(render_buffer, (v2){x, y}, color);
             }
         }
     }
-    else{
-        Rect cr = make_rect(.1f, .15f, .2f, .25f);
+    //else{
+    //    Rect cr = make_rect(.1f, .15f, .2f, .25f);
 
-        if(pixel_min.x < cr.x0){
-            pixel_min.x = cr.x0;
-            pixel_max.x = image.width - (cr.x0 - pixel_min.x);
-        }
-        if((pixel_min.x + pixel_max.x) > (cr.x0 + cr.x1)){
-            pixel_max.x = pixel_max.x - ((pixel_min.x + pixel_max.x) - (cr.x0 + cr.x1));
-        }
+    //    if(pixel_min.x < cr.x0){
+    //        pixel_min.x = cr.x0;
+    //        pixel_max.x = texture.width - (cr.x0 - pixel_min.x);
+    //    }
+    //    if((pixel_min.x + pixel_max.x) > (cr.x0 + cr.x1)){
+    //        pixel_max.x = pixel_max.x - ((pixel_min.x + pixel_max.x) - (cr.x0 + cr.x1));
+    //    }
 
-        if(pixel_min.y < cr.y0){
-            pixel_min.y = cr.y0;
-            pixel_max.y = image.height - (cr.y0 - pixel_min.y);
-        }
-        if((pixel_min.y + pixel_max.y) > (cr.y0 + cr.y1)){
-            pixel_max.y = pixel_max.y - ((pixel_min.y + pixel_max.y) - (cr.y0 + cr.y1));
-        }
+    //    if(pixel_min.y < cr.y0){
+    //        pixel_min.y = cr.y0;
+    //        pixel_max.y = texture.height - (cr.y0 - pixel_min.y);
+    //    }
+    //    if((pixel_min.y + pixel_max.y) > (cr.y0 + cr.y1)){
+    //        pixel_max.y = pixel_max.y - ((pixel_min.y + pixel_max.y) - (cr.y0 + cr.y1));
+    //    }
 
-        u32 rounded_x = round_f32_u32(pixel_min.x);
-        u32 rounded_y = round_f32_u32(pixel_min.y);
+    //    u32 rounded_x = round_f32_u32(pixel_min.x);
+    //    u32 rounded_y = round_f32_u32(pixel_min.y);
 
-        // clamp is wrong here, was 1 n 0 now 0 n 1
-        u32 x_shift = (u32)clamp_f32(0, (cr.x0 - pixel_min.x), 100000);
-        u32 y_shift = (u32)clamp_f32(0, (cr.y0 - pixel_min.y), 100000);
+    //    // clamp is wrong here, was 1 n 0 now 0 n 1
+    //    u32 x_shift = (u32)clamp_f32(0, (cr.x0 - pixel_min.x), 100000);
+    //    u32 y_shift = (u32)clamp_f32(0, (cr.y0 - pixel_min.y), 100000);
 
-        u32 iy = 0;
-        for(u32 y = rounded_y; y < rounded_y + pixel_max.y; ++y){
-            u32 ix = 0;
-            for(u32 x = rounded_x; x < rounded_x + pixel_max.x; ++x){
-                u8 *byte = (u8 *)image.pixels + ((y_shift + iy) * image.width * 4) + ((x_shift + ix) * 4);
-                u32 *c = (u32 *)byte;
-                RGBA color = u32_to_rgba(*c);
-                draw_pixel(render_buffer, (v2){(f32)x, (f32)y}, color);
-                ix++;
-            }
-            iy++;
-        }
-    }
+    //    u32 iy = 0;
+    //    for(u32 y = rounded_y; y < rounded_y + pixel_max.y; ++y){
+    //        u32 ix = 0;
+    //        for(u32 x = rounded_x; x < rounded_x + pixel_max.x; ++x){
+    //            u8 *byte = (u8 *)texture.base + ((y_shift + iy) * texture.width * 4) + ((x_shift + ix) * 4);
+    //            u32 *c = (u32 *)byte;
+    //            RGBA color = u32_to_rgba(*c);
+    //            draw_pixel(render_buffer, (v2){(f32)x, (f32)y}, color);
+    //            ix++;
+    //        }
+    //        iy++;
+    //    }
+    //}
 }
 
 // UNTESTED: untested with rect screenspace change
 static void
-draw_bitmap(RenderBuffer *render_buffer, v2 pos, Bitmap image){
-    draw_bitmap_clip(render_buffer, pos, image, (v4){0,0,0,0});
+draw_bitmap(RenderBuffer *render_buffer, v2 pos, Bitmap* texture){
+    draw_bitmap_clip(render_buffer, pos, texture, (v4){0,0,0,0});
 }
 
 static void
-draw_rect_slow(RenderBuffer *render_buffer, Rect rect, RGBA color){
-    //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
+draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color){
 
-    for(f32 y=rect.y0; y <= rect.y1; ++y){
-        for(f32 x=rect.x0; x <= rect.x1; ++x){
-            draw_pixel(render_buffer, (v2){x, y}, color);
+    f32 inv_xaxis_mag_sqrt = 1 / magnitude_sqrt_v2(x_axis);
+    f32 inv_yaxis_mag_sqrt = 1 / magnitude_sqrt_v2(y_axis);
+
+    //u32 color_u32 = ((round_f32_u32(color.a * 255.0) << 24) |
+    //                 (round_f32_u32(color.r * 255.0) << 16) |
+    //                 (round_f32_u32(color.g * 255.0) <<  8) |
+    //                 (round_f32_u32(color.b * 255.0) <<  0));
+
+    u32 max_width = render_buffer->width - 1;
+    u32 max_height = render_buffer->height - 1;
+    u32 xmax = 0;
+    u32 xmin = max_width;
+    u32 ymax = 0;
+    u32 ymin = max_height;
+
+    v2 points[4] = {origin, origin + x_axis, origin + y_axis, origin + x_axis + y_axis};
+    for(u32 i=0; i < array_count(points); ++i){
+        v2 test_p = points[i];
+        u32 x = round_f32_u32(test_p.x);
+        u32 y = round_f32_u32(test_p.y);
+
+        if(x < xmin){ xmin = x; }
+        if(y < ymin){ ymin = y; }
+        if(x > xmax){ xmax = x; }
+        if(y > ymax){ ymax = y; }
+    }
+
+    if(xmin < 0){ xmin = 0; };
+    if(ymin < 0){ ymin = 0; };
+    if(xmax > max_width){ xmax = max_width; };
+    if(ymax > max_height){ ymax = max_height; };
+
+    u8 *row = (u8 *)render_buffer->base +
+               ((render_buffer->height - ymin - 1) * render_buffer->stride) +
+               (xmin * render_buffer->bytes_per_pixel);
+    for(f32 y=ymin; y < ymax; ++y){
+        u32* pixel = (u32*)row;
+        for(f32 x=xmin; x <= xmax; ++x){
+
+            v2 pixel_pos = {x, y};
+            v2 dist = pixel_pos - origin;
+            f32 edge0 = dot_v2(dist,                  -perp(x_axis));
+            f32 edge1 = dot_v2(dist - x_axis,         -perp(y_axis));
+            f32 edge2 = dot_v2(dist - x_axis - y_axis, perp(x_axis));
+            f32 edge3 = dot_v2(dist - y_axis,          perp(y_axis));
+            if((edge0 < 0) && (edge1 < 0) && (edge2 < 0) && (edge3 < 0)){
+                f32 u = inv_xaxis_mag_sqrt * dot_v2(dist, x_axis);
+                f32 v = inv_yaxis_mag_sqrt * dot_v2(dist, y_axis);
+
+                assert(u >= 0.0f && u <= 1.0f);
+                assert(v >= 0.0f && v <= 1.0f);
+
+                f32 tx = 1.0f + ((u * (f32)(texture->width  - 3)) + 0.5f);
+                f32 ty = 1.0f + ((v * (f32)(texture->height - 3)) + 0.5f);
+                s32 x = (s32)tx;
+                s32 y = (s32)ty;
+
+                assert(x >= 0 && x < texture->width);
+                assert(y >= 0 && y < texture->height);
+
+                u8* texel_ptr = ((u8*)texture->base + (y * texture->stride) + (x * 4));
+                u32* texel_a = (u32*)(texel_ptr);
+                u32* texel_b = (u32*)(texel_ptr + sizeof(u32));
+                u32* texel_c = (u32*)(texel_ptr + texture->stride);
+                u32* texel_d = (u32*)(texel_ptr + texture->stride + sizeof(u32));
+                RGBA texel_color = u32_to_rgba_normal(*texel_a);
+                RGBA pixel_color = u32_to_rgba_normal(*pixel);
+
+                pixel_color.r *= 255.0f;
+                pixel_color.g *= 255.0f;
+                pixel_color.b *= 255.0f;
+
+                texel_color.r *= 255.0f;
+                texel_color.g *= 255.0f;
+                texel_color.b *= 255.0f;
+
+                f32 new_r = lerp(pixel_color.r, texel_color.r, texel_color.a);
+                f32 new_g = lerp(pixel_color.g, texel_color.g, texel_color.a);
+                f32 new_b = lerp(pixel_color.b, texel_color.b, texel_color.a);
+                texel_color.a *= 255.0f;
+
+                u32 new_color = (round_f32_s32(texel_color.a) << 24 |
+                                 round_f32_s32(new_r) << 16 |
+                                 round_f32_s32(new_g) << 8 |
+                                 round_f32_s32(new_b) << 0);
+                *pixel = new_color;
+
+                //*pixel = *texel;
+                //*pixel = color_u32;
+            }
+            pixel++;
         }
+        row -= render_buffer->stride;
     }
 }
+//if((x >= min.x && x < max.x) &&
+//   (y >= min.y && y < max.y)){
+//    *pixel = color_u32;
+//}
 
 static void
 draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){

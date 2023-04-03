@@ -24,9 +24,10 @@ typedef struct PermanentMemory{
     Entity entities[100];
     u32 entity_count;
 
-    Entity* image;
+    Entity* texture;
     Entity* circle;
     Entity* basis;
+    Bitmap tree;
 
     //Console* console;
 } PermanentMemory;
@@ -131,11 +132,13 @@ add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor 
 }
 
 static Entity*
-add_basis(PermanentMemory* pm, Rect rect, Basis basis, RGBA color){
+add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, RGBA color){
     Entity* e = add_entity(pm, EntityType_Basis);
-    e->rect =  rect;
-    e->basis =  basis;
+    e->origin = origin;
+    e->x_axis = x_axis;
+    e->y_axis = y_axis;
     e->color = color;
+    e->texture = texture;
     return(e);
 }
 
@@ -194,10 +197,10 @@ add_circle(PermanentMemory *pm, Rect rect, u8 rad, RGBA color, bool fill){
 }
 
 static Entity*
-add_bitmap(PermanentMemory* pm, v2 pos, Bitmap image){
+add_bitmap(PermanentMemory* pm, v2 pos, Bitmap texture){
     Entity* e = add_entity(pm, EntityType_Bitmap);
     e->rect = make_rect(pos.x, pos.y, 0, 0);
-    e->image = image;
+    e->texture = texture;
     return(e);
 }
 
@@ -336,8 +339,12 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
             } break;
             case RenderCommand_Rect:{
                 RectCommand *command = (RectCommand*)base_command;
-                //draw_rect(render_buffer, command->ch.rect, command->ch.color);
-                draw_rect_slow(render_buffer, command->ch.rect, command->ch.color);
+                draw_rect(render_buffer, command->ch.rect, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Basis:{
+                BasisCommand *command = (BasisCommand*)base_command;
+                draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture, command->ch.color);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Box:{
@@ -362,12 +369,12 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
             } break;
             case RenderCommand_Bitmap:{
                 BitmapCommand *command = (BitmapCommand*)base_command;
-                draw_bitmap(render_buffer, command->ch.rect.min, command->image);
+                draw_bitmap(render_buffer, command->ch.rect.min, &command->texture);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Glyph:{
                 BitmapCommand *command = (BitmapCommand*)base_command;
-                draw_bitmap(render_buffer, command->ch.rect.min, command->image);
+                draw_bitmap(render_buffer, command->ch.rect.min, &command->texture);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
         }
@@ -430,20 +437,50 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
 
         // basis test
-        Basis basis;
-		basis.origin = make_v2(resolution.x/2, resolution.y/2),
-		basis.x_axis = 100.0f * make_v2(cos_f32(angle), sin_f32(angle)),
-		basis.y_axis = make_v2(-basis.x_axis.y, basis.x_axis.x),
+        String8 tree_str = str8_literal("tree00.bmp");
+        pm->tree = load_bitmap(&tm->arena, pm->data_dir, tree_str);
+        String8 circle_str = str8_literal("circle.bmp");
+        Bitmap circle = load_bitmap(&tm->arena, pm->data_dir, circle_str);
+        String8 image_str = str8_literal("image.bmp");
+        Bitmap image = load_bitmap(&tm->arena, pm->data_dir, image_str);
 
-        pm->basis = add_basis(pm, make_rect(100, 100, 125, 125), basis, RED);
+		v2 origin = make_v2(resolution.x/2, resolution.y/2);
+		v2 x_axis = 100.0f * make_v2(cos_f32(angle), sin_f32(angle));
+		v2 y_axis = make_v2(-x_axis.y, x_axis.x);
+
+        pm->basis = add_basis(pm, origin, x_axis, y_axis, pm->tree, RED);
+
+        add_bitmap(pm, make_v2(100, 100), pm->tree);
+        add_bitmap(pm, make_v2(400, 100), circle);
+
+        add_bitmap(pm, make_v2(0,   100), image);
+        add_bitmap(pm, make_v2(200, 100), image);
+        add_bitmap(pm, make_v2(400, 100), image);
+        add_bitmap(pm, make_v2(600, 100), image);
+        add_bitmap(pm, make_v2(800, 100), image);
+        add_bitmap(pm, make_v2(1000, 100), image);
+
+        add_bitmap(pm, make_v2(0,   300), image);
+        add_bitmap(pm, make_v2(200, 300), image);
+        add_bitmap(pm, make_v2(400, 300), image);
+        add_bitmap(pm, make_v2(600, 300), image);
+        add_bitmap(pm, make_v2(800, 300), image);
+        add_bitmap(pm, make_v2(1000, 300), image);
+
+        add_bitmap(pm, make_v2(0,   500), image);
+        add_bitmap(pm, make_v2(200, 500), image);
+        add_bitmap(pm, make_v2(400, 500), image);
+        add_bitmap(pm, make_v2(600, 500), image);
+        add_bitmap(pm, make_v2(800, 500), image);
+        add_bitmap(pm, make_v2(1000, 500), image);
 
 #if 0
 
-        String8 image = str8_literal("image.bmp");
+        String8 texture = str8_literal("texture.bmp");
         String8 circle = str8_literal("circle.bmp");
-        Bitmap bmp_image = load_bitmap(&tm->arena, pm->data_dir, image);
+        Bitmap bmp_texture = load_bitmap(&tm->arena, pm->data_dir, texture);
         Bitmap bmp_circle = load_bitmap(&tm->arena, pm->data_dir, circle);
-        pm->image = add_bitmap(pm, make_v2(300, 300), bmp_image);
+        pm->texture = add_bitmap(pm, make_v2(300, 300), bmp_texture);
         pm->circle = add_bitmap(pm, make_v2(500, 500), bmp_circle);
 #endif
         //Inconsolata-Regular
@@ -463,9 +500,9 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         memory->initialized = true;
     }
     arena_free(render_buffer->render_command_arena);
-    push_clear_color(render_buffer->render_command_arena, BLACK);
+    push_clear_color(render_buffer->render_command_arena, BLUE);
     angle += clock->dt;
-    print("angle: %f\n", angle);
+    //print("angle: %f\n", angle);
 
 
 
@@ -475,7 +512,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
         if(event.type == TEXT_INPUT){
             Glyph glyph = font_incon.glyphs[event.keycode];
-            add_glyph(pm, make_v2(10 + x_offset, 10), glyph);
+            //add_glyph(pm, make_v2(10 + x_offset, 10), glyph);
             x_offset += glyph.width;
             print("text_input: %i - %c\n", event.keycode, event.keycode);
             print("-----------------------------\n");
@@ -546,23 +583,33 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
             }break;
             case EntityType_Basis:{
 				v2 dim = {5, 5};
-				v2 min = e->basis.origin;
+				v2 min = e->origin;
                 RGBA color = {1, 1, 0, 1};
-                e->basis.origin = make_v2(resolution.x/2, resolution.y/2);
-                e->basis.x_axis = 100.0f * make_v2(cos_f32(angle * 2), sin_f32(angle * 2));
-                e->basis.y_axis = make_v2(-e->basis.x_axis.y, e->basis.x_axis.x);
+                f32 disp = 10.0f * cos_f32(angle);
+                e->origin = make_v2(resolution.x/2, resolution.y/2);
+#if 0
+                e->x_axis = 400 * make_v2(cos_f32(angle/10), sin_f32(angle/10));
+                e->y_axis = perp(e->x_axis);
+                //e->x_axis = (50.0f + 50.0f * cos_f32(angle*2)) * make_v2(cos_f32(angle*2), sin_f32(angle*2));
+                //e->y_axis = (50.0f + 50.0f * cos_f32(angle*2)) * make_v2(cos_f32((angle*2) + 1.0f), sin_f32((angle*2) + 1.0f));
+                //e->y_axis = make_v2(-e->x_axis.y, e->x_axis.x);
+#else
+                e->x_axis = {400, 0};
+                e->y_axis = {0, 400};
+#endif
 
-                v2 max = e->basis.origin + e->basis.x_axis + e->basis.y_axis;
+                push_basis(render_command_arena, make_v2(disp, 0) + (e->origin - (0.5f * e->x_axis) - (0.5f * e->y_axis)), e->x_axis, e->y_axis, e->texture, RED);
 
-                push_rect(render_command_arena, make_rect(e->basis.origin, max), RED);
 
                 push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
 
-				min = e->basis.origin + e->basis.x_axis;
+				min = e->origin + e->x_axis;
                 push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
 
-				min = e->basis.origin + e->basis.y_axis;
+				min = e->origin + e->y_axis;
                 push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
+
+                v2 max = e->origin + e->x_axis + e->y_axis;
                 push_rect(render_command_arena, make_rect(max - dim, max + dim), color);
 
             }break;
@@ -579,7 +626,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                 push_circle(render_command_arena, e->rect, e->rad, e->color, e->fill);
             }break;
             case EntityType_Bitmap:{
-                push_bitmap(render_command_arena, e->rect, e->image);
+                push_bitmap(render_command_arena, e->rect, e->texture);
             }break;
             case EntityType_Glyph:{
                 push_glyph(render_command_arena, e->rect, e->glyph);
@@ -618,8 +665,15 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     //push_segment(render_command_arena, make_v2(0, resolution.h - 250), make_v2(700, resolution.h - 250), RED);
 
 
+    //draw_pixel(render_buffer, make_v2(1, 1), RED);
+    //draw_pixel(render_buffer, make_v2(0, 0), RED);
+    //push_rect(render_command_arena, make_rect(20, 20, render_buffer->width + 10, render_buffer->height + 10), RED);
+    //push_rect(render_command_arena, Rect rect, RGBA color, s32 border_size = 0, RGBA border_color = {0, 0, 0, 0}){
+    //draw_rect_slow(render_buffer, make_v2(50, 50), make_v2(100, 0), make_v2(0, 100), GREEN);
+    //draw_rect_slow2(render_buffer, make_v2(50, 50), make_v2(100, 0), make_v2(0, 100), YELLOW);
     String8 s = str8_literal("Rafik hahahah LOLOLOLOL");
-    draw_string(render_buffer, make_v2(500, 300), s, 0xF8DB5E);
+    //draw_string(render_buffer, make_v2(500, 300), s, 0xF8DB5E);
+    draw_bitmap(render_buffer, make_v2(100, 100), &pm->tree);
 }
 
 #endif
