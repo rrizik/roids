@@ -450,29 +450,29 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
         pm->basis = add_basis(pm, origin, x_axis, y_axis, pm->tree, RED);
 
-        add_bitmap(pm, make_v2(100, 100), pm->tree);
-        add_bitmap(pm, make_v2(400, 100), circle);
+        //add_bitmap(pm, make_v2(100, 100), pm->tree);
+        //add_bitmap(pm, make_v2(400, 100), circle);
 
-        add_bitmap(pm, make_v2(0,   100), image);
-        add_bitmap(pm, make_v2(200, 100), image);
-        add_bitmap(pm, make_v2(400, 100), image);
-        add_bitmap(pm, make_v2(600, 100), image);
-        add_bitmap(pm, make_v2(800, 100), image);
-        add_bitmap(pm, make_v2(1000, 100), image);
+        //add_bitmap(pm, make_v2(0,   100), image);
+        //add_bitmap(pm, make_v2(200, 100), image);
+        //add_bitmap(pm, make_v2(400, 100), image);
+        //add_bitmap(pm, make_v2(600, 100), image);
+        //add_bitmap(pm, make_v2(800, 100), image);
+        //add_bitmap(pm, make_v2(1000, 100), image);
 
-        add_bitmap(pm, make_v2(0,   300), image);
-        add_bitmap(pm, make_v2(200, 300), image);
-        add_bitmap(pm, make_v2(400, 300), image);
-        add_bitmap(pm, make_v2(600, 300), image);
-        add_bitmap(pm, make_v2(800, 300), image);
-        add_bitmap(pm, make_v2(1000, 300), image);
+        //add_bitmap(pm, make_v2(0,   300), image);
+        //add_bitmap(pm, make_v2(200, 300), image);
+        //add_bitmap(pm, make_v2(400, 300), image);
+        //add_bitmap(pm, make_v2(600, 300), image);
+        //add_bitmap(pm, make_v2(800, 300), image);
+        //add_bitmap(pm, make_v2(1000, 300), image);
 
-        add_bitmap(pm, make_v2(0,   500), image);
-        add_bitmap(pm, make_v2(200, 500), image);
-        add_bitmap(pm, make_v2(400, 500), image);
-        add_bitmap(pm, make_v2(600, 500), image);
-        add_bitmap(pm, make_v2(800, 500), image);
-        add_bitmap(pm, make_v2(1000, 500), image);
+        //add_bitmap(pm, make_v2(0,   500), image);
+        //add_bitmap(pm, make_v2(200, 500), image);
+        //add_bitmap(pm, make_v2(400, 500), image);
+        //add_bitmap(pm, make_v2(600, 500), image);
+        //add_bitmap(pm, make_v2(800, 500), image);
+        //add_bitmap(pm, make_v2(1000, 500), image);
 
 #if 0
 
@@ -585,7 +585,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 				v2 dim = {5, 5};
 				v2 min = e->origin;
                 RGBA color = {1, 1, 0, 1};
-                f32 disp = 10.0f * cos_f32(angle);
+                f32 disp = 50.0f * cos_f32(angle);
                 e->origin = make_v2(resolution.x/2, resolution.y/2);
 #if 0
                 e->x_axis = 400 * make_v2(cos_f32(angle/10), sin_f32(angle/10));
@@ -601,16 +601,16 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                 push_basis(render_command_arena, make_v2(disp, 0) + (e->origin - (0.5f * e->x_axis) - (0.5f * e->y_axis)), e->x_axis, e->y_axis, e->texture, RED);
 
 
-                push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
+                //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
 
 				min = e->origin + e->x_axis;
-                push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
+                //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
 
 				min = e->origin + e->y_axis;
-                push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
+                //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
 
                 v2 max = e->origin + e->x_axis + e->y_axis;
-                push_rect(render_command_arena, make_rect(max - dim, max + dim), color);
+                //push_rect(render_command_arena, make_rect(max - dim, max + dim), color);
 
             }break;
             case EntityType_Box:{
