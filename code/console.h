@@ -27,14 +27,14 @@ RGBA input_color;
 static void
 init_console(){
     f32 x0 = 0;
-    f32 y0 = y_closed * resolution.h;
-    f32 x1 = resolution.w;
-    f32 y1 = resolution.h;
+    f32 y0 = y_closed * (f32)resolution.h;
+    f32 x1 = (f32)resolution.w;
+    f32 y1 = (f32)resolution.h;
     output_rect = make_rect(x0, y0, x1, y1);
     input_rect  = make_rect(x0, y0 - 10, x1, y1);
 
-    output_color = {0.50f, 0.50, 0.50,  1.0f};
-    input_color  = {0.25f, 0.25, 0.23,  1.0f};
+    output_color = {0.50f, 0.50f, 0.50f,  1.0f};
+    input_color  = {0.25f, 0.25f, 0.23f,  1.0f};
 }
 
 static bool
@@ -65,30 +65,31 @@ push_console(Arena* command_arena){
     //push_text(command_arena, String8 console_input_string);
 }
 
+// CONSIDER, INCOMPLETE: Maybe we don't want to enlarge the rect, and simple move it down and up as a solid piece?
 static void
 update_console(){
-    f32 lerp_speed =  open_speed * clock.dt;
+    f32 lerp_speed =  open_speed * (f32)clock.dt;
     if(console_state == CLOSED){
         if(console_t < 1) {
             console_t += lerp_speed;
-            output_rect.y0 = lerp(output_rect.y0, y_closed * resolution.h, console_t);
-            input_rect.y0 = lerp(output_rect.y0, y_closed * resolution.h, console_t);
+            output_rect.y0 = lerp(output_rect.y0, y_closed * (f32)resolution.h, console_t);
+            input_rect.y0 = lerp(output_rect.y0, y_closed * (f32)resolution.h, console_t);
             input_rect.y1 = input_rect.y0 + input_height;
         }
     }
     else if(console_state == OPEN){
         if(console_t < 1) {
             console_t += lerp_speed;
-            output_rect.y0 = lerp(output_rect.y0, y_open * resolution.h, console_t);
-            input_rect.y0 = lerp(output_rect.y0, y_open * resolution.h, console_t);
+            output_rect.y0 = lerp(output_rect.y0, y_open * (f32)resolution.h, console_t);
+            input_rect.y0 = lerp(output_rect.y0, y_open * (f32)resolution.h, console_t);
             input_rect.y1 = input_rect.y0 + input_height;
         }
     }
     else if(console_state == OPEN_BIG){
         if(console_t < 1) {
             console_t += lerp_speed;
-            output_rect.y0 = lerp(output_rect.y0, y_open_big * resolution.h, console_t);
-            input_rect.y0 = lerp(output_rect.y0, y_open_big * resolution.h, console_t);
+            output_rect.y0 = lerp(output_rect.y0, y_open_big * (f32)resolution.h, console_t);
+            input_rect.y0 = lerp(output_rect.y0, y_open_big * (f32)resolution.h, console_t);
             input_rect.y1 = input_rect.y0 + input_height;
         }
     }

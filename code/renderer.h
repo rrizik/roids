@@ -33,8 +33,8 @@ typedef struct BitmapHeader {
 
 typedef struct Bitmap{
     u8*  base;
-	u32  width;
-	u32  height;
+	s32  width;
+	s32  height;
 	s32  stride;
 } Bitmap;
 
@@ -143,7 +143,7 @@ typedef struct CommandHeader{
     v2  y_axis;
     s32 border_size;
 
-    u8 rad;
+    f32 rad;
 
     RGBA color;
     RGBA border_color;
@@ -333,7 +333,7 @@ push_triangle(Arena *arena, v2 p0, v2 p1, v2 p2, RGBA color, bool fill){
 }
 
 static void
-push_circle(Arena *arena, Rect rect, u8 rad, RGBA color, bool fill){
+push_circle(Arena *arena, Rect rect, f32 rad, RGBA color, bool fill){
     CircleCommand* command = push_struct(arena, CircleCommand);
     command->ch.type = RenderCommand_Circle;
     command->ch.arena_used = arena->used;
@@ -372,7 +372,7 @@ draw_pixel(RenderBuffer *render_buffer, v2 position, RGBA color){
         u32 *pixel = (u32 *)row;
 
         if(color.a == 1){
-            u32 new_color = (round_f32_s32(color.a * 255.0f) << 24 | round_f32_s32(color.r * 255.0f) << 16 | round_f32_s32(color.g * 255.0f) << 8 | round_f32_s32(color.b * 255.0f) << 0);
+            u32 new_color = (u32)(round_f32_s32(color.a * 255.0f) << 24 | round_f32_s32(color.r * 255.0f) << 16 | round_f32_s32(color.g * 255.0f) << 8 | round_f32_s32(color.b * 255.0f) << 0);
             *pixel = new_color;
         }
         else if(color.a > 0){
@@ -389,7 +389,7 @@ draw_pixel(RenderBuffer *render_buffer, v2 position, RGBA color){
             f32 new_g = (1 - color.a) * current_g + (color.a * color.g);
             f32 new_b = (1 - color.a) * current_b + (color.a * color.b);
 
-            u32 new_color = (round_f32_s32(color.a * 255.0f) << 24 | round_f32_s32(new_r) << 16 | round_f32_s32(new_g) << 8 | round_f32_s32(new_b) << 0);
+            u32 new_color = (u32)(round_f32_s32(color.a * 255.0f) << 24 | round_f32_s32(new_r) << 16 | round_f32_s32(new_g) << 8 | round_f32_s32(new_b) << 0);
             *pixel = new_color;
         }
     }
@@ -416,7 +416,7 @@ draw_line(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
 
     for(;;){
         draw_pixel(render_buffer, point1, color); // NOTE: before break, so you can draw a single point draw_segment (a pixel)
-        if(point1.x < 0 || point1.x > render_buffer->width || point1.y < 0 || point1.y > render_buffer->height)break;
+        if(point1.x < 0 || point1.x > (f32)render_buffer->width || point1.y < 0 || point1.y > (f32)render_buffer->height)break;
 
         f32 error2 = 2 * error;
         if (error2 >= distance_y){
@@ -430,7 +430,7 @@ draw_line(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
     }
     for(;;){
         draw_pixel(render_buffer, point2, color);
-        if(point2.x < 0 || point2.x > render_buffer->width || point2.y < 0 || point2.y > render_buffer->height)break;
+        if(point2.x < 0 || point2.x > (f32)render_buffer->width || point2.y < 0 || point2.y > (f32)render_buffer->height)break;
 
         f32 error2 = 2 * error;
         if (error2 >= distance_y){
@@ -462,7 +462,7 @@ draw_ray(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
 
     for(;;){
         draw_pixel(render_buffer, make_v2(pos.x, pos.y), color); // NOTE: before break, so you can draw a single position draw_segment (a pixel)
-        if(pos.x < 0 || pos.x > render_buffer->width || pos.y < 0 || pos.y > render_buffer->height)break;
+        if(pos.x < 0 || pos.x > (f32)render_buffer->width || pos.y < 0 || pos.y > (f32)render_buffer->height)break;
 
         f32 error2 = 2 * error;
         if (error2 >= distance_y){
@@ -515,8 +515,8 @@ draw_flattop_triangle(RenderBuffer *render_buffer, v2 p0, v2 p1, v2 p2, RGBA col
     s32 end_y = (s32)round_f32_s32(p0.y);
 
     for(s32 y=start_y; y < end_y; ++y){
-        f32 x0 = left_slope * (y + 0.5f - p0.y) + p0.x;
-        f32 x1 = right_slope * (y + 0.5f - p1.y) + p1.x;
+        f32 x0 = left_slope * ((f32)y + 0.5f - p0.y) + p0.x;
+        f32 x1 = right_slope * ((f32)y + 0.5f - p1.y) + p1.x;
         s32 start_x = (s32)ceil(x0 - 0.5f);
         s32 end_x = (s32)ceil(x1 - 0.5f);
         for(s32 x=start_x; x < end_x; ++x){
@@ -536,8 +536,8 @@ draw_flatbottom_triangle(RenderBuffer *render_buffer, v2 p0, v2 p1, v2 p2, RGBA 
     s32 end_y = (s32)round_f32_s32(p1.y);
 
     for(s32 y=start_y; y >= end_y; --y){
-        f32 x0 = left_slope * (y + 0.5f - p0.y) + p0.x;
-        f32 x1 = right_slope * (y + 0.5f - p0.y) + p0.x;
+        f32 x0 = left_slope * ((f32)y + 0.5f - p0.y) + p0.x;
+        f32 x1 = right_slope * ((f32)y + 0.5f - p0.y) + p0.x;
         s32 start_x = (s32)ceil(x0 - 0.5f);
         s32 end_x = (s32)ceil(x1 - 0.5f);
         for(s32 x=start_x; x < end_x; ++x){
@@ -608,7 +608,7 @@ static void
 clear_color(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
     u32 *pixel = (u32 *)((u8 *)(render_buffer->base));
     for(s32 i=0; i < (render_buffer->width * render_buffer->height); ++i){
-        u32 new_color = (round_f32_s32(color.a * 255.0f) << 24 | round_f32_s32(color.r*255.0f) << 16 | round_f32_s32(color.g*255.0f) << 8 | round_f32_s32(color.b*255.0f) << 0);
+        u32 new_color = (u32)(round_f32_s32(color.a * 255.0f) << 24 | round_f32_s32(color.r*255.0f) << 16 | round_f32_s32(color.g*255.0f) << 8 | round_f32_s32(color.b*255.0f) << 0);
         *pixel++ = new_color;
     }
 }
@@ -636,16 +636,16 @@ clear_color(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
 // UNTESTED: untested with rect screenspace change
 static void
 draw_bitmap_clip(RenderBuffer *render_buffer, v2 pos, Bitmap* texture, v4 clip_region){
-    Rect rect = make_rect(pos.x, pos.y, pos.x + texture->width, pos.y + texture->height);
+    Rect rect = make_rect(pos.x, pos.y, pos.x + (f32)texture->width, pos.y + (f32)texture->height);
     v2s32 pixel_min = round_v2_v2s32(rect.min);
     v2s32 pixel_max = round_v2_v2s32(rect.max);
 
     if(clip_region == (v4){0,0,0,0}){
         u32* at = (u32*)texture->base;
-        for(f32 y=pixel_min.y; y < pixel_max.y; ++y){
-            for(f32 x=pixel_min.x; x < pixel_max.x; ++x){
+        for(s32 y=pixel_min.y; y < pixel_max.y; ++y){
+            for(s32 x=pixel_min.x; x < pixel_max.x; ++x){
                 RGBA color = u32_to_rgba_normal(*at++);
-                draw_pixel(render_buffer, (v2){x, y}, color);
+                draw_pixel(render_buffer, (v2){(f32)x, (f32)y}, color);
             }
         }
     }
@@ -707,18 +707,18 @@ draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bit
     //                 (round_f32_u32(color.g * 255.0) <<  8) |
     //                 (round_f32_u32(color.b * 255.0) <<  0));
 
-    u32 max_width = render_buffer->width - 1;
-    u32 max_height = render_buffer->height - 1;
-    u32 xmax = 0;
-    u32 xmin = max_width;
-    u32 ymax = 0;
-    u32 ymin = max_height;
+    s32 max_width = render_buffer->width - 1;
+    s32 max_height = render_buffer->height - 1;
+    s32 xmax = 0;
+    s32 xmin = max_width;
+    s32 ymax = 0;
+    s32 ymin = max_height;
 
     v2 points[4] = {origin, origin + x_axis, origin + y_axis, origin + x_axis + y_axis};
-    for(u32 i=0; i < array_count(points); ++i){
+    for(s32 i=0; i < array_count(points); ++i){
         v2 test_p = points[i];
-        u32 x = round_f32_u32(test_p.x);
-        u32 y = round_f32_u32(test_p.y);
+        s32 x = round_f32_s32(test_p.x);
+        s32 y = round_f32_s32(test_p.y);
 
         if(x < xmin){ xmin = x; }
         if(y < ymin){ ymin = y; }
@@ -746,8 +746,8 @@ draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bit
             f32 edge3 = dot_v2(dist - y_axis,          perp(y_axis));
 
             if((edge0 < 0) && (edge1 < 0) && (edge2 < 0) && (edge3 < 0)){
-f32 u = inv_xaxis_mag_sqrt * dot_v2(dist, x_axis);
-f32 v = inv_yaxis_mag_sqrt * dot_v2(dist, y_axis);
+                f32 u = inv_xaxis_mag_sqrt * dot_v2(dist, x_axis);
+                f32 v = inv_yaxis_mag_sqrt * dot_v2(dist, y_axis);
 
                 assert(u >= 0.0f && u <= 1.0f);
                 assert(v >= 0.0f && v <= 1.0f);
@@ -760,7 +760,6 @@ f32 v = inv_yaxis_mag_sqrt * dot_v2(dist, y_axis);
                 s32 y = (s32)ty;
                 f32 fx = tx - (f32)x;
                 f32 fy = ty - (f32)y;
-                //print("fx: %i - fy: %i\n", fx, fy);
 
                 assert(x >= 0 && x < texture->width);
                 assert(y >= 0 && y < texture->height);
@@ -776,22 +775,8 @@ f32 v = inv_yaxis_mag_sqrt * dot_v2(dist, y_axis);
                 RGBA texel_c = u32_to_rgba(*texel_ptr_c);
                 RGBA texel_d = u32_to_rgba(*texel_ptr_d);
 
-                if(texel_a.r != 0){
-                    u32 a = 1;
-                }
-
-                //RGBA texel = texel_a;
                 RGBA texel = lerp(lerp(texel_a, texel_b, fx), lerp(texel_c, texel_d, fx), fy);
-
                 RGBA pixel_color = u32_to_rgba(*pixel);
-
-                //pixel_color.r *= 255.0f;
-                //pixel_color.g *= 255.0f;
-                //pixel_color.b *= 255.0f;
-
-                //texel.r *= 255.0f;
-                //texel.g *= 255.0f;
-                //texel.b *= 255.0f;
 
                 texel.a /= 255.0f;
                 f32 new_r = lerp(pixel_color.r, texel.r, texel.a);
@@ -799,24 +784,16 @@ f32 v = inv_yaxis_mag_sqrt * dot_v2(dist, y_axis);
                 f32 new_b = lerp(pixel_color.b, texel.b, texel.a);
                 texel.a *= 255.0f;
 
-                u32 new_color = (round_f32_s32(texel.a) << 24 |
-                                 round_f32_s32(new_r) << 16 |
-                                 round_f32_s32(new_g) << 8 |
-                                 round_f32_s32(new_b) << 0);
-                *pixel = new_color;
-
-                //*pixel = *texel;
-                //*pixel = color_u32;
+                *pixel = (u32)(round_f32_s32(texel.a) << 24 |
+                          round_f32_s32(new_r) << 16 |
+                          round_f32_s32(new_g) << 8 |
+                          round_f32_s32(new_b) << 0);
             }
             pixel++;
         }
         row -= render_buffer->stride;
     }
 }
-//if((x >= min.x && x < max.x) &&
-//   (y >= min.y && y < max.y)){
-//    *pixel = color_u32;
-//}
 
 static void
 draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){

@@ -73,7 +73,7 @@ remove_entity(PermanentMemory* pm, Entity* e){
 static Entity*
 add_entity(PermanentMemory *pm, EntityType type){
     if(pm->free_entities_at >= 0){
-        s32 free_entity_index = pm->free_entities[pm->free_entities_at--];
+        u32 free_entity_index = pm->free_entities[pm->free_entities_at--];
         Entity *e = pm->entities + free_entity_index;
         e->index = free_entity_index;
         pm->generation[e->index]++;
@@ -384,7 +384,7 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
 PermanentMemory* pm;
 TransientMemory* tm;
 
-u32 x_offset = 0;
+s32 x_offset = 0;
 f32 scale;
 f32 angle;
 
@@ -407,7 +407,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     RGBA LGRAY =   {0.8f, 0.8f, 0.8f,  1.0f};
     RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
     RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
-    RGBA ARMY_GREEN =   {0.25f, 0.25, 0.23,  1.0f};
+    RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 
 
     if(!memory->initialized){
@@ -424,8 +424,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
         // setup free entities array
         pm->free_entities_at = ArrayCount(pm->free_entities) - 1;
-        for(s32 i = ArrayCount(pm->free_entities) - 1; i >= 0; --i){
-            pm->free_entities[i] = ArrayCount(pm->free_entities) - 1 - i;
+        for(u32 i = ArrayCount(pm->free_entities) - 1; i >= 0; --i){
+            pm->free_entities[i] = array_count(pm->free_entities) - 1 - i;
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
@@ -444,7 +444,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         String8 image_str = str8_literal("image.bmp");
         Bitmap image = load_bitmap(&tm->arena, pm->data_dir, image_str);
 
-		v2 origin = make_v2(resolution.x/2, resolution.y/2);
+		v2 origin = make_v2((f32)resolution.x/2, (f32)resolution.y/2);
 		v2 x_axis = 100.0f * make_v2(cos_f32(angle), sin_f32(angle));
 		v2 y_axis = make_v2(-x_axis.y, x_axis.x);
 
@@ -501,7 +501,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     }
     arena_free(render_buffer->render_command_arena);
     push_clear_color(render_buffer->render_command_arena, BLUE);
-    angle += clock->dt;
+    angle += (f32)clock->dt;
     //print("angle: %f\n", angle);
 
 
@@ -519,7 +519,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
         if(event.type == KEYBOARD){
             if(event.key_pressed){
-                //print("key_code: %llu\n", event.keycode);
+                print("key_code: %llu\n", event.keycode);
                 if(event.keycode == ESCAPE){
                     print("quiting\n");
                     should_quit = true;
@@ -586,7 +586,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 				v2 min = e->origin;
                 RGBA color = {1, 1, 0, 1};
                 f32 disp = 50.0f * cos_f32(angle);
-                e->origin = make_v2(resolution.x/2, resolution.y/2);
+                e->origin = make_v2((f32)resolution.x/2, (f32)resolution.y/2);
 #if 0
                 e->x_axis = 400 * make_v2(cos_f32(angle/10), sin_f32(angle/10));
                 e->y_axis = perp(e->x_axis);

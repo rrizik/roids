@@ -41,7 +41,7 @@ u64 font[] = {
 
 static void
 draw_string(RenderBuffer* render_buffer, v2 pos, String8 string, u32 color){
-    s32 pos_x  = round_f32(pos.x);
+    s32 pos_x  = round_f32_s32(pos.x);
 
     for(u32 i=0; i < string.size; ++i){
         u8 c = string.str[i];
@@ -73,13 +73,17 @@ draw_string(RenderBuffer* render_buffer, v2 pos, String8 string, u32 color){
 // stb_truetype implementation
 // --------------------------
 
+// NOTE: Don't use conversion errors on stb_truetype.h
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wconversion"
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
+#pragma clang diagnostic pop
 
 typedef struct Glyph{
     u8*  pixels;
-	u32  width;
-	u32  height;
+	s32  width;
+	s32  height;
 } Glyph;
 
 typedef struct Font{
@@ -105,13 +109,13 @@ load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
     font->vertical_offset = ascent - descent + line_gap;
     font->scale = stbtt_ScaleForPixelHeight(&font->info, size);
 
-    for(u32 i=' '; i<='~'; ++i){
+    for(s32 i=' '; i<='~'; ++i){
         s32 w, h, xoff, yoff;
         u8* codepoint_bitmap = stbtt_GetCodepointBitmap(&font->info, 0, font->scale, i, &w, &h, &xoff, &yoff);
         Glyph* glyph = font->glyphs + i;
         glyph->width = w;
         glyph->height = h;
-        glyph->pixels = push_array(arena, u8, (w*h*4));
+        glyph->pixels = push_array(arena, u8, (u32)(w*h*4));
 
         u8* dest_row = (u8*)glyph->pixels + (h - 1) * (w * 4);
         for(s32 y=0; y < h; ++y){
@@ -125,7 +129,7 @@ load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
                 //           ((u32)(c.r + 0.5f) << 16) |
                 //           ((u32)(c.g + 0.5f) <<  8) |
                 //           ((u32)(c.b + 0.5f) <<  0));
-                *dest++ = ((alpha << 24) | 0xFFFFFF);
+                *dest++ = (u32)((alpha << 24) | 0xFFFFFF);
 
             }
             dest_row -= w * 4;

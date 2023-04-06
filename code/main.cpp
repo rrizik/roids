@@ -143,7 +143,7 @@ init_render_buffer(RenderBuffer* render_buffer, s32 width, s32 height){
     s32 bytes_per_pixel = 4;
     render_buffer->bytes_per_pixel = bytes_per_pixel;
     render_buffer->stride = width * bytes_per_pixel;
-    render_buffer->size   = width * height * bytes_per_pixel;
+    render_buffer->size   = (u32)(width * height * bytes_per_pixel);
     render_buffer->base   = os_virtual_alloc(render_buffer->size);
 
     render_buffer->render_command_arena = make_arena(MB(16));
@@ -303,7 +303,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     clock.dt =  1.0/240.0;
     f64 accumulator = 0.0;
     s64 last_ticks = clock.get_ticks();
-    f64 second_marker = clock.get_ticks();
+    s64 second_marker = clock.get_ticks();
 	u32 simulations = 0;
 
     render_buffer.device_context = GetDC(window);
@@ -332,7 +332,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 		simulations = 0;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), second_marker);
         if(second_elapsed > 1){
-            FPS = (frame_count / second_elapsed);
+            FPS = ((f64)frame_count / second_elapsed);
             second_marker = clock.get_ticks();
             frame_count = 0;
         }
