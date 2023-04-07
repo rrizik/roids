@@ -85,6 +85,8 @@ maybe dynamic array
         a) rotating 3 small rects
         b) rotating 1 large rect with 4 small rects on point (step between A and C)
 
+4/7/2023:
+    - added -Wconversion -Werror and fixed all my type conversion errors
 
 
 
