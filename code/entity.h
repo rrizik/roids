@@ -5,8 +5,8 @@ typedef enum {EntityFlag_Movable} EntityFlags;
 typedef enum {EntityType_None, EntityType_Object, EntityType_Pixel, EntityType_Line, EntityType_Ray, EntityType_Segment, EntityType_Triangle, EntityType_Rect, EntityType_Quad, EntityType_Box, EntityType_Circle, EntityType_Bitmap, EntityType_Glyph, EntityType_Basis} EntityType;
 
 typedef struct Entity{
-    u32 index;
-    u32 generation;
+    s32 index;
+    s32 generation;
 
     EntityType type;
     //ConsoleState console_state;
@@ -56,8 +56,8 @@ clear_flags(Entity *e, u32 flags){
 }
 
 typedef struct EntityHandle{
-    u32 index;
-    u32 generation;
+    s32 index;
+    s32 generation;
 } EntityHandle;
 
 static EntityHandle

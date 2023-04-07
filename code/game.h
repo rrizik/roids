@@ -17,12 +17,12 @@ typedef struct PermanentMemory{
     String8 data_dir; // CONSIDER: this might be something we want to be set on the platform side
     String8 fonts_dir; // CONSIDER: this might be something we want to be set on the platform side
 
-    u32 generation[100];
-    u32 free_entities[100];
-    u32 free_entities_at;
+    s32 generation[100];
+    s32 free_entities[100];
+    s32 free_entities_at;
 
     Entity entities[100];
-    u32 entity_count;
+    s32 entity_count;
 
     Entity* texture;
     Entity* circle;
@@ -73,7 +73,7 @@ remove_entity(PermanentMemory* pm, Entity* e){
 static Entity*
 add_entity(PermanentMemory *pm, EntityType type){
     if(pm->free_entities_at >= 0){
-        u32 free_entity_index = pm->free_entities[pm->free_entities_at--];
+        s32 free_entity_index = pm->free_entities[pm->free_entities_at--];
         Entity *e = pm->entities + free_entity_index;
         e->index = free_entity_index;
         pm->generation[e->index]++;
@@ -422,10 +422,10 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         tm->render_command_arena = push_arena(&tm->arena, MB(16));
         tm->frame_arena = push_arena(&tm->arena, MB(100));
 
-        // setup free entities array
-        pm->free_entities_at = ArrayCount(pm->free_entities) - 1;
-        for(u32 i = ArrayCount(pm->free_entities) - 1; i >= 0; --i){
-            pm->free_entities[i] = array_count(pm->free_entities) - 1 - i;
+        // setup free entities array max -> 0;
+        pm->free_entities_at = array_count(pm->free_entities) - 1;
+        for(s32 i = pm->free_entities_at; i >= 0; --i){
+            pm->free_entities[i] = pm->free_entities_at - i;
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
@@ -552,7 +552,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     update_console();
 
     Arena* render_command_arena = render_buffer->render_command_arena;
-    for(u32 entity_index = pm->free_entities_at; entity_index < ArrayCount(pm->entities); ++entity_index){
+    for(s32 entity_index = pm->free_entities_at; entity_index < ArrayCount(pm->entities); ++entity_index){
         Entity *e = pm->entities + pm->free_entities[entity_index];
 
         switch(e->type){
