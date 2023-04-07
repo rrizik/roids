@@ -37,23 +37,23 @@ make_rect(v2 min, v2 max){
 }
 
 static Rect
-screen_to_pixel(Rect r, v2s32 resolution){
+screen_to_pixel(Rect r, v2s32 res){
     Rect result = {
-        r.x0 * resolution.w,
-        r.y0 * resolution.h,
-        r.x1 * resolution.w,
-        r.y1 * resolution.h,
+        r.x0 * res.w,
+        r.y0 * res.h,
+        r.x1 * res.w,
+        r.y1 * res.h,
     };
     return(result);
 }
 
 static Rect
-pixel_to_screen(Rect r, v2s32 resolution){
+pixel_to_screen(Rect r, v2s32 res){
     Rect result = {
-        r.x0 / resolution.w,
-        r.y0 / resolution.h,
-        r.x1 / resolution.w,
-        r.y1 / resolution.h,
+        r.x0 / res.w,
+        r.y0 / res.h,
+        r.x1 / res.w,
+        r.y1 / res.h,
     };
     return(result);
 }

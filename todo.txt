@@ -10,8 +10,9 @@ immediate draw? how does it work, do you immediately apply the pixels to the bac
 ------- To-Dos -------
 ----------------------
 
-add -Wconversion -Werror Wall -Wextra 
-remove bitmaps from font.h, only save the u8 data and make a bitmap later when you do add_bitmap, or somewhere else
+- get rid of math.h file
+- add -Wall -Wextra 
+- remove bitmaps from font.h, only save the u8 data and make a bitmap later when you do add_bitmap, or somewhere else
 SIDE STEP A LITTLE:
     figure out how to do a bilinear blend and what SRGB is
 

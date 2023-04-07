@@ -129,9 +129,9 @@ typedef enum KeyCode{
  	TILDE = 192,
 } KeyCode;
 
-bool alt_pressed;
-bool shift_pressed;
-bool ctrl_pressed;
+global bool alt_pressed;
+global bool shift_pressed;
+global bool ctrl_pressed;
 
 typedef enum EventType{
     KEYBOARD,

@@ -9,7 +9,7 @@
 #include "entity.h"
 #include "console.h"
 
-Font font_incon;
+static Font font_incon;
 
 typedef struct PermanentMemory{
     Arena arena;
@@ -41,7 +41,7 @@ typedef struct TransientMemory{
 static Entity*
 entity_from_handle(PermanentMemory* pm, EntityHandle handle){
     Entity *result = 0;
-    if(handle.index < ArrayCount(pm->entities)){
+    if(handle.index < (s32)array_count(pm->entities)){
         Entity *e = pm->entities + handle.index;
         if(e->generation == handle.generation){
             result = e;
@@ -344,7 +344,7 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
             } break;
             case RenderCommand_Basis:{
                 BasisCommand *command = (BasisCommand*)base_command;
-                draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture, command->ch.color);
+                draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Box:{
@@ -381,12 +381,12 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
     }
 }
 
-PermanentMemory* pm;
-TransientMemory* tm;
+global PermanentMemory* pm;
+global TransientMemory* tm;
 
-s32 x_offset = 0;
-f32 scale;
-f32 angle;
+global s32 x_offset = 0;
+global f32 scale;
+global f32 angle;
 
 static void
 update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Controller* controller, Clock* clock){
@@ -411,6 +411,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
 
     if(!memory->initialized){
+        Button a = controller->up;
         angle = 0;
 
         init_arena(&pm->arena, (u8*)memory->permanent_base + sizeof(PermanentMemory), memory->permanent_size - sizeof(PermanentMemory));
@@ -552,7 +553,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     update_console();
 
     Arena* render_command_arena = render_buffer->render_command_arena;
-    for(s32 entity_index = pm->free_entities_at; entity_index < ArrayCount(pm->entities); ++entity_index){
+    for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
         Entity *e = pm->entities + pm->free_entities[entity_index];
 
         switch(e->type){

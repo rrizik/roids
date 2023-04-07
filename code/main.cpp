@@ -6,7 +6,7 @@
 
 #define BYTES_PER_PIXEL 4
 
-v2s32 resolution = {
+global v2s32 resolution = {
     SCREEN_WIDTH,
     SCREEN_HEIGHT
 };
@@ -108,61 +108,61 @@ static f64 get_ms_elapsed(s64 start, s64 end){
 }
 
 static void
-init_clock(Clock* clock){
+init_clock(Clock* c){
     LARGE_INTEGER frequency;
     QueryPerformanceFrequency(&frequency);
-    clock->frequency = frequency.QuadPart;
-    clock->get_ticks = get_ticks;
-    clock->get_seconds_elapsed = get_seconds_elapsed;
-    clock->get_ms_elapsed = get_ms_elapsed;
+    c->frequency = frequency.QuadPart;
+    c->get_ticks = get_ticks;
+    c->get_seconds_elapsed = get_seconds_elapsed;
+    c->get_ms_elapsed = get_ms_elapsed;
 }
 
 static void
-init_memory(Memory* memory){
-    memory->permanent_size = MB(500);
-    memory->transient_size = GB(1);
-    memory->size = memory->permanent_size + memory->transient_size;
-    memory->base = os_virtual_alloc(memory->size);
-    memory->permanent_base = memory->base;
-    memory->transient_base = (u8*)memory->base + memory->permanent_size;
+init_memory(Memory* m){
+    m->permanent_size = MB(500);
+    m->transient_size = GB(1);
+    m->size = m->permanent_size + m->transient_size;
+    m->base = os_virtual_alloc(m->size);
+    m->permanent_base = m->base;
+    m->transient_base = (u8*)m->base + m->permanent_size;
 }
 
 static void
-init_render_buffer(RenderBuffer* render_buffer, s32 width, s32 height){
-    render_buffer->width   = width;
-    render_buffer->height  = height;
-    render_buffer->padding = 10;
+init_render_buffer(RenderBuffer* rb, s32 width, s32 height){
+    rb->width   = width;
+    rb->height  = height;
+    rb->padding = 10;
 
-    render_buffer->bitmap_info.bmiHeader.biSize     = sizeof(BITMAPINFOHEADER);
-    render_buffer->bitmap_info.bmiHeader.biWidth    = width;
-    render_buffer->bitmap_info.bmiHeader.biHeight   = -height;
-    render_buffer->bitmap_info.bmiHeader.biPlanes   = 1;
-    render_buffer->bitmap_info.bmiHeader.biBitCount = 32;
-    render_buffer->bitmap_info.bmiHeader.biCompression = BI_RGB;
+    rb->bitmap_info.bmiHeader.biSize     = sizeof(BITMAPINFOHEADER);
+    rb->bitmap_info.bmiHeader.biWidth    = width;
+    rb->bitmap_info.bmiHeader.biHeight   = -height;
+    rb->bitmap_info.bmiHeader.biPlanes   = 1;
+    rb->bitmap_info.bmiHeader.biBitCount = 32;
+    rb->bitmap_info.bmiHeader.biCompression = BI_RGB;
 
     s32 bytes_per_pixel = 4;
-    render_buffer->bytes_per_pixel = bytes_per_pixel;
-    render_buffer->stride = width * bytes_per_pixel;
-    render_buffer->size   = (u32)(width * height * bytes_per_pixel);
-    render_buffer->base   = os_virtual_alloc(render_buffer->size);
+    rb->bytes_per_pixel = bytes_per_pixel;
+    rb->stride = width * bytes_per_pixel;
+    rb->size   = (u32)(width * height * bytes_per_pixel);
+    rb->base   = os_virtual_alloc(rb->size);
 
-    render_buffer->render_command_arena = make_arena(MB(16));
-    render_buffer->arena = make_arena(MB(4));
+    rb->render_command_arena = make_arena(MB(16));
+    rb->arena = make_arena(MB(4));
 }
 
 static void
-update_window(HWND window, RenderBuffer render_buffer){
-    s32 padding = render_buffer.padding;
+update_window(RenderBuffer rb){
+    s32 padding = rb.padding;
 
-    PatBlt(render_buffer.device_context, 0, 0, render_buffer.width + padding, padding, WHITENESS);
-    PatBlt(render_buffer.device_context, 0, padding, padding, render_buffer.height + padding, WHITENESS);
-    PatBlt(render_buffer.device_context, render_buffer.width + padding, 0, padding, render_buffer.height + padding, WHITENESS);
-    PatBlt(render_buffer.device_context, padding, render_buffer.height + padding, render_buffer.width + padding, padding, WHITENESS);
+    PatBlt(rb.device_context, 0, 0, rb.width + padding, padding, WHITENESS);
+    PatBlt(rb.device_context, 0, padding, padding, rb.height + padding, WHITENESS);
+    PatBlt(rb.device_context, rb.width + padding, 0, padding, rb.height + padding, WHITENESS);
+    PatBlt(rb.device_context, padding, rb.height + padding, rb.width + padding, padding, WHITENESS);
 
-    if(StretchDIBits(render_buffer.device_context,
-                     padding, padding, render_buffer.width, render_buffer.height,
-                     0, 0, render_buffer.width, render_buffer.height,
-                     render_buffer.base, &render_buffer.bitmap_info, DIB_RGB_COLORS, SRCCOPY))
+    if(StretchDIBits(rb.device_context,
+                     padding, padding, rb.width, rb.height,
+                     0, 0, rb.width, rb.height,
+                     rb.base, &rb.bitmap_info, DIB_RGB_COLORS, SRCCOPY))
     {
     }
     else{
@@ -172,14 +172,14 @@ update_window(HWND window, RenderBuffer render_buffer){
 
 #include "game.h"
 
-LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
+static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
     LRESULT result = 0;
 
     switch(message){
         case WM_PAINT:{
             PAINTSTRUCT paint;
             BeginPaint(hwnd, &paint);
-            update_window(hwnd, render_buffer);
+            update_window(render_buffer);
             EndPaint(hwnd, &paint);
         } break;
         case WM_CLOSE:
@@ -191,7 +191,6 @@ LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_
         case WM_MOUSEMOVE:{
             //controller.mouse_pos.x = (s32)(l_param & 0xFFFF);
             //controller.mouse_pos.y = render_buffer.height - (s32)(l_param >> 16);
-            break;
         } break;
 
         //case WM_LBUTTONUP:
@@ -274,7 +273,7 @@ win32_init(){
     return(false);
 }
 
-Arena* global_arena = os_make_arena(KB(1));
+global Arena* global_arena = os_make_arena(KB(1));
 
 static HWND
 win32_window_create(wchar* window_name, u32 width, u32 height){
@@ -339,7 +338,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed);
 
         draw_commands(&render_buffer, render_buffer.render_command_arena);
-        update_window(window, render_buffer);
+        update_window(render_buffer);
 
         if(simulations){
             //handle_debug_counters(simulations);

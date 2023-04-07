@@ -4,7 +4,7 @@
 #define GLYPH_WIDTH 9
 #define GLYPH_HEIGHT 16
 
-u64 font[] = {
+static u64 font[] = {
 	0x0000000000000000UL, 0x0000000000000000UL, 0xBD8181A5817E0000UL, 0x000000007E818199UL, 0xC3FFFFDBFF7E0000UL, 0x000000007EFFFFE7UL, 0x7F7F7F3600000000UL, 0x00000000081C3E7FUL,
 	0x7F3E1C0800000000UL, 0x0000000000081C3EUL, 0xE7E73C3C18000000UL, 0x000000003C1818E7UL, 0xFFFF7E3C18000000UL, 0x000000003C18187EUL, 0x3C18000000000000UL, 0x000000000000183CUL,
 	0xC3E7FFFFFFFFFFFFUL, 0xFFFFFFFFFFFFE7C3UL, 0x42663C0000000000UL, 0x00000000003C6642UL, 0xBD99C3FFFFFFFFFFUL, 0xFFFFFFFFFFC399BDUL, 0x331E4C5870780000UL, 0x000000001E333333UL,
@@ -40,7 +40,7 @@ u64 font[] = {
 };
 
 static void
-draw_string(RenderBuffer* render_buffer, v2 pos, String8 string, u32 color){
+draw_string(RenderBuffer* rb, v2 pos, String8 string, u32 color){
     s32 pos_x  = round_f32_s32(pos.x);
 
     for(u32 i=0; i < string.size; ++i){
@@ -49,9 +49,9 @@ draw_string(RenderBuffer* render_buffer, v2 pos, String8 string, u32 color){
 
         u8 *data = (u8*)font + (c * GLYPH_HEIGHT);
 
-        u8 *row = (u8 *)render_buffer->base +
-                   ((render_buffer->height - (s32)pos.y - 1) * render_buffer->stride) +
-                   ((s32)pos_x * render_buffer->bytes_per_pixel);
+        u8 *row = (u8 *)rb->base +
+                   ((rb->height - (s32)pos.y - 1) * rb->stride) +
+                   ((s32)pos_x * rb->bytes_per_pixel);
 
         for(s32 x=0; x < GLYPH_HEIGHT; ++x){
             u32 *pixel = (u32*)row;
@@ -63,7 +63,7 @@ draw_string(RenderBuffer* render_buffer, v2 pos, String8 string, u32 color){
                 }
                 pixel++;
             }
-            row += render_buffer->stride;
+            row += rb->stride;
         }
         pos_x += GLYPH_WIDTH;
     }
@@ -76,6 +76,18 @@ draw_string(RenderBuffer* render_buffer, v2 pos, String8 string, u32 color){
 // NOTE: Don't use conversion errors on stb_truetype.h
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wconversion"
+#pragma clang diagnostic ignored "-Wall"
+#pragma clang diagnostic ignored "-Wextra"
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#pragma clang diagnostic ignored "-Wcast-qual"
+#pragma clang diagnostic ignored "-Wshadow"
+#pragma clang diagnostic ignored "-Wdouble-promotion"
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#pragma clang diagnostic ignored "-Wcast-qual"
+#pragma clang diagnostic ignored "-Wshadow"
+#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+#pragma clang diagnostic ignored "-Wcomma"
+
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 #pragma clang diagnostic pop

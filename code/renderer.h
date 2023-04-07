@@ -85,8 +85,8 @@ load_bitmap(Arena *arena, String8 dir, String8 file_name){
         assert(blue_shift.found);
 
         u32* pixel = (u32*)result.base;
-        for(u32 y=0; y < result.height; ++y){
-            for(u32 x=0; x < result.width; ++x){
+        for(s32 y=0; y < result.height; ++y){
+            for(s32 x=0; x < result.width; ++x){
                 u32 color = *pixel;
                 *pixel++ = ((((color >> alpha_shift.index) & 0xFF) << 24) |
                             (((color >> red_shift.index) & 0xFF)   << 16) |
@@ -402,7 +402,7 @@ draw_line(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
 
     v2 point1 = round_v2(rect.min);
     v2 point2 = point1;
-    v2 non_normalized_direction = (v2){point1.x + direction.x, point1.y + direction.y};
+    v2 non_normalized_direction = make_v2(point1.x + direction.x, point1.y + direction.y);
     direction = round_v2(non_normalized_direction);
 
     f32 distance_x =  abs_f32(direction.x - point1.x);
@@ -450,8 +450,8 @@ draw_ray(RenderBuffer *render_buffer, Rect rect, v2 direction, RGBA color){
     //RectPixelSpace rect_ps = screen_to_pixel(rect, resolution);
     v2 pos = round_v2(rect.min);
 
-    v2 non_normalized_direction = round_v2((v2){(direction.x * 100000), (direction.y * 100000)});
-    v2 new_direction = (v2){pos.x + non_normalized_direction.x, pos.y + non_normalized_direction.y};
+    v2 non_normalized_direction = round_v2(make_v2((direction.x * 100000), (direction.y * 100000)));
+    v2 new_direction = make_v2(pos.x + non_normalized_direction.x, pos.y + non_normalized_direction.y);
 
     f32 distance_x =  abs_f32(new_direction.x - pos.x);
     f32 distance_y = -abs_f32(new_direction.y - pos.y);
@@ -517,10 +517,10 @@ draw_flattop_triangle(RenderBuffer *render_buffer, v2 p0, v2 p1, v2 p2, RGBA col
     for(s32 y=start_y; y < end_y; ++y){
         f32 x0 = left_slope * ((f32)y + 0.5f - p0.y) + p0.x;
         f32 x1 = right_slope * ((f32)y + 0.5f - p1.y) + p1.x;
-        s32 start_x = (s32)ceil(x0 - 0.5f);
-        s32 end_x = (s32)ceil(x1 - 0.5f);
+        s32 start_x = (s32)ceil_f32(x0 - 0.5f);
+        s32 end_x = (s32)ceil_f32(x1 - 0.5f);
         for(s32 x=start_x; x < end_x; ++x){
-            draw_pixel(render_buffer, (v2){(f32)x, (f32)y}, color);
+            draw_pixel(render_buffer, make_v2((f32)x, (f32)y), color);
         }
     }
 }
@@ -538,10 +538,10 @@ draw_flatbottom_triangle(RenderBuffer *render_buffer, v2 p0, v2 p1, v2 p2, RGBA 
     for(s32 y=start_y; y >= end_y; --y){
         f32 x0 = left_slope * ((f32)y + 0.5f - p0.y) + p0.x;
         f32 x1 = right_slope * ((f32)y + 0.5f - p0.y) + p0.x;
-        s32 start_x = (s32)ceil(x0 - 0.5f);
-        s32 end_x = (s32)ceil(x1 - 0.5f);
+        s32 start_x = (s32)ceil_f32(x0 - 0.5f);
+        s32 end_x = (s32)ceil_f32(x1 - 0.5f);
         for(s32 x=start_x; x < end_x; ++x){
-            draw_pixel(render_buffer, (v2){(f32)x, (f32)y}, color);
+            draw_pixel(render_buffer, make_v2((f32)x, (f32)y), color);
         }
     }
 }
@@ -640,12 +640,12 @@ draw_bitmap_clip(RenderBuffer *render_buffer, v2 pos, Bitmap* texture, v4 clip_r
     v2s32 pixel_min = round_v2_v2s32(rect.min);
     v2s32 pixel_max = round_v2_v2s32(rect.max);
 
-    if(clip_region == (v4){0,0,0,0}){
+    if(clip_region == make_v4(0,0,0,0)){
         u32* at = (u32*)texture->base;
         for(s32 y=pixel_min.y; y < pixel_max.y; ++y){
             for(s32 x=pixel_min.x; x < pixel_max.x; ++x){
                 RGBA color = u32_to_rgba_normal(*at++);
-                draw_pixel(render_buffer, (v2){(f32)x, (f32)y}, color);
+                draw_pixel(render_buffer, make_v2((f32)x, (f32)y), color);
             }
         }
     }
@@ -693,11 +693,11 @@ draw_bitmap_clip(RenderBuffer *render_buffer, v2 pos, Bitmap* texture, v4 clip_r
 // UNTESTED: untested with rect screenspace change
 static void
 draw_bitmap(RenderBuffer *render_buffer, v2 pos, Bitmap* texture){
-    draw_bitmap_clip(render_buffer, pos, texture, (v4){0,0,0,0});
+    draw_bitmap_clip(render_buffer, pos, texture, make_v4(0,0,0,0));
 }
 
 static void
-draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color){
+draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture){
 
     f32 inv_xaxis_mag_sqrt = 1.0f / magnitude_sqrt_v2(x_axis);
     f32 inv_yaxis_mag_sqrt = 1.0f / magnitude_sqrt_v2(y_axis);
@@ -715,7 +715,7 @@ draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bit
     s32 ymin = max_height;
 
     v2 points[4] = {origin, origin + x_axis, origin + y_axis, origin + x_axis + y_axis};
-    for(s32 i=0; i < array_count(points); ++i){
+    for(u32 i=0; i < array_count(points); ++i){
         v2 test_p = points[i];
         s32 x = round_f32_s32(test_p.x);
         s32 y = round_f32_s32(test_p.y);
@@ -726,10 +726,10 @@ draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bit
         if(y > ymax){ ymax = y; }
     }
 
-    if(xmin < 0){ xmin = 0; };
-    if(ymin < 0){ ymin = 0; };
-    if(xmax > max_width){ xmax = max_width; };
-    if(ymax > max_height){ ymax = max_height; };
+    if(xmin < 0){ xmin = 0; }
+    if(ymin < 0){ ymin = 0; }
+    if(xmax > max_width){ xmax = max_width; }
+    if(ymax > max_height){ ymax = max_height; }
 
     u8 *row = (u8 *)render_buffer->base +
                ((render_buffer->height - ymin - 1) * render_buffer->stride) +
@@ -977,19 +977,19 @@ draw_circle(RenderBuffer *render_buffer, f32 xm, f32 ym, f32 r, RGBA color, bool
     f32 y = 0;
     f32 err = 2-2*r;
     do {
-        draw_pixel(render_buffer, (v2){(xm - x), (ym + y)}, color);
-        draw_pixel(render_buffer, (v2){(xm - y), (ym - x)}, color);
-        draw_pixel(render_buffer, (v2){(xm + x), (ym - y)}, color);
-        draw_pixel(render_buffer, (v2){(xm + y), (ym + x)}, color);
+        draw_pixel(render_buffer, make_v2((xm - x), (ym + y)), color);
+        draw_pixel(render_buffer, make_v2((xm - y), (ym - x)), color);
+        draw_pixel(render_buffer, make_v2((xm + x), (ym - y)), color);
+        draw_pixel(render_buffer, make_v2((xm + y), (ym + x)), color);
         r = err;
         if (r <= y){
             if(fill){
                 if(ym + y == ym - y){
-                    draw_segment(render_buffer, (v2){(xm - x - 1), (ym + y)}, (v2){(xm + x), (ym + y)}, color);
+                    draw_segment(render_buffer, make_v2((xm - x - 1), (ym + y)), make_v2((xm + x), (ym + y)), color);
                 }
                 else{
-                    draw_segment(render_buffer, (v2){(xm - x - 1), (ym + y)}, (v2){(xm + x), (ym + y)}, color);
-                    draw_segment(render_buffer, (v2){(xm - x - 1), (ym - y)}, (v2){(xm + x), (ym - y)}, color);
+                    draw_segment(render_buffer, make_v2((xm - x - 1), (ym + y)), make_v2((xm + x), (ym + y)), color);
+                    draw_segment(render_buffer, make_v2((xm - x - 1), (ym - y)), make_v2((xm + x), (ym - y)), color);
                 }
             }
             y++;

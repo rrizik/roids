@@ -8,21 +8,21 @@ typedef enum ConsoleState{
 } ConsoleState;
 
 
-Rect output_rect;
-Rect input_rect;
-ConsoleState console_state = OPEN_BIG;
+global Rect output_rect;
+global Rect input_rect;
+global ConsoleState console_state = OPEN_BIG;
 
-f32 console_t  = 0.0f;
-f32 y_closed   = 1.0f;
-f32 y_open     = .7f;
-f32 y_open_big = .2f;
-f32 open_speed = 0.5f;
-f32 input_height = 28;
+global f32 console_t  = 0.0f;
+global f32 y_closed   = 1.0f;
+global f32 y_open     = .7f;
+global f32 y_open_big = .2f;
+global f32 open_speed = 0.5f;
+global f32 input_height = 28;
 
-f32 start_position = y_closed;
+global f32 start_position = y_closed;
 
-RGBA output_color;
-RGBA input_color;
+static RGBA output_color;
+static RGBA input_color;
 
 static void
 init_console(){
