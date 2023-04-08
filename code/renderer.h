@@ -4,6 +4,48 @@
 // SIMD
 #include <emmintrin.h>
 
+static RGBA
+u32_to_rgba_normal(u32 value){
+    RGBA result = {0};
+	result.a = ((f32)((value >> 24) & 0xFF) / 255.0f);
+	result.r = ((f32)((value >> 16) & 0xFF) / 255.0f);
+	result.g = ((f32)((value >> 8) & 0xFF) / 255.0f);
+	result.b = ((f32)((value >> 0) & 0xFF) / 255.0f);
+    return result;
+}
+
+static RGBA
+u32_to_rgba(u32 value){
+    RGBA result = {0};
+	result.a = (f32)((value >> 24) & 0xFF);
+	result.r = (f32)((value >> 16) & 0xFF);
+	result.g = (f32)((value >> 8) & 0xFF);
+	result.b = (f32)((value >> 0) & 0xFF);
+    return result;
+}
+
+static RGBA
+srgb_to_linear(RGBA value){
+    RGBA result = {
+        .r = square_f32(value.r),
+        .g = square_f32(value.g),
+        .b = square_f32(value.b),
+        .a = value.a,
+    };
+    return(result);
+}
+
+static RGBA
+linear_to_srgb(RGBA value){
+    RGBA result = {
+        .r = sqrt_f32(value.r),
+        .g = sqrt_f32(value.g),
+        .b = sqrt_f32(value.b),
+        .a = value.a,
+    };
+    return(result);
+}
+
 // IMPORTANT
 // UNTESTED We changed our Rect type to screenspace, and changed all functions. Some tested, some not.
 // CLEANUP
@@ -87,35 +129,22 @@ load_bitmap(Arena *arena, String8 dir, String8 file_name){
         u32* pixel = (u32*)result.base;
         for(s32 y=0; y < result.height; ++y){
             for(s32 x=0; x < result.width; ++x){
-                u32 color = *pixel;
-                *pixel++ = ((((color >> alpha_shift.index) & 0xFF) << 24) |
-                            (((color >> red_shift.index) & 0xFF)   << 16) |
-                            (((color >> green_shift.index) & 0xFF)  << 8) |
-                            (((color >> blue_shift.index) & 0xFF)   << 0));
+                u32 color_u32 = ((((*pixel >> alpha_shift.index) & 0xFF) << 24) |
+                                 (((*pixel >> red_shift.index) & 0xFF)   << 16) |
+                                 (((*pixel >> green_shift.index) & 0xFF)  << 8) |
+                                 (((*pixel >> blue_shift.index) & 0xFF)   << 0));
+                RGBA color = u32_to_rgba_normal(color_u32);
+                color = srgb_to_linear(color);
+                color.rgb *= color.a;
+                color = linear_to_srgb(color);
+                *pixel++ = (u32)(round_f32_u32(color.a * 255.0f) << 24 |
+                                 round_f32_u32(color.r * 255.0f) << 16 |
+                                 round_f32_u32(color.g * 255.0f) << 8 |
+                                 round_f32_u32(color.b * 255.0f) << 0);
             }
         }
     }
     return(result);
-}
-
-static RGBA
-u32_to_rgba_normal(u32 value){
-    RGBA result = {0};
-	result.a = ((f32)((value >> 24) & 0xFF) / 255.0f);
-	result.r = ((f32)((value >> 16) & 0xFF) / 255.0f);
-	result.g = ((f32)((value >> 8) & 0xFF) / 255.0f);
-	result.b = ((f32)((value >> 0) & 0xFF) / 255.0f);
-    return result;
-}
-
-static RGBA
-u32_to_rgba(u32 value){
-    RGBA result = {0};
-	result.a = (f32)((value >> 24) & 0xFF);
-	result.r = (f32)((value >> 16) & 0xFF);
-	result.g = (f32)((value >> 8) & 0xFF);
-	result.b = (f32)((value >> 0) & 0xFF);
-    return result;
 }
 
 typedef enum RenderCommandType{
@@ -690,22 +719,20 @@ draw_bitmap_clip(RenderBuffer *render_buffer, v2 pos, Bitmap* texture, v4 clip_r
     //}
 }
 
-// UNTESTED: untested with rect screenspace change
+// untested: with rect screenspace change
 static void
 draw_bitmap(RenderBuffer *render_buffer, v2 pos, Bitmap* texture){
     draw_bitmap_clip(render_buffer, pos, texture, make_v4(0,0,0,0));
 }
 
 static void
-draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture){
+draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {1, 1, 1, 1}){
+
+    // pre-multiply alpha for color
+    color.rgb *= color.a;
 
     f32 inv_xaxis_mag_sqrt = 1.0f / magnitude_sqrt_v2(x_axis);
     f32 inv_yaxis_mag_sqrt = 1.0f / magnitude_sqrt_v2(y_axis);
-
-    //u32 color_u32 = ((round_f32_u32(color.a * 255.0) << 24) |
-    //                 (round_f32_u32(color.r * 255.0) << 16) |
-    //                 (round_f32_u32(color.g * 255.0) <<  8) |
-    //                 (round_f32_u32(color.b * 255.0) <<  0));
 
     s32 max_width = render_buffer->width - 1;
     s32 max_height = render_buffer->height - 1;
@@ -746,16 +773,17 @@ draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bit
             f32 edge3 = dot_v2(dist - y_axis,          perp(y_axis));
 
             if((edge0 < 0) && (edge1 < 0) && (edge2 < 0) && (edge3 < 0)){
+                // get UV coordinates
                 f32 u = inv_xaxis_mag_sqrt * dot_v2(dist, x_axis);
                 f32 v = inv_yaxis_mag_sqrt * dot_v2(dist, y_axis);
 
                 assert(u >= 0.0f && u <= 1.0f);
                 assert(v >= 0.0f && v <= 1.0f);
 
-                f32 tx = ((u * (f32)(texture->width  - 1)) + 0.5f);
-                f32 ty = ((v * (f32)(texture->height - 1)) + 0.5f);
-                //f32 tx = 1.0f + ((u * (f32)(texture->width  - 3)) + 0.5f);
-                //f32 ty = 1.0f + ((v * (f32)(texture->height - 3)) + 0.5f);
+                //f32 tx = ((u * (f32)(texture->width  - 1)) + 0.5f);
+                //f32 ty = ((v * (f32)(texture->height - 1)) + 0.5f);
+                f32 tx = 1.0f + ((u * (f32)(texture->width  - 3)) + 0.5f);
+                f32 ty = 1.0f + ((v * (f32)(texture->height - 3)) + 0.5f);
                 s32 x = (s32)tx;
                 s32 y = (s32)ty;
                 f32 fx = tx - (f32)x;
@@ -764,30 +792,52 @@ draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bit
                 assert(x >= 0 && x < texture->width);
                 assert(y >= 0 && y < texture->height);
 
+                // select 4 pixels
                 u8* texel_ptr = ((u8*)texture->base + (y * texture->stride) + (x * 4));
                 u32* texel_ptr_a = (u32*)(texel_ptr);
                 u32* texel_ptr_b = (u32*)(texel_ptr + sizeof(u32));
                 u32* texel_ptr_c = (u32*)(texel_ptr + texture->stride);
                 u32* texel_ptr_d = (u32*)(texel_ptr + texture->stride + sizeof(u32));
 
-                RGBA texel_a = u32_to_rgba(*texel_ptr_a);
-                RGBA texel_b = u32_to_rgba(*texel_ptr_b);
-                RGBA texel_c = u32_to_rgba(*texel_ptr_c);
-                RGBA texel_d = u32_to_rgba(*texel_ptr_d);
+                // convert to RGBA normalized
+                RGBA texel_a = u32_to_rgba_normal(*texel_ptr_a);
+                RGBA texel_b = u32_to_rgba_normal(*texel_ptr_b);
+                RGBA texel_c = u32_to_rgba_normal(*texel_ptr_c);
+                RGBA texel_d = u32_to_rgba_normal(*texel_ptr_d);
 
+                // convert to linear space
+                texel_a = srgb_to_linear(texel_a);
+                texel_b = srgb_to_linear(texel_b);
+                texel_c = srgb_to_linear(texel_c);
+                texel_d = srgb_to_linear(texel_d);
+
+                // bilinear filtering
                 RGBA texel = lerp(lerp(texel_a, texel_b, fx), lerp(texel_c, texel_d, fx), fy);
-                RGBA pixel_color = u32_to_rgba(*pixel);
+                RGBA pixel_color = u32_to_rgba_normal(*pixel);
+                pixel_color = srgb_to_linear(pixel_color);
 
-                texel.a /= 255.0f;
-                f32 new_r = lerp(pixel_color.r, texel.r, texel.a);
-                f32 new_g = lerp(pixel_color.g, texel.g, texel.a);
-                f32 new_b = lerp(pixel_color.b, texel.b, texel.a);
-                texel.a *= 255.0f;
+                // color tinting
+                texel.r *= color.r;
+                texel.g *= color.g;
+                texel.b *= color.b;
+                texel.a *= color.a;
 
-                *pixel = (u32)(round_f32_s32(texel.a) << 24 |
-                          round_f32_s32(new_r) << 16 |
-                          round_f32_s32(new_g) << 8 |
-                          round_f32_s32(new_b) << 0);
+                // linear blend
+                RGBA write_color = {
+                    .r = ((1.0f - texel.a) * pixel_color.r) + texel.r,
+                    .g = ((1.0f - texel.a) * pixel_color.g) + texel.g,
+                    .b = ((1.0f - texel.a) * pixel_color.b) + texel.b,
+                    .a = texel.a + pixel_color.a - texel.a * pixel_color.a,
+                };
+
+                // convert to SRGB space
+                write_color = linear_to_srgb(write_color);
+
+                // write color
+                *pixel = (u32)(round_f32_u32(write_color.a * 255.0f) << 24 |
+                               round_f32_u32(write_color.r * 255.0f) << 16 |
+                               round_f32_u32(write_color.g * 255.0f) << 8 |
+                               round_f32_u32(write_color.b * 255.0f) << 0);
             }
             pixel++;
         }

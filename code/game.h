@@ -52,9 +52,9 @@ entity_from_handle(PermanentMemory* pm, EntityHandle handle){
 
 static EntityHandle
 handle_from_entity(PermanentMemory* pm, Entity *e){
-    Assert(e != 0);
+    assert(e != 0);
     EntityHandle result = {0};
-    if((e >= pm->entities) && (e < (pm->entities + ArrayCount(pm->entities)))){
+    if((e >= pm->entities) && (e < (pm->entities + array_count(pm->entities)))){
         result.index = e->index;
         result.generation = e->generation;
     }
@@ -304,6 +304,13 @@ push_text(Arena* command_arena, v2 pos, String8 string, bool split_down = true){
     }
 }
 
+global PermanentMemory* pm;
+global TransientMemory* tm;
+
+global s32 x_offset = 0;
+global f32 scale;
+global f32 angle;
+
 static void
 draw_commands(RenderBuffer *render_buffer, Arena *commands){
     void* at = commands->base;
@@ -344,7 +351,15 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
             } break;
             case RenderCommand_Basis:{
                 BasisCommand *command = (BasisCommand*)base_command;
+                RGBA color = {
+                    .r = 0.5f + 0.5f * sin_f32(angle*2.0f),
+                    .g = 0.5f + 0.5f * cos_f32(angle),
+                    .b = 0.5f + 0.5f * sin_f32(angle),
+                    .a = 1.0f,
+                    //.a = 0.5f + 0.5f * cos_f32(angle*2.0f),
+                };
                 draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture);
+                //draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture, color);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Box:{
@@ -381,17 +396,10 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
     }
 }
 
-global PermanentMemory* pm;
-global TransientMemory* tm;
-
-global s32 x_offset = 0;
-global f32 scale;
-global f32 angle;
-
 static void
 update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Controller* controller, Clock* clock){
-    Assert(sizeof(PermanentMemory) < memory->permanent_size);
-    Assert(sizeof(TransientMemory) < memory->transient_size);
+    assert(sizeof(PermanentMemory) < memory->permanent_size);
+    assert(sizeof(TransientMemory) < memory->transient_size);
     pm = (PermanentMemory*)memory->permanent_base;
     tm = (TransientMemory*)memory->transient_base;
 

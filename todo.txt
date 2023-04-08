@@ -10,11 +10,9 @@ immediate draw? how does it work, do you immediately apply the pixels to the bac
 ------- To-Dos -------
 ----------------------
 
-- get rid of math.h file
-- add -Wall -Wextra 
-- remove bitmaps from font.h, only save the u8 data and make a bitmap later when you do add_bitmap, or somewhere else
+- cast glyph data to bitmap?
 SIDE STEP A LITTLE:
-    figure out how to do a bilinear blend and what SRGB is
+    maybe a couple more episodes? not sure.
 
 Rect:
     something not quite right with borders, especially when they are big and intrude
@@ -87,8 +85,8 @@ maybe dynamic array
         b) rotating 1 large rect with 4 small rects on point (step between A and C)
 
 4/7/2023:
-    - added -Wconversion -Werror and fixed all my type conversion errors
-
+    - flux: added -Wconversion -Werror -Wall -Wextra and fixed all my type conversion errors and a bunch of other errors
+    - base: added -Wconversion -Werror -Wall -Wextra and fixed all my type conversion errors and a bunch of other errors
 
 
 
