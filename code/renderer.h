@@ -827,7 +827,7 @@ draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bit
                     .r = ((1.0f - texel.a) * pixel_color.r) + texel.r,
                     .g = ((1.0f - texel.a) * pixel_color.g) + texel.g,
                     .b = ((1.0f - texel.a) * pixel_color.b) + texel.b,
-                    .a = texel.a + pixel_color.a - texel.a * pixel_color.a,
+                    .a = ((1.0f - texel.a) * pixel_color.a) + texel.a,
                 };
 
                 // convert to SRGB space

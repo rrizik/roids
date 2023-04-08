@@ -355,11 +355,11 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
                     .r = 0.5f + 0.5f * sin_f32(angle*2.0f),
                     .g = 0.5f + 0.5f * cos_f32(angle),
                     .b = 0.5f + 0.5f * sin_f32(angle),
-                    .a = 1.0f,
-                    //.a = 0.5f + 0.5f * cos_f32(angle*2.0f),
+                    //.a = 1.0f,
+                    .a = 0.5f + 0.5f * cos_f32(angle*2.0f),
                 };
-                draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture);
-                //draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture, color);
+                //draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture);
+                draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture, color);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Box:{
