@@ -212,98 +212,6 @@ add_glyph(PermanentMemory* pm, v2 pos, Glyph glyph){
     return(e);
 }
 
-#define push_text_array(arena, pos, strings) _push_text_array(arena, pos, strings, array_count(strings))
-static void _push_text_array(Arena* command_arena, v2 pos, String8 strings[], u32 count){
-    u8* c;
-    f32 scale = font_incon.scale;
-    v2s32 unscaled_offset = {0, 0};
-    for(u32 i=0; i < count; ++i){
-       String8* string = strings + i;
-
-        for(u32 i=0; i < string->size; ++i){
-            c = string->str + i;
-            if(*c != '\n'){
-                Glyph glyph = font_incon.glyphs[*c];
-
-                // get codepoint info
-                s32 advance_width, lsb;
-                stbtt_GetCodepointHMetrics(&font_incon.info, *c, &advance_width, &lsb);
-                s32 x0, y0, x1, y1;
-                stbtt_GetCodepointBitmapBox(&font_incon.info, *c, scale, scale, &x0,&y0,&x1,&y1);
-
-                // setup rect
-                Rect rect = {
-                    pos.x + round_f32_s32((unscaled_offset.x + lsb) * scale),
-                    pos.y - (round_f32_s32(unscaled_offset.y * scale) + (glyph.height + y0)),
-                    0,
-                    0
-                };
-                push_glyph(command_arena, rect, glyph);
-
-                // advance on x
-                unscaled_offset.x += advance_width;
-                if(string->str[i + 1]){
-                    s32 kern = stbtt_GetCodepointKernAdvance(&font_incon.info, *c, string->str[i+1]);
-                    unscaled_offset.x += kern;
-                }
-            }
-            else{
-                // advance to next line
-                unscaled_offset.y += font_incon.vertical_offset;
-                unscaled_offset.x = 0;
-            }
-        }
-        unscaled_offset.y += font_incon.vertical_offset;
-        unscaled_offset.x = 0;
-    }
-}
-
-static void
-push_text(Arena* command_arena, v2 pos, String8 string, bool split_down = true){
-    u8* c;
-    s32 kern;
-    f32 scale = font_incon.scale;
-    v2s32 unscaled_offset = {0, 0};
-
-    for(u32 i=0; i < string.size; ++i){
-        c = string.str + i;
-        if(*c != '\n'){
-            Glyph glyph = font_incon.glyphs[*c];
-
-            // get codepoint info
-            s32 advance_width, lsb;
-            stbtt_GetCodepointHMetrics(&font_incon.info, *c, &advance_width, &lsb);
-            s32 x0, y0, x1, y1;
-            stbtt_GetCodepointBitmapBox(&font_incon.info, *c, scale, scale, &x0,&y0,&x1,&y1);
-
-            // setup rect to be pushed to command_arena
-            Rect rect = {
-                pos.x + (s32)round_f32_s32((unscaled_offset.x + lsb) * scale),
-                pos.y - (s32)(round_f32_s32(unscaled_offset.y * scale) + (glyph.height + y0)),
-                0, 0 // no x1, y1 needed for bitmap
-            };
-            push_glyph(command_arena, rect, glyph);
-
-            // advance x + kern
-            unscaled_offset.x += advance_width;
-            if(string.str[i + 1]){
-                kern = stbtt_GetCodepointKernAdvance(&font_incon.info, *c, string.str[i+1]);
-                unscaled_offset.x += kern;
-            }
-        }
-        else{
-            // advance to next line
-            if(split_down){
-                unscaled_offset.y += font_incon.vertical_offset;
-            }
-            else{
-                unscaled_offset.y -= font_incon.vertical_offset;
-            }
-            unscaled_offset.x = 0;
-        }
-    }
-}
-
 global PermanentMemory* pm;
 global TransientMemory* tm;
 
@@ -359,7 +267,7 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
                     .a = 0.5f + 0.5f * cos_f32(angle*2.0f),
                 };
                 //draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture);
-                draw_rect_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture, color);
+                draw_bitmap_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture, color);
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Box:{
@@ -418,7 +326,9 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 
 
+    arena_free(render_buffer->render_command_arena);
     push_clear_color(render_buffer->render_command_arena, BLACK);
+    Arena* render_command_arena = render_buffer->render_command_arena;
     if(!memory->initialized){
         Button a = controller->up;
         angle = 0;
@@ -448,51 +358,18 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
         // basis test
         String8 tree_str = str8_literal("tree00.bmp");
-        pm->tree = load_bitmap(&tm->arena, pm->data_dir, tree_str);
         String8 circle_str = str8_literal("circle.bmp");
-        Bitmap circle = load_bitmap(&tm->arena, pm->data_dir, circle_str);
         String8 image_str = str8_literal("image.bmp");
+
+        pm->tree = load_bitmap(&tm->arena, pm->data_dir, tree_str);
+        Bitmap circle = load_bitmap(&tm->arena, pm->data_dir, circle_str);
         Bitmap image = load_bitmap(&tm->arena, pm->data_dir, image_str);
 
-		v2 origin = make_v2((f32)resolution.x/2, (f32)resolution.y/2);
-		v2 x_axis = 100.0f * make_v2(cos_f32(angle), sin_f32(angle));
-		v2 y_axis = make_v2(-x_axis.y, x_axis.x);
-
+		//v2 origin = make_v2((f32)resolution.x/2, (f32)resolution.y/2);
+		//v2 x_axis = 100.0f * make_v2(cos_f32(angle), sin_f32(angle));
+		//v2 y_axis = make_v2(-x_axis.y, x_axis.x);
         //pm->basis = add_basis(pm, origin, x_axis, y_axis, pm->tree, RED);
 
-        //add_bitmap(pm, make_v2(100, 100), pm->tree);
-        //add_bitmap(pm, make_v2(400, 100), circle);
-
-        //add_bitmap(pm, make_v2(0,   100), image);
-        //add_bitmap(pm, make_v2(200, 100), image);
-        //add_bitmap(pm, make_v2(400, 100), image);
-        //add_bitmap(pm, make_v2(600, 100), image);
-        //add_bitmap(pm, make_v2(800, 100), image);
-        //add_bitmap(pm, make_v2(1000, 100), image);
-
-        //add_bitmap(pm, make_v2(0,   300), image);
-        //add_bitmap(pm, make_v2(200, 300), image);
-        //add_bitmap(pm, make_v2(400, 300), image);
-        //add_bitmap(pm, make_v2(600, 300), image);
-        //add_bitmap(pm, make_v2(800, 300), image);
-        //add_bitmap(pm, make_v2(1000, 300), image);
-
-        //add_bitmap(pm, make_v2(0,   500), image);
-        //add_bitmap(pm, make_v2(200, 500), image);
-        //add_bitmap(pm, make_v2(400, 500), image);
-        //add_bitmap(pm, make_v2(600, 500), image);
-        //add_bitmap(pm, make_v2(800, 500), image);
-        //add_bitmap(pm, make_v2(1000, 500), image);
-
-#if 0
-
-        String8 texture = str8_literal("texture.bmp");
-        String8 circle = str8_literal("circle.bmp");
-        Bitmap bmp_texture = load_bitmap(&tm->arena, pm->data_dir, texture);
-        Bitmap bmp_circle = load_bitmap(&tm->arena, pm->data_dir, circle);
-        pm->texture = add_bitmap(pm, make_v2(300, 300), bmp_texture);
-        pm->circle = add_bitmap(pm, make_v2(500, 500), bmp_circle);
-#endif
         //Inconsolata-Regular
         Bitmap inconsolate[128];
 
@@ -500,29 +377,36 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         //String8 incon = str8_literal("MatrixSans-Video.ttf");
         //String8 incon = str8_literal("Rock Jack Writing.ttf");
         //String8 incon = str8_literal("Inconsolata-Regular.ttf");
-        String8 incon = str8_literal("GolosText-Regular.ttf");
-        //String8 incon = str8_literal("arial.ttf");
+        //String8 incon = str8_literal("GolosText-Regular.ttf");
+        String8 incon = str8_literal("arial.ttf");
+        //String8 incon = str8_literal("consola.ttf");
         bool succeed = load_font_ttf(&pm->arena, pm->fonts_dir, incon, &font_incon);
         assert(succeed);
-        load_font_glyphs(&pm->arena, 50, ORANGE, &font_incon);
+        load_font_glyphs(&pm->arena, 28, ORANGE, &font_incon);
         init_console();
 
         memory->initialized = true;
     }
-    arena_free(render_buffer->render_command_arena);
     angle += (f32)clock->dt;
     //print("angle: %f\n", angle);
 
 
 
+
+    update_console();
+    if(console_is_open()){
+        push_console(render_command_arena);
+    }
     // NOTE: Process events.
     while(!events_empty(events)){
         Event event = event_get(events);
 
         if(event.type == TEXT_INPUT){
             Glyph glyph = font_incon.glyphs[event.keycode];
-            add_glyph(pm, make_v2((f32)(10 + x_offset), 10), glyph);
-            x_offset += glyph.width;
+            add_glyph(pm, make_v2(cursor_rect.x0, cursor_rect.y0), glyph);
+            cursor_rect.x0 += glyph.width;
+            cursor_rect.x1 += glyph.width;
+            //x_offset += glyph.width;
             print("text_input: %i - %c\n", event.keycode, event.keycode);
             print("-----------------------------\n");
         }
@@ -558,9 +442,6 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
     }
 
-    update_console();
-
-    Arena* render_command_arena = render_buffer->render_command_arena;
     for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
         Entity *e = pm->entities + pm->free_entities[entity_index];
 
@@ -648,11 +529,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
     }
 
-    if(console_is_open()){
-        //push_console(render_command_arena);
-    }
-    String8 one = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
-    //String8 one   = str8_literal("g");
+    String8 text = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
+    //String8 text   = str8_literal("g");
     String8 strings[] = {
         str8_literal("get! This is my program."),
         str8_literal("It renders fonts."),
@@ -660,8 +538,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         str8_literal("More Dummy Text ONETWOTHREE"),
         str8_literal("END OF DUMMY_TEXT_TEST.H OK"),
     };
-    //push_text_array(render_command_arena, make_v2(10.0f, (f32)(resolution.h - 50)), strings);
-    push_text(render_command_arena, make_v2(100, 600), one);
+    //push_text_array(render_command_arena, make_v2(10.0f, (f32)(resolution.h - 50)), font_incon, strings, array_count(strings));
+    //push_text(render_command_arena, make_v2(100, 600), font_incon, text);
 
     //push_text(render_command_arena, make_v2(0, resolution.h - 100), two);
     //push_text(render_command_arena, make_v2(0, resolution.h - 150), three);

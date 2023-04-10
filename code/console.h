@@ -10,6 +10,12 @@ typedef enum ConsoleState{
 
 global Rect output_rect;
 global Rect input_rect;
+global Rect cursor_rect;
+
+global RGBA output_color;
+global RGBA input_color;
+global RGBA cursor_color;
+
 global ConsoleState console_state = OPEN_BIG;
 
 global f32 console_t  = 0.0f;
@@ -17,24 +23,26 @@ global f32 y_closed   = 1.0f;
 global f32 y_open     = .7f;
 global f32 y_open_big = .2f;
 global f32 open_speed = 0.5f;
-global f32 input_height = 28;
+global f32 input_height  = 28;
+global f32 cursor_height = 20;
+global f32 cursor_width  = 10;
+global f32 cursor_vertical_padding  = 2;
 
 global f32 start_position = y_closed;
-
-static RGBA output_color;
-static RGBA input_color;
 
 static void
 init_console(){
     f32 x0 = 0;
-    f32 y0 = y_closed * (f32)resolution.h;
     f32 x1 = (f32)resolution.w;
+    f32 y0 = (f32)resolution.h;
     f32 y1 = (f32)resolution.h;
     output_rect = make_rect(x0, y0, x1, y1);
-    input_rect  = make_rect(x0, y0 - 10, x1, y1);
+    input_rect  = make_rect(x0, y0 - input_height, x1, y1);
+    cursor_rect = make_rect(x0 + 10, y0 - input_height + cursor_vertical_padding, x0 + 10 + cursor_width, input_rect.y1 + cursor_height);
 
-    output_color = {0.50f, 0.50f, 0.50f,  1.0f};
-    input_color  = {0.25f, 0.25f, 0.23f,  1.0f};
+    output_color = {1/255.0f, 57/255.0f, 90/255.0f, 1.0f};
+    input_color = {0/255.0f, 44/255.0f, 47/255.0f, 1.0f};
+    cursor_color = {125/255.0f, 125/255.0f, 125/255.0f, 0.4f};
 }
 
 static bool
@@ -58,6 +66,7 @@ static void
 push_console(Arena* command_arena){
     push_rect(command_arena, output_rect, output_color);
     push_rect(command_arena, input_rect, input_color);
+    push_rect(command_arena, cursor_rect, cursor_color);
     //for(u32 i=0; i < history_length; ++i){
     //    String8 next_string = history_length[i];
     //    push_text(command_arena, next_string);
@@ -73,24 +82,37 @@ update_console(){
         if(console_t < 1) {
             console_t += lerp_speed;
             output_rect.y0 = lerp(output_rect.y0, y_closed * (f32)resolution.h, console_t);
-            input_rect.y0 = lerp(output_rect.y0, y_closed * (f32)resolution.h, console_t);
+
+            input_rect.y0 = lerp(input_rect.y0, y_closed * (f32)resolution.h, console_t);
             input_rect.y1 = input_rect.y0 + input_height;
+
+            cursor_rect.y0 = lerp(cursor_rect.y0, (y_closed * (f32)resolution.h) + cursor_vertical_padding, console_t);
+            cursor_rect.y1 = input_rect.y0 + input_height - cursor_vertical_padding;
         }
     }
     else if(console_state == OPEN){
         if(console_t < 1) {
             console_t += lerp_speed;
             output_rect.y0 = lerp(output_rect.y0, y_open * (f32)resolution.h, console_t);
-            input_rect.y0 = lerp(output_rect.y0, y_open * (f32)resolution.h, console_t);
+
+            input_rect.y0 = lerp(input_rect.y0, y_open * (f32)resolution.h, console_t);
             input_rect.y1 = input_rect.y0 + input_height;
+
+            cursor_rect.y0 = lerp(cursor_rect.y0, (y_open * (f32)resolution.h) + cursor_vertical_padding, console_t);
+            cursor_rect.y1 = input_rect.y0 + input_height - cursor_vertical_padding;
         }
     }
     else if(console_state == OPEN_BIG){
         if(console_t < 1) {
             console_t += lerp_speed;
+
             output_rect.y0 = lerp(output_rect.y0, y_open_big * (f32)resolution.h, console_t);
-            input_rect.y0 = lerp(output_rect.y0, y_open_big * (f32)resolution.h, console_t);
+
+            input_rect.y0 = lerp(input_rect.y0, y_open_big * (f32)resolution.h, console_t);
             input_rect.y1 = input_rect.y0 + input_height;
+
+            cursor_rect.y0 = lerp(cursor_rect.y0, (y_open_big * (f32)resolution.h) + cursor_vertical_padding, console_t);
+            cursor_rect.y1 = input_rect.y0 + input_height - cursor_vertical_padding;
         }
     }
 }

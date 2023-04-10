@@ -89,7 +89,9 @@ maybe dynamic array
     - flux: added -Wconversion -Werror -Wall -Wextra and fixed all my type conversion errors and a bunch of other errors
     - base: added -Wconversion -Werror -Wall -Wextra and fixed all my type conversion errors and a bunch of other errors
 
-
+4/9/2023:
+    - back to fonts. building out cursor.
+    - need to figure out how to build strings
 
 
 

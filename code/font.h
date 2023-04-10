@@ -93,7 +93,7 @@ draw_string(RenderBuffer* rb, v2 pos, String8 string, u32 color){
 #pragma clang diagnostic pop
 
 typedef struct Glyph{
-    u8*  pixels;
+    u8*  base;
 	s32  width;
 	s32  height;
 } Glyph;
@@ -114,6 +114,7 @@ load_font_ttf(Arena* arena, String8 dir, String8 file, Font* font){
     return(true);
 }
 
+// TODO: change this to load a baked bitmap, and use UV to access correct glyph
 static void
 load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
     s32 ascent, descent, line_gap;
@@ -127,9 +128,9 @@ load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
         Glyph* glyph = font->glyphs + i;
         glyph->width = w;
         glyph->height = h;
-        glyph->pixels = push_array(arena, u8, (u32)(w*h*4));
+        glyph->base = push_array(arena, u8, (u32)(w*h*4));
 
-        u8* dest_row = (u8*)glyph->pixels + (h - 1) * (w * 4);
+        u8* dest_row = (u8*)glyph->base + (h - 1) * (w * 4);
         for(s32 y=0; y < h; ++y){
             u32* dest = (u32*)dest_row;
             for(s32 x=0; x < w; ++x){

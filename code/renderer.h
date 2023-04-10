@@ -391,6 +391,102 @@ push_glyph(Arena *arena, Rect rect, Glyph texture){
 }
 
 static void
+push_text(Arena* command_arena, v2 pos, Font font, String8 string, bool newline_down = true){
+    u8* c;
+    s32 kern;
+    f32 scale = font.scale;
+    v2s32 unscaled_offset = {0, 0};
+
+    for(u32 i=0; i < string.size; ++i){
+        c = string.str + i;
+        if(*c != '\n'){
+            Glyph glyph = font.glyphs[*c];
+
+            // get codepoint info
+            s32 advance_width, lsb;
+            stbtt_GetCodepointHMetrics(&font.info, *c, &advance_width, &lsb);
+            s32 x0, y0, x1, y1;
+            stbtt_GetCodepointBitmapBox(&font.info, *c, scale, scale, &x0,&y0,&x1,&y1);
+
+            // setup rect to be pushed to command_arena
+            Rect rect = {
+                pos.x + (s32)round_f32_s32((unscaled_offset.x + lsb) * scale),
+                pos.y - (s32)(round_f32_s32(unscaled_offset.y * scale) + (glyph.height + y0)),
+                0, 0 // no x1, y1 needed for bitmap
+            };
+            push_glyph(command_arena, rect, glyph);
+
+            // advance x + kern
+            unscaled_offset.x += advance_width;
+            if(string.str[i + 1]){
+                kern = stbtt_GetCodepointKernAdvance(&font.info, *c, string.str[i+1]);
+                unscaled_offset.x += kern;
+            }
+        }
+        else{
+            // advance to next line
+            if(newline_down){
+                unscaled_offset.y += font.vertical_offset;
+            }
+            else{
+                unscaled_offset.y -= font.vertical_offset;
+            }
+            unscaled_offset.x = 0;
+        }
+    }
+}
+
+static void push_text_array(Arena* command_arena, v2 pos, Font font, String8 strings[], u32 count, bool newline_down = true){
+    u8* c;
+    f32 scale = font.scale;
+    v2s32 unscaled_offset = {0, 0};
+    for(u32 i=0; i < count; ++i){
+       String8* string = strings + i;
+
+        for(u32 i=0; i < string->size; ++i){
+            c = string->str + i;
+            if(*c != '\n'){
+                Glyph glyph = font.glyphs[*c];
+
+                // get codepoint info
+                s32 advance_width, lsb;
+                stbtt_GetCodepointHMetrics(&font.info, *c, &advance_width, &lsb);
+                s32 x0, y0, x1, y1;
+                stbtt_GetCodepointBitmapBox(&font.info, *c, scale, scale, &x0,&y0,&x1,&y1);
+
+                // setup rect
+                Rect rect = {
+                    pos.x + round_f32_s32((unscaled_offset.x + lsb) * scale),
+                    pos.y - (round_f32_s32(unscaled_offset.y * scale) + (glyph.height + y0)),
+                    0,
+                    0
+                };
+                push_glyph(command_arena, rect, glyph);
+
+                // advance on x
+                unscaled_offset.x += advance_width;
+                if(string->str[i + 1]){
+                    s32 kern = stbtt_GetCodepointKernAdvance(&font.info, *c, string->str[i+1]);
+                    unscaled_offset.x += kern;
+                }
+            }
+            else{
+				// advance to next line
+				if(newline_down){
+					unscaled_offset.y += font.vertical_offset;
+				}
+				else{
+					unscaled_offset.y -= font.vertical_offset;
+				}
+                unscaled_offset.x = 0;
+            }
+        }
+        unscaled_offset.y += font.vertical_offset;
+        unscaled_offset.x = 0;
+    }
+}
+
+static void
 draw_pixel(RenderBuffer *render_buffer, v2 position, RGBA color){
     v2s32 pos = round_v2_v2s32(position);
 
@@ -662,32 +758,24 @@ clear_color(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
 //}
 
 
-// UNTESTED: untested with rect screenspace change
 static void
-draw_bitmap_clip(RenderBuffer *render_buffer, v2 pos, Bitmap* texture, v4 clip_region){
+draw_bitmap(RenderBuffer *render_buffer, v2 pos, Bitmap* texture){
     Rect rect = make_rect(pos.x, pos.y, pos.x + (f32)texture->width, pos.y + (f32)texture->height);
     v2s32 pixel_min = round_v2_v2s32(rect.min);
     v2s32 pixel_max = round_v2_v2s32(rect.max);
 
-    if(clip_region == make_v4(0,0,0,0)){
-        u32* at = (u32*)texture->base;
-        for(s32 y=pixel_min.y; y < pixel_max.y; ++y){
-            for(s32 x=pixel_min.x; x < pixel_max.x; ++x){
-                RGBA color = u32_to_rgba_normal(*at++);
-                draw_pixel(render_buffer, make_v2((f32)x, (f32)y), color);
-            }
+    u32* at = (u32*)texture->base;
+    for(s32 y=pixel_min.y; y < pixel_max.y; ++y){
+        for(s32 x=pixel_min.x; x < pixel_max.x; ++x){
+            RGBA color = u32_to_rgba_normal(*at++);
+            draw_pixel(render_buffer, make_v2((f32)x, (f32)y), color);
         }
     }
 }
 
-// untested: with rect screenspace change
-static void
-draw_bitmap(RenderBuffer *render_buffer, v2 pos, Bitmap* texture){
-    draw_bitmap_clip(render_buffer, pos, texture, make_v4(0,0,0,0));
-}
 
 static void
-draw_rect_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {1, 1, 1, 1}){
+draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {1, 1, 1, 1}){
 
     // pre-multiply alpha for color
     color.rgb *= color.a;
