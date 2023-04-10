@@ -11,10 +11,6 @@ immediate draw? how does it work, do you immediately apply the pixels to the bac
 ----------------------
 
 - cast glyph data to bitmap?
-SIDE STEP A LITTLE:
-    maybe a couple more episodes? not sure.
-    simd again?
-
 Rect:
     something not quite right with borders, especially when they are big and intrude
 
@@ -33,6 +29,10 @@ events:
 UI:
     make it
     
+SIDE STEP A LITTLE:
+    - stop side step for now, go back to font stuff.
+    - when I come back to this, we need to do lighting + simd
+
 
 serialization/deserialization
 improve render pipeline

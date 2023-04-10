@@ -418,6 +418,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 
 
+    push_clear_color(render_buffer->render_command_arena, BLACK);
     if(!memory->initialized){
         Button a = controller->up;
         angle = 0;
@@ -457,7 +458,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 		v2 x_axis = 100.0f * make_v2(cos_f32(angle), sin_f32(angle));
 		v2 y_axis = make_v2(-x_axis.y, x_axis.x);
 
-        pm->basis = add_basis(pm, origin, x_axis, y_axis, pm->tree, RED);
+        //pm->basis = add_basis(pm, origin, x_axis, y_axis, pm->tree, RED);
 
         //add_bitmap(pm, make_v2(100, 100), pm->tree);
         //add_bitmap(pm, make_v2(400, 100), circle);
@@ -509,7 +510,6 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         memory->initialized = true;
     }
     arena_free(render_buffer->render_command_arena);
-    push_clear_color(render_buffer->render_command_arena, BLUE);
     angle += (f32)clock->dt;
     //print("angle: %f\n", angle);
 
@@ -521,7 +521,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
         if(event.type == TEXT_INPUT){
             Glyph glyph = font_incon.glyphs[event.keycode];
-            //add_glyph(pm, make_v2(10 + x_offset, 10), glyph);
+            add_glyph(pm, make_v2((f32)(10 + x_offset), 10), glyph);
             x_offset += glyph.width;
             print("text_input: %i - %c\n", event.keycode, event.keycode);
             print("-----------------------------\n");
@@ -660,8 +660,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         str8_literal("More Dummy Text ONETWOTHREE"),
         str8_literal("END OF DUMMY_TEXT_TEST.H OK"),
     };
-    //push_text_array(render_command_arena, make_v2(10, resolution.h - 50), strings);
-    //push_text(render_command_arena, make_v2(100, 600), one);
+    //push_text_array(render_command_arena, make_v2(10.0f, (f32)(resolution.h - 50)), strings);
+    push_text(render_command_arena, make_v2(100, 600), one);
 
     //push_text(render_command_arena, make_v2(0, resolution.h - 100), two);
     //push_text(render_command_arena, make_v2(0, resolution.h - 150), three);

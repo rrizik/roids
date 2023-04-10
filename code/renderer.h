@@ -678,45 +678,6 @@ draw_bitmap_clip(RenderBuffer *render_buffer, v2 pos, Bitmap* texture, v4 clip_r
             }
         }
     }
-    //else{
-    //    Rect cr = make_rect(.1f, .15f, .2f, .25f);
-
-    //    if(pixel_min.x < cr.x0){
-    //        pixel_min.x = cr.x0;
-    //        pixel_max.x = texture.width - (cr.x0 - pixel_min.x);
-    //    }
-    //    if((pixel_min.x + pixel_max.x) > (cr.x0 + cr.x1)){
-    //        pixel_max.x = pixel_max.x - ((pixel_min.x + pixel_max.x) - (cr.x0 + cr.x1));
-    //    }
-
-    //    if(pixel_min.y < cr.y0){
-    //        pixel_min.y = cr.y0;
-    //        pixel_max.y = texture.height - (cr.y0 - pixel_min.y);
-    //    }
-    //    if((pixel_min.y + pixel_max.y) > (cr.y0 + cr.y1)){
-    //        pixel_max.y = pixel_max.y - ((pixel_min.y + pixel_max.y) - (cr.y0 + cr.y1));
-    //    }
-
-    //    u32 rounded_x = round_f32_u32(pixel_min.x);
-    //    u32 rounded_y = round_f32_u32(pixel_min.y);
-
-    //    // clamp is wrong here, was 1 n 0 now 0 n 1
-    //    u32 x_shift = (u32)clamp_f32(0, (cr.x0 - pixel_min.x), 100000);
-    //    u32 y_shift = (u32)clamp_f32(0, (cr.y0 - pixel_min.y), 100000);
-
-    //    u32 iy = 0;
-    //    for(u32 y = rounded_y; y < rounded_y + pixel_max.y; ++y){
-    //        u32 ix = 0;
-    //        for(u32 x = rounded_x; x < rounded_x + pixel_max.x; ++x){
-    //            u8 *byte = (u8 *)texture.base + ((y_shift + iy) * texture.width * 4) + ((x_shift + ix) * 4);
-    //            u32 *c = (u32 *)byte;
-    //            RGBA color = u32_to_rgba(*c);
-    //            draw_pixel(render_buffer, (v2){(f32)x, (f32)y}, color);
-    //            ix++;
-    //        }
-    //        iy++;
-    //    }
-    //}
 }
 
 // untested: with rect screenspace change

@@ -7,8 +7,8 @@
 #define BYTES_PER_PIXEL 4
 
 global v2s32 resolution = {
-    SCREEN_WIDTH,
-    SCREEN_HEIGHT
+    .x = SCREEN_WIDTH,
+    .y = SCREEN_HEIGHT
 };
 
 typedef s64 GetTicks(void);
