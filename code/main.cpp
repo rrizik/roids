@@ -135,7 +135,7 @@ init_render_buffer(RenderBuffer* rb, s32 width, s32 height){
 
     rb->bitmap_info.bmiHeader.biSize     = sizeof(BITMAPINFOHEADER);
     rb->bitmap_info.bmiHeader.biWidth    = width;
-    rb->bitmap_info.bmiHeader.biHeight   = -height;
+    rb->bitmap_info.bmiHeader.biHeight   = height;
     rb->bitmap_info.bmiHeader.biPlanes   = 1;
     rb->bitmap_info.bmiHeader.biBitCount = 32;
     rb->bitmap_info.bmiHeader.biCompression = BI_RGB;

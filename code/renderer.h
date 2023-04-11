@@ -375,7 +375,7 @@ draw_pixel(RenderBuffer *render_buffer, v2 position, RGBA color){
 
     if(pos.x >= 0 && pos.x < render_buffer->width && pos.y >= 0 && pos.y < render_buffer->height){
         u8 *row = (u8 *)render_buffer->base +
-                   ((render_buffer->height - pos.y - 1) * render_buffer->stride) +
+                   (pos.y * render_buffer->stride) +
                    (pos.x * render_buffer->bytes_per_pixel);
         u32 *pixel = (u32 *)row;
 
@@ -691,7 +691,7 @@ draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, B
     if(ymax > max_height){ ymax = max_height; }
 
     u8 *row = (u8 *)render_buffer->base +
-               ((render_buffer->height - ymin - 1) * render_buffer->stride) +
+               (ymin * render_buffer->stride) +
                (xmin * render_buffer->bytes_per_pixel);
     for(s32 y=ymin; y < ymax; ++y){
         u32* pixel = (u32*)row;
@@ -773,7 +773,19 @@ draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, B
             }
             pixel++;
         }
-        row -= render_buffer->stride;
+        row += render_buffer->stride;
+    }
+}
+
+static void
+draw_rect_slow(RenderBuffer *render_buffer, Rect rect, RGBA color){
+    v2s32 min = round_v2_v2s32(rect.min);
+    v2s32 max = round_v2_v2s32(rect.max);
+
+    for(s32 y=min.y; y < max.y; ++y){
+        for(s32 x=min.x; x < max.x; ++x){
+            draw_pixel(render_buffer, make_v2(x, y), color);
+        }
     }
 }
 
@@ -824,7 +836,7 @@ draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
 
     // get row based of clamped pixel_min.x/pixel_min.y
     u8 *row = (u8 *)render_buffer->base +
-              ((render_buffer->height - 1 - pixel_min.y) * render_buffer->stride) +
+              (pixel_min.y * render_buffer->stride) +
               (pixel_min.x * render_buffer->bytes_per_pixel);
 
     // iterate over clamped pixel_min.x/pixel_min.y
@@ -889,7 +901,7 @@ draw_rect(RenderBuffer *render_buffer, Rect rect, RGBA color){
         }
         increment = remainder ? remainder : 4;
         mask = _mm_setr_epi32(-(increment > 0), -(increment > 1), -(increment > 2), -(increment > 3));
-        row -= render_buffer->stride;
+        row += render_buffer->stride;
     }
     //END_CYCLE_COUNTER(draw_rect_fast)
 }

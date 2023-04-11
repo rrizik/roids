@@ -10,6 +10,7 @@ immediate draw? how does it work, do you immediately apply the pixels to the bac
 ------- To-Dos -------
 ----------------------
 
+- change to bottom up y, I thought this is whatI had before but apparently not.
 - cast glyph data to bitmap?
 Rect:
     something not quite right with borders, especially when they are big and intrude
@@ -92,10 +93,13 @@ maybe dynamic array
 4/9/2023:
     - back to fonts. building out cursor.
 
-4/11/2023:
+4/10/2023:
     - understood how to build strings. just write it to a buffer and convert it to Str8, or struct chunk { u8 str[100]; chunk* next; }
     - added console input rendering
     
+4/11/2023:
+    - actually made bottom left (0, 0) by changing bitmap_info.bmiHeader.biHeight from - to +.
+    - had to flip all my rendering
 
 
 

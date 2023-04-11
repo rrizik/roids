@@ -396,12 +396,12 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
             //cursor_rect.x1 += glyph.width;
             //x_offset += glyph.width;
             input_add_char(event.keycode);
-            print("text_input: %i - %c\n", event.keycode, event.keycode);
-            print("-----------------------------\n");
+            //print("text_input: %i - %c\n", event.keycode, event.keycode);
+            //print("-----------------------------\n");
         }
         if(event.type == KEYBOARD){
             if(event.key_pressed){
-                print("key_code: %llu\n", event.keycode);
+                //print("key_code: %llu\n", event.keycode);
                 if(event.keycode == ESCAPE){
                     print("quiting\n");
                     should_quit = true;
@@ -441,8 +441,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
     }
 
-    print("outputy0: %i - historyy0: %i\n", output_rect.y0, history_pos.y);
-    push_rect(render_command_arena, make_rect(history_pos, make_v2(500, 500)), RED);
+    //print("outputy0: %i - historyy0: %i\n", output_rect.y0, history_pos.y);
+    //push_rect(render_command_arena, make_rect(history_pos, make_v2(500, 500)), RED);
     if(history_count > 0){
         //push_text_array(render_command_arena, history_rect.min, &font_incon, console_history, history_count);
         u32 y_offset = 0;
@@ -552,7 +552,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         str8_literal("to be able to align (verticaly/horizontaly) and kern properly.\n"),
     };
     push_text_array(render_command_arena, make_v2(10.0f, (f32)(resolution.h - 50)), &font_incon, strings, array_count(strings));
-    //push_text(render_command_arena, make_v2(100, 600), font_incon, text);
+    push_text(render_command_arena, make_v2(100, 200), &font_incon, text);
 
     //push_text(render_command_arena, make_v2(0, resolution.h - 100), two);
     //push_text(render_command_arena, make_v2(0, resolution.h - 150), three);
@@ -573,7 +573,16 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     //draw_rect_slow2(render_buffer, make_v2(50, 50), make_v2(100, 0), make_v2(0, 100), YELLOW);
     String8 s = str8_literal("Rafik hahahah LOLOLOLOL");
     //draw_string(render_buffer, make_v2(500, 300), s, 0xF8DB5E);
-    draw_bitmap(render_buffer, make_v2(100, 100), &pm->tree);
+    //draw_bitmap(render_buffer, make_v2(100, 100), &pm->tree);
+    push_rect(render_command_arena, make_rect(20, 20, 50, 50), RED);
+    //draw_pixel(render_buffer, make_v2(0, 0), RED);
+    //draw_rect_slow(render_buffer, make_rect(0, 0, 50, 50), RED);
+    //draw_rect_slow(render_buffer, make_rect(60, 60, 100, 100), RED);
+    //draw_rect_slow(render_buffer, make_rect(1, 300, resolution.x, resolution.y), RED);
+    //draw_rect(render_buffer, make_rect(0, 0, 50, 50), RED);
+    //draw_rect(render_buffer, make_rect(60, 60, 100, 100), RED);
+    //draw_rect(render_buffer, make_rect(1, 300, resolution.x, resolution.y), RED);
+    //draw_rect(render_buffer, make_rect(0, 0, resolution.x + 100, resolution.y + 100), RED);
 }
 
 #endif
