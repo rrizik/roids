@@ -91,8 +91,11 @@ maybe dynamic array
 
 4/9/2023:
     - back to fonts. building out cursor.
-    - need to figure out how to build strings
 
+4/11/2023:
+    - understood how to build strings. just write it to a buffer and convert it to Str8, or struct chunk { u8 str[100]; chunk* next; }
+    - added console input rendering
+    
 
 
 
