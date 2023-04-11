@@ -93,9 +93,9 @@ draw_string(RenderBuffer* rb, v2 pos, String8 string, u32 color){
 #pragma clang diagnostic pop
 
 typedef struct Glyph{
-    u8*  base;
-	s32  width;
-	s32  height;
+    Bitmap bitmap;
+    s32 advance_width, lsb;
+    s32 x0, y0, x1, y1;
 } Glyph;
 
 typedef struct Font{
@@ -126,11 +126,14 @@ load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
         s32 w, h, xoff, yoff;
         u8* codepoint_bitmap = stbtt_GetCodepointBitmap(&font->info, 0, font->scale, i, &w, &h, &xoff, &yoff);
         Glyph* glyph = font->glyphs + i;
-        glyph->width = w;
-        glyph->height = h;
-        glyph->base = push_array(arena, u8, (u32)(w*h*4));
+        glyph->bitmap.width = w;
+        glyph->bitmap.height = h;
+        glyph->bitmap.base = push_array(arena, u8, (u32)(w*h*4));
 
-        u8* dest_row = (u8*)glyph->base + (h - 1) * (w * 4);
+        stbtt_GetCodepointHMetrics(&font->info, i, &glyph->advance_width, &glyph->lsb);
+        stbtt_GetCodepointBitmapBox(&font->info, i, font->scale, font->scale, &glyph->x0,&glyph->y0,&glyph->x1,&glyph->y1);
+
+        u8* dest_row = (u8*)glyph->bitmap.base + (h - 1) * (w * 4);
         for(s32 y=0; y < h; ++y){
             u32* dest = (u32*)dest_row;
             for(s32 x=0; x < w; ++x){

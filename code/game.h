@@ -3,6 +3,7 @@
 
 #include "math.h"
 #include "rect.h"
+#include "bitmap.h"
 #include "font.h"
 #include "renderer.h"
 
@@ -204,14 +205,6 @@ add_bitmap(PermanentMemory* pm, v2 pos, Bitmap texture){
     return(e);
 }
 
-static Entity*
-add_glyph(PermanentMemory* pm, v2 pos, Glyph glyph){
-    Entity* e = add_entity(pm, EntityType_Glyph);
-    e->rect = make_rect(pos.x, pos.y, 0, 0);
-    e->glyph = glyph;
-    return(e);
-}
-
 global PermanentMemory* pm;
 global TransientMemory* tm;
 
@@ -291,11 +284,6 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
                 at = (u8*)commands->base + command->ch.arena_used;
             } break;
             case RenderCommand_Bitmap:{
-                BitmapCommand *command = (BitmapCommand*)base_command;
-                draw_bitmap(render_buffer, command->ch.rect.min, &command->texture);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Glyph:{
                 BitmapCommand *command = (BitmapCommand*)base_command;
                 draw_bitmap(render_buffer, command->ch.rect.min, &command->texture);
                 at = (u8*)commands->base + command->ch.arena_used;
@@ -402,11 +390,12 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         Event event = event_get(events);
 
         if(event.type == TEXT_INPUT){
-            Glyph glyph = font_incon.glyphs[event.keycode];
-            add_glyph(pm, make_v2(cursor_rect.x0, cursor_rect.y0), glyph);
-            cursor_rect.x0 += glyph.width;
-            cursor_rect.x1 += glyph.width;
+            //Glyph glyph = font_incon.glyphs[event.keycode];
+            //add_glyph(pm, make_v2(cursor_rect.x0, cursor_rect.y0), glyph);
+            //cursor_rect.x0 += glyph.width;
+            //cursor_rect.x1 += glyph.width;
             //x_offset += glyph.width;
+            input_add_char(event.keycode);
             print("text_input: %i - %c\n", event.keycode, event.keycode);
             print("-----------------------------\n");
         }
@@ -418,8 +407,18 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                     should_quit = true;
                 }
 
+                if(console_is_open()){
+                    if(event.keycode == BACKSPACE){
+                        input_remove_char();
+                    }
+                    if(event.keycode == ENTER){
+                        String8 input_str = str8(console_input, input_count);
+                        console_history[history_count++] = input_str;
+                        input_count = 0;
+                    }
+                }
                 if(event.keycode == TILDE && !event.repeat){
-                    console_mark();
+                    console_t = 0;
 
                     if(event.shift_pressed){
                         if(console_state == OPEN_BIG){
@@ -440,6 +439,23 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
             else{
             }
         }
+    }
+
+    print("outputy0: %i - historyy0: %i\n", output_rect.y0, history_pos.y);
+    push_rect(render_command_arena, make_rect(history_pos, make_v2(500, 500)), RED);
+    if(history_count > 0){
+        //push_text_array(render_command_arena, history_rect.min, &font_incon, console_history, history_count);
+        u32 y_offset = 0;
+        for(u32 i=0; i< history_count; ++i){
+            String8 history_str = console_history[i];
+            push_text(render_command_arena, make_v2(history_pos.x, history_pos.y + y_offset), &font_incon, history_str);
+            //history_rect.y0 += font_incon.vertical_offset;
+            y_offset += font_incon.vertical_offset;
+        }
+    }
+    if(input_count > 0){
+        String8 input_str = str8(console_input, input_count);
+        push_text(render_command_arena, make_v2(input_rect.x0 + 10, input_rect.y0 + 6), &font_incon, input_str);
     }
 
     for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
@@ -518,9 +534,6 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
             case EntityType_Bitmap:{
                 push_bitmap(render_command_arena, e->rect, e->texture);
             }break;
-            case EntityType_Glyph:{
-                push_glyph(render_command_arena, e->rect, e->glyph);
-            }break;
             case EntityType_None:{
             }break;
             case EntityType_Object:{
@@ -532,13 +545,13 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     String8 text = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
     //String8 text   = str8_literal("g");
     String8 strings[] = {
-        str8_literal("get! This is my program."),
-        str8_literal("It renders fonts."),
-        str8_literal("Here is some dummy text 123."),
-        str8_literal("More Dummy Text ONETWOTHREE"),
-        str8_literal("END OF DUMMY_TEXT_TEST.H OK"),
+        str8_literal("This is me rendering an array of pre-constructed String8's.\n"),
+        str8_literal("I want to be able to build and render individual characters as I type them.\n"),
+        str8_literal("As you can see below, the characters are not aligned or kerned properly.\n"),
+        str8_literal("I want to be able to construct a String8 with every additional character,\n"),
+        str8_literal("to be able to align (verticaly/horizontaly) and kern properly.\n"),
     };
-    //push_text_array(render_command_arena, make_v2(10.0f, (f32)(resolution.h - 50)), font_incon, strings, array_count(strings));
+    push_text_array(render_command_arena, make_v2(10.0f, (f32)(resolution.h - 50)), &font_incon, strings, array_count(strings));
     //push_text(render_command_arena, make_v2(100, 600), font_incon, text);
 
     //push_text(render_command_arena, make_v2(0, resolution.h - 100), two);

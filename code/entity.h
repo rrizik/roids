@@ -36,7 +36,7 @@ typedef struct Entity{
     bool fill;
 
     Bitmap texture;
-    Glyph glyph;
+    Bitmap glyph;
     bool render;
 } Entity;
 

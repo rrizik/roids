@@ -170,6 +170,8 @@ update_window(RenderBuffer rb){
     }
 }
 
+
+global Arena* global_arena = os_make_arena(MB(1));
 #include "game.h"
 
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
@@ -272,8 +274,6 @@ win32_init(){
 
     return(false);
 }
-
-global Arena* global_arena = os_make_arena(KB(1));
 
 static HWND
 win32_window_create(wchar* window_name, u32 width, u32 height){
