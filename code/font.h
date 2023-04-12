@@ -96,6 +96,7 @@ typedef struct Glyph{
     Bitmap bitmap;
     s32 advance_width, lsb;
     s32 x0, y0, x1, y1;
+    s32 w, h, xoff, yoff;
 } Glyph;
 
 typedef struct Font{
@@ -103,6 +104,7 @@ typedef struct Font{
     Glyph glyphs[128];
     f32 scale;
     s32 vertical_offset;
+    s32 ascent, descent, line_gap;
 } Font;
 
 static bool
@@ -117,28 +119,27 @@ load_font_ttf(Arena* arena, String8 dir, String8 file, Font* font){
 // TODO: change this to load a baked bitmap, and use UV to access correct glyph
 static void
 load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
-    s32 ascent, descent, line_gap;
-    stbtt_GetFontVMetrics(&font->info, &ascent, &descent, &line_gap);
-    font->vertical_offset = ascent - descent + line_gap;
+    stbtt_GetFontVMetrics(&font->info, &font->ascent, &font->descent, &font->line_gap);
+    font->vertical_offset = font->ascent - font->descent + font->line_gap;
     font->scale = stbtt_ScaleForPixelHeight(&font->info, size);
 
-    for(s32 i=' '; i<='~'; ++i){
-        s32 w, h, xoff, yoff;
-        u8* codepoint_bitmap = stbtt_GetCodepointBitmap(&font->info, 0, font->scale, i, &w, &h, &xoff, &yoff);
+    for(s32 c=' '; c<='~'; ++c){
+        Glyph* glyph = font->glyphs + c;
 
-        Glyph* glyph = font->glyphs + i;
-        glyph->bitmap.width = w;
-        glyph->bitmap.height = h;
-        glyph->bitmap.base = push_array(arena, u8, (u32)(w*h*4));
+        u8* codepoint_bitmap = stbtt_GetCodepointBitmap(&font->info, 0, font->scale, c, &glyph->w, &glyph->h, &glyph->xoff, &glyph->yoff);
+
+        glyph->bitmap.width = glyph->w;
+        glyph->bitmap.height = glyph->h;
+        glyph->bitmap.base = push_array(arena, u8, (u32)(glyph->w*glyph->h*4));
 
         // get codepoint info
-        stbtt_GetCodepointHMetrics(&font->info, i, &glyph->advance_width, &glyph->lsb);
-        stbtt_GetCodepointBitmapBox(&font->info, i, font->scale, font->scale, &glyph->x0,&glyph->y0,&glyph->x1,&glyph->y1);
+        stbtt_GetCodepointHMetrics(&font->info, c, &glyph->advance_width, &glyph->lsb);
+        stbtt_GetCodepointBitmapBox(&font->info, c, font->scale, font->scale, &glyph->x0,&glyph->y0,&glyph->x1,&glyph->y1);
 
-        u8* dest_row = (u8*)glyph->bitmap.base + (h - 1) * (w * 4);
-        for(s32 y=0; y < h; ++y){
+        u8* dest_row = (u8*)glyph->bitmap.base + (glyph->h - 1) * (glyph->w * 4);
+        for(s32 y=0; y < glyph->h; ++y){
             u32* dest = (u32*)dest_row;
-            for(s32 x=0; x < w; ++x){
+            for(s32 x=0; x < glyph->w; ++x){
                 u8 alpha = *codepoint_bitmap++;
                 f32 linear_alpha = alpha/255.0f;
                 RGBA c = {color.r, color.g, color.b, (f32)alpha};
@@ -150,10 +151,14 @@ load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
                 *dest++ = (u32)((alpha << 24) | 0xFFFFFF);
 
             }
-            dest_row -= w * 4;
+            dest_row -= glyph->w * 4;
         }
     }
 }
 
+static s32
+string_width_in_pixels(String8 str, Font* font){
+    return(1);
+}
 
 #endif

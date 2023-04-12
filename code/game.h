@@ -8,9 +8,22 @@
 #include "renderer.h"
 
 #include "entity.h"
-#include "console.h"
 
 static Font font_incon;
+
+static RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
+static RGBA GREEN =   {0.0f, 1.0f, 0.0f,  1.0f};
+static RGBA BLUE =    {0.0f, 0.0f, 1.0f,  1.0f};
+static RGBA MAGENTA = {1.0f, 0.0f, 1.0f,  1.0f};
+static RGBA TEAL =    {0.0f, 1.0f, 1.0f,  1.0f};
+static RGBA PINK =    {0.92f, 0.62f, 0.96f, 1.0f};
+static RGBA YELLOW =  {0.9f, 0.9f, 0.0f,  1.0f};
+static RGBA ORANGE =  {1.0f, 0.5f, 0.15f,  1.0f};
+static RGBA DGRAY =   {0.5f, 0.5f, 0.5f,  1.0f};
+static RGBA LGRAY =   {0.8f, 0.8f, 0.8f,  1.0f};
+static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
+static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
+static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 
 typedef struct PermanentMemory{
     Arena arena;
@@ -32,12 +45,16 @@ typedef struct PermanentMemory{
 
     //Console* console;
 } PermanentMemory;
+global PermanentMemory* pm;
 
 typedef struct TransientMemory{
     Arena arena;
     Arena *frame_arena;
     Arena *render_command_arena;
 } TransientMemory;
+global TransientMemory* tm;
+
+#include "console.h"
 
 static Entity*
 entity_from_handle(PermanentMemory* pm, EntityHandle handle){
@@ -205,11 +222,6 @@ add_bitmap(PermanentMemory* pm, v2 pos, Bitmap texture){
     return(e);
 }
 
-global PermanentMemory* pm;
-global TransientMemory* tm;
-
-global s32 x_offset = 0;
-global f32 scale;
 global f32 angle;
 
 static void
@@ -299,20 +311,6 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     pm = (PermanentMemory*)memory->permanent_base;
     tm = (TransientMemory*)memory->transient_base;
 
-    RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
-    RGBA GREEN =   {0.0f, 1.0f, 0.0f,  1.0f};
-    RGBA BLUE =    {0.0f, 0.0f, 1.0f,  1.0f};
-    RGBA MAGENTA = {1.0f, 0.0f, 1.0f,  1.0f};
-    RGBA TEAL =    {0.0f, 1.0f, 1.0f,  1.0f};
-    RGBA PINK =    {0.92f, 0.62f, 0.96f, 1.0f};
-    RGBA YELLOW =  {0.9f, 0.9f, 0.0f,  1.0f};
-    RGBA ORANGE =  {1.0f, 0.5f, 0.15f,  1.0f};
-    RGBA DGRAY =   {0.5f, 0.5f, 0.5f,  1.0f};
-    RGBA LGRAY =   {0.8f, 0.8f, 0.8f,  1.0f};
-    RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
-    RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
-    RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
-
 
     arena_free(render_buffer->render_command_arena);
     push_clear_color(render_buffer->render_command_arena, BLACK);
@@ -365,13 +363,14 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         //String8 incon = str8_literal("MatrixSans-Video.ttf");
         //String8 incon = str8_literal("Rock Jack Writing.ttf");
         //String8 incon = str8_literal("Inconsolata-Regular.ttf");
-        //String8 incon = str8_literal("GolosText-Regular.ttf");
-        String8 incon = str8_literal("arial.ttf");
-        //String8 incon = str8_literal("consola.ttf");
-        bool succeed = load_font_ttf(&pm->arena, pm->fonts_dir, incon, &font_incon);
-        assert(succeed);
-        load_font_glyphs(&pm->arena, 24, ORANGE, &font_incon);
-        init_console();
+        String8 roboto = str8_literal("Roboto-Regular.ttf");
+        String8 golos = str8_literal("GolosText-Regular.ttf");
+        String8 arial = str8_literal("arial.ttf");
+        String8 incon = str8_literal("consola.ttf");
+        //bool succeed = load_font_ttf(&pm->arena, pm->fonts_dir, arial, &font_incon);
+        //assert(succeed);
+        //load_font_glyphs(&pm->arena, 24, ORANGE, &font_incon);
+        init_console(pm);
 
         memory->initialized = true;
     }
@@ -418,6 +417,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                         console_history[history_index++] = input_str;
                         history_count++;
                         input_char_count = 0;
+                        cursor_rect.x0 = output_rect.x0 + 10;
+                        cursor_rect.x1 = output_rect.x0 + 10 + cursor_width;
                     }
                 }
                 if(event.keycode == TILDE && !event.repeat){
@@ -444,8 +445,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
     }
 
-    if(console_is_open()){
-        push_console(render_command_arena, &font_incon);
+    if(console_is_visable()){
+        push_console(render_command_arena);
     }
     for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
         Entity *e = pm->entities + pm->free_entities[entity_index];
@@ -540,7 +541,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         str8_literal("I want to be able to construct a String8 with every additional character,"),
         str8_literal("to be able to align (verticaly/horizontaly) and kern properly."),
     };
-    push_text_array(render_command_arena, make_v2(10.0f, (f32)(resolution.h - 50)), &font_incon, strings, array_count(strings));
+    //push_text_array(render_command_arena, make_v2(10.0f, (f32)(resolution.h - 50)), &font_incon, strings, array_count(strings));
     //push_text(render_command_arena, make_v2(100, 200), &font_incon, text);
 
     //String8 one   = str8_literal("get! This is my program.");
