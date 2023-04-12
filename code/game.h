@@ -370,7 +370,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         //String8 incon = str8_literal("consola.ttf");
         bool succeed = load_font_ttf(&pm->arena, pm->fonts_dir, incon, &font_incon);
         assert(succeed);
-        load_font_glyphs(&pm->arena, 28, ORANGE, &font_incon);
+        load_font_glyphs(&pm->arena, 24, ORANGE, &font_incon);
         init_console();
 
         memory->initialized = true;
@@ -381,10 +381,6 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
 
 
-    update_console();
-    if(console_is_open()){
-        push_console(render_command_arena);
-    }
     // NOTE: Process events.
     while(!events_empty(events)){
         Event event = event_get(events);
@@ -395,13 +391,16 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
             //cursor_rect.x0 += glyph.width;
             //cursor_rect.x1 += glyph.width;
             //x_offset += glyph.width;
-            input_add_char(event.keycode);
+            if(console_is_open()){
+                if(event.keycode != 96 && event.keycode != 126){
+                    input_add_char(event.keycode);
+                }
+            }
             //print("text_input: %i - %c\n", event.keycode, event.keycode);
             //print("-----------------------------\n");
         }
         if(event.type == KEYBOARD){
             if(event.key_pressed){
-                //print("key_code: %llu\n", event.keycode);
                 if(event.keycode == ESCAPE){
                     print("quiting\n");
                     should_quit = true;
@@ -412,9 +411,13 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
                         input_remove_char();
                     }
                     if(event.keycode == ENTER){
-                        String8 input_str = str8(console_input, input_count);
-                        console_history[history_count++] = input_str;
-                        input_count = 0;
+                        u8* str = (u8*)push_array(global_arena, u8, input_char_count + 1);
+                        mem_copy(str, console_input, input_char_count);
+
+                        String8 input_str = {str, input_char_count};
+                        console_history[history_index++] = input_str;
+                        history_count++;
+                        input_char_count = 0;
                     }
                 }
                 if(event.keycode == TILDE && !event.repeat){
@@ -422,15 +425,15 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
                     if(event.shift_pressed){
                         if(console_state == OPEN_BIG){
-                            console_set_state(CLOSED);
+                            console_state = CLOSED;
                         }
-                        else{ console_set_state(OPEN_BIG); }
+                        else{ console_state = OPEN_BIG; }
                     }
                     else{
-                        if(console_state == OPEN){
-                            console_set_state(CLOSED);
+                        if(console_state == OPEN || console_state == OPEN_BIG){
+                            console_state = CLOSED;
                         }
-                        else{ console_set_state(OPEN); }
+                        else{ console_state = OPEN; }
 
                     }
                 }
@@ -441,23 +444,9 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
     }
 
-    //print("outputy0: %i - historyy0: %i\n", output_rect.y0, history_pos.y);
-    //push_rect(render_command_arena, make_rect(history_pos, make_v2(500, 500)), RED);
-    if(history_count > 0){
-        //push_text_array(render_command_arena, history_rect.min, &font_incon, console_history, history_count);
-        u32 y_offset = 0;
-        for(u32 i=0; i< history_count; ++i){
-            String8 history_str = console_history[i];
-            push_text(render_command_arena, make_v2(history_pos.x, history_pos.y + y_offset), &font_incon, history_str);
-            //history_rect.y0 += font_incon.vertical_offset;
-            y_offset += font_incon.vertical_offset;
-        }
+    if(console_is_open()){
+        push_console(render_command_arena, &font_incon);
     }
-    if(input_count > 0){
-        String8 input_str = str8(console_input, input_count);
-        push_text(render_command_arena, make_v2(input_rect.x0 + 10, input_rect.y0 + 6), &font_incon, input_str);
-    }
-
     for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
         Entity *e = pm->entities + pm->free_entities[entity_index];
 
@@ -545,19 +534,25 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     String8 text = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
     //String8 text   = str8_literal("g");
     String8 strings[] = {
-        str8_literal("This is me rendering an array of pre-constructed String8's.\n"),
-        str8_literal("I want to be able to build and render individual characters as I type them.\n"),
-        str8_literal("As you can see below, the characters are not aligned or kerned properly.\n"),
-        str8_literal("I want to be able to construct a String8 with every additional character,\n"),
-        str8_literal("to be able to align (verticaly/horizontaly) and kern properly.\n"),
+        str8_literal("This is me rendering an array of pre-constructed String8's."),
+        str8_literal("I want to be able to build and render individual characters as I type them."),
+        str8_literal("As you can see below, the characters are not aligned or kerned properly."),
+        str8_literal("I want to be able to construct a String8 with every additional character,"),
+        str8_literal("to be able to align (verticaly/horizontaly) and kern properly."),
     };
     push_text_array(render_command_arena, make_v2(10.0f, (f32)(resolution.h - 50)), &font_incon, strings, array_count(strings));
-    push_text(render_command_arena, make_v2(100, 200), &font_incon, text);
+    //push_text(render_command_arena, make_v2(100, 200), &font_incon, text);
 
-    //push_text(render_command_arena, make_v2(0, resolution.h - 100), two);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 150), three);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 200), four);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 250), five);
+    //String8 one   = str8_literal("get! This is my program.");
+    //String8 two   = str8_literal("It renders fonts.");
+    //String8 three = str8_literal("Here is some dummy text 123.");
+    //String8 four  = str8_literal("More Dummy Text ONETWOTHREE");
+    //String8 five  = str8_literal("END OF DUMMY_TEXT_TEST.H OK");
+    //push_text(render_command_arena, make_v2(0, resolution.h - 50), &font_incon, one);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 100), &font_incon, two);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 150), &font_incon, three);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 200), &font_incon, four);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 250), &font_incon, five);
     //push_segment(render_command_arena, make_v2(0, resolution.h - 50), make_v2(700, resolution.h - 50), RED);
     //push_segment(render_command_arena, make_v2(0, resolution.h - 100), make_v2(700, resolution.h - 100), RED);
     //push_segment(render_command_arena, make_v2(0, resolution.h - 150), make_v2(700, resolution.h - 150), RED);
@@ -574,15 +569,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     String8 s = str8_literal("Rafik hahahah LOLOLOLOL");
     //draw_string(render_buffer, make_v2(500, 300), s, 0xF8DB5E);
     //draw_bitmap(render_buffer, make_v2(100, 100), &pm->tree);
-    push_rect(render_command_arena, make_rect(20, 20, 50, 50), RED);
-    //draw_pixel(render_buffer, make_v2(0, 0), RED);
-    //draw_rect_slow(render_buffer, make_rect(0, 0, 50, 50), RED);
-    //draw_rect_slow(render_buffer, make_rect(60, 60, 100, 100), RED);
-    //draw_rect_slow(render_buffer, make_rect(1, 300, resolution.x, resolution.y), RED);
-    //draw_rect(render_buffer, make_rect(0, 0, 50, 50), RED);
-    //draw_rect(render_buffer, make_rect(60, 60, 100, 100), RED);
-    //draw_rect(render_buffer, make_rect(1, 300, resolution.x, resolution.y), RED);
-    //draw_rect(render_buffer, make_rect(0, 0, resolution.x + 100, resolution.y + 100), RED);
+    update_console();
 }
 
 #endif

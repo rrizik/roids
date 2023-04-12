@@ -125,11 +125,13 @@ load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
     for(s32 i=' '; i<='~'; ++i){
         s32 w, h, xoff, yoff;
         u8* codepoint_bitmap = stbtt_GetCodepointBitmap(&font->info, 0, font->scale, i, &w, &h, &xoff, &yoff);
+
         Glyph* glyph = font->glyphs + i;
         glyph->bitmap.width = w;
         glyph->bitmap.height = h;
         glyph->bitmap.base = push_array(arena, u8, (u32)(w*h*4));
 
+        // get codepoint info
         stbtt_GetCodepointHMetrics(&font->info, i, &glyph->advance_width, &glyph->lsb);
         stbtt_GetCodepointBitmapBox(&font->info, i, font->scale, font->scale, &glyph->x0,&glyph->y0,&glyph->x1,&glyph->y1);
 

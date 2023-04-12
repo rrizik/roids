@@ -275,7 +275,7 @@ push_bitmap(Arena *arena, Rect rect, Bitmap texture){
 }
 
 static void
-push_text(Arena* command_arena, v2 pos, Font* font, String8 string, bool newline_down = true){
+push_text(Arena* command_arena, v2 pos, Font* font, String8 string){
     u8* c;
     s32 kern;
     v2s32 unscaled_offset = {0, 0};
@@ -285,35 +285,25 @@ push_text(Arena* command_arena, v2 pos, Font* font, String8 string, bool newline
         if(*c != '\n'){
             Glyph glyph = font->glyphs[*c];
 
-            // get codepoint info
-            s32 advance_width, lsb;
-            stbtt_GetCodepointHMetrics(&font->info, *c, &advance_width, &lsb);
-            s32 x0, y0, x1, y1;
-            stbtt_GetCodepointBitmapBox(&font->info, *c, font->scale, font->scale, &x0,&y0,&x1,&y1);
-
             // setup rect to be pushed to command_arena
             Rect rect = {
-                pos.x + (s32)round_f32_s32((unscaled_offset.x + lsb) * font->scale),
-                pos.y - (s32)(round_f32_s32(unscaled_offset.y * font->scale) + (glyph.bitmap.height + y0)),
+                pos.x + (s32)round_f32_s32((unscaled_offset.x + glyph.lsb) * font->scale),
+                pos.y + (s32)(round_f32_s32(unscaled_offset.y * font->scale) - glyph.y1),
                 0, 0 // no x1, y1 needed for bitmap
             };
-            push_bitmap(command_arena, rect, glyph.bitmap);
 
             // advance x + kern
-            unscaled_offset.x += advance_width;
+            unscaled_offset.x += glyph.advance_width;
             if(string.str[i + 1]){
                 kern = stbtt_GetCodepointKernAdvance(&font->info, *c, string.str[i+1]);
                 unscaled_offset.x += kern;
             }
+
+            push_bitmap(command_arena, rect, glyph.bitmap);
         }
         else{
             // advance to next line
-            if(newline_down){
-                unscaled_offset.y += font->vertical_offset;
-            }
-            else{
-                unscaled_offset.y -= font->vertical_offset;
-            }
+            unscaled_offset.y -= font->vertical_offset;
             unscaled_offset.x = 0;
         }
     }
@@ -330,20 +320,13 @@ static void push_text_array(Arena* command_arena, v2 pos, Font* font, String8 st
             if(*c != '\n'){
                 Glyph glyph = font->glyphs[*c];
 
-                // get codepoint info
-                //s32 advance_width, lsb;
-                //stbtt_GetCodepointHMetrics(&font->info, *c, &advance_width, &lsb);
-                //s32 x0, y0, x1, y1;
-                //stbtt_GetCodepointBitmapBox(&font->info, *c, font->scale, font->scale, &x0,&y0,&x1,&y1);
-
                 // setup rect
                 Rect rect = {
                     pos.x + round_f32_s32((unscaled_offset.x + glyph.lsb) * font->scale),
-                    pos.y - (round_f32_s32(unscaled_offset.y * font->scale) + (glyph.bitmap.height + glyph.y0)),
+                    pos.y + (s32)(round_f32_s32(unscaled_offset.y * font->scale) - glyph.y1),
                     0,
                     0
                 };
-                push_bitmap(command_arena, rect, glyph.bitmap);
 
                 // advance on x
                 unscaled_offset.x += glyph.advance_width;
@@ -351,20 +334,17 @@ static void push_text_array(Arena* command_arena, v2 pos, Font* font, String8 st
                     s32 kern = stbtt_GetCodepointKernAdvance(&font->info, *c, string->str[i+1]);
                     unscaled_offset.x += kern;
                 }
+
+                push_bitmap(command_arena, rect, glyph.bitmap);
             }
             else{
 				// advance to next line
-				if(newline_down){
-					unscaled_offset.y += font->vertical_offset;
-				}
-				else{
-					unscaled_offset.y -= font->vertical_offset;
-				}
+                unscaled_offset.y += font->vertical_offset;
                 unscaled_offset.x = 0;
             }
         }
         // CONSIDER: maybe I do want this? Idk
-        //unscaled_offset.y += font->vertical_offset;
+        unscaled_offset.y -= font->vertical_offset;
         unscaled_offset.x = 0;
     }
 }
@@ -774,18 +754,6 @@ draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, B
             pixel++;
         }
         row += render_buffer->stride;
-    }
-}
-
-static void
-draw_rect_slow(RenderBuffer *render_buffer, Rect rect, RGBA color){
-    v2s32 min = round_v2_v2s32(rect.min);
-    v2s32 max = round_v2_v2s32(rect.max);
-
-    for(s32 y=min.y; y < max.y; ++y){
-        for(s32 x=min.x; x < max.x; ++x){
-            draw_pixel(render_buffer, make_v2(x, y), color);
-        }
     }
 }
 

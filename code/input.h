@@ -129,6 +129,7 @@ typedef enum KeyCode{
  	TILDE = 192,
 } KeyCode;
 
+// TODO: Verify if I need this, I think I do but if I do, leave a note and explain why
 global bool alt_pressed;
 global bool shift_pressed;
 global bool ctrl_pressed;
