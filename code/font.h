@@ -101,15 +101,20 @@ typedef struct Glyph{
 
 typedef struct Font{
     stbtt_fontinfo info;
-    Glyph glyphs[128];
     f32 scale;
     s32 vertical_offset;
     s32 ascent, descent, line_gap;
+
+    Glyph glyphs[128];
+
+    String8 name;
+    RGBA color;
+    f32 size;
 } Font;
 
 static bool
-load_font_ttf(Arena* arena, String8 dir, String8 file, Font* font){
-    FileData data = os_file_read(arena, dir, file);
+load_font_ttf(Arena* arena, String8 dir, Font* font){
+    FileData data = os_file_read(arena, dir, font->name);
     if(!stbtt_InitFont(&font->info, (u8*)data.base, 0)){
         return(false);
     }
@@ -118,10 +123,10 @@ load_font_ttf(Arena* arena, String8 dir, String8 file, Font* font){
 
 // TODO: change this to load a baked bitmap, and use UV to access correct glyph
 static void
-load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
+load_font_glyphs(Arena* arena, Font* font){
     stbtt_GetFontVMetrics(&font->info, &font->ascent, &font->descent, &font->line_gap);
     font->vertical_offset = font->ascent - font->descent + font->line_gap;
-    font->scale = stbtt_ScaleForPixelHeight(&font->info, size);
+    font->scale = stbtt_ScaleForPixelHeight(&font->info, font->size);
 
     for(s32 c=' '; c<='~'; ++c){
         Glyph* glyph = font->glyphs + c;
@@ -142,13 +147,13 @@ load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
             for(s32 x=0; x < glyph->w; ++x){
                 u8 alpha = *codepoint_bitmap++;
                 f32 linear_alpha = alpha/255.0f;
-                RGBA c = {color.r, color.g, color.b, (f32)alpha};
+                RGBA c = {font->color.r, font->color.g, font->color.b, (f32)alpha};
 
-                //*dest++ = (((alpha) << 24) |
-                //           ((u32)(c.r + 0.5f) << 16) |
-                //           ((u32)(c.g + 0.5f) <<  8) |
-                //           ((u32)(c.b + 0.5f) <<  0));
-                *dest++ = (u32)((alpha << 24) | 0xFFFFFF);
+                *dest++ = (((alpha) << 24) |
+                           ((u32)(c.r * 255.0f) << 16) |
+                           ((u32)(c.g * 255.0f) <<  8) |
+                           ((u32)(c.b * 255.0f) <<  0));
+                //*dest++ = (u32)((alpha << 24) | 0xFFFFFF);
 
             }
             dest_row -= glyph->w * 4;
@@ -158,7 +163,13 @@ load_font_glyphs(Arena* arena, f32 size, RGBA color, Font* font){
 
 static s32
 string_width_in_pixels(String8 str, Font* font){
-    return(1);
+    s32 result = 0;
+    for(s32 i=0; i < str.size; ++i){
+        u8* c = str.str + i;
+        Glyph* glyph = font->glyphs + *c;
+        result += glyph->advance_width;
+    }
+    return(result * font->scale);
 }
 
 #endif

@@ -380,73 +380,25 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
 
 
 
-    // NOTE: Process events.
+    // NOTE: process events.
     while(!events_empty(events)){
         Event event = event_get(events);
+        bool succeed = console_handle_events(event);
 
-        if(event.type == TEXT_INPUT){
-            //Glyph glyph = font_incon.glyphs[event.keycode];
-            //add_glyph(pm, make_v2(cursor_rect.x0, cursor_rect.y0), glyph);
-            //cursor_rect.x0 += glyph.width;
-            //cursor_rect.x1 += glyph.width;
-            //x_offset += glyph.width;
-            if(console_is_open()){
-                if(event.keycode != 96 && event.keycode != 126){
-                    input_add_char(event.keycode);
-                }
-            }
-            //print("text_input: %i - %c\n", event.keycode, event.keycode);
-            //print("-----------------------------\n");
-        }
         if(event.type == KEYBOARD){
             if(event.key_pressed){
                 if(event.keycode == ESCAPE){
                     print("quiting\n");
                     should_quit = true;
                 }
-
-                if(console_is_open()){
-                    if(event.keycode == BACKSPACE){
-                        input_remove_char();
-                    }
-                    if(event.keycode == ENTER){
-                        u8* str = (u8*)push_array(global_arena, u8, input_char_count + 1);
-                        mem_copy(str, console_input, input_char_count);
-
-                        String8 input_str = {str, input_char_count};
-                        console_history[history_index++] = input_str;
-                        history_count++;
-                        input_char_count = 0;
-                        cursor_rect.x0 = output_rect.x0 + 10;
-                        cursor_rect.x1 = output_rect.x0 + 10 + cursor_width;
-                    }
-                }
-                if(event.keycode == TILDE && !event.repeat){
-                    console_t = 0;
-
-                    if(event.shift_pressed){
-                        if(console_state == OPEN_BIG){
-                            console_state = CLOSED;
-                        }
-                        else{ console_state = OPEN_BIG; }
-                    }
-                    else{
-                        if(console_state == OPEN || console_state == OPEN_BIG){
-                            console_state = CLOSED;
-                        }
-                        else{ console_state = OPEN; }
-
-                    }
-                }
-
             }
             else{
             }
         }
     }
 
-    if(console_is_visable()){
-        push_console(render_command_arena);
+    if(console_is_visible()){
+        draw_console(render_command_arena);
     }
     for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
         Entity *e = pm->entities + pm->free_entities[entity_index];
