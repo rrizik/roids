@@ -43,7 +43,6 @@ typedef struct PermanentMemory{
     Entity* basis;
     Bitmap tree;
 
-    //Console* console;
 } PermanentMemory;
 global PermanentMemory* pm;
 
@@ -159,19 +158,6 @@ add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, 
     e->texture = texture;
     return(e);
 }
-
-//static Entity*
-//add_console(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}, bool bextrudes = false){
-//    Entity* e = add_entity(pm, EntityType_Rect);
-//    e->rect =  rect;
-//    e->color = color;
-//    e->border_size     = bsize;
-//    e->border_color    = bcolor;
-//    e->console_state   = CLOSED;
-//    e->start_position  = e->rect.y0;
-//    e->draw = false;
-//    return(e);
-//}
 
 static Entity*
 add_box(PermanentMemory* pm, Rect rect, RGBA color){
@@ -304,6 +290,37 @@ draw_commands(RenderBuffer *render_buffer, Arena *commands){
     }
 }
 
+static bool
+handle_global_event(Event event){
+    if(event.type == KEYBOARD){
+        if(event.key_pressed){
+            if(event.keycode == ESCAPE){
+                print("quiting\n");
+                should_quit = true;
+            }
+            if(event.keycode == TILDE && !event.repeat){
+                console_t = 0;
+
+                if(event.shift_pressed){
+                    if(console.state == OPEN_BIG){
+                        console.state = CLOSED;
+                    }
+                    else{ console.state = OPEN_BIG; }
+                }
+                else{
+                    if(console.state == OPEN || console.state == OPEN_BIG){
+                        console.state = CLOSED;
+                    }
+                    else{ console.state = OPEN; }
+
+                }
+                return(true);
+            }
+        }
+    }
+    return(false);
+}
+
 static void
 update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Controller* controller, Clock* clock){
     assert(sizeof(PermanentMemory) < memory->permanent_size);
@@ -335,7 +352,6 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
-        //pm->console = add_console(pm, make_rect(0, 1, 1, 1), ARMY_GREEN);
         //add_rect(pm, screen_to_pixel(make_rect(.1, .1f, .2, .2), resolution), MAGENTA);
         //add_rect(pm, screen_to_pixel(make_rect(.3, .1f, .4, .2), resolution), MAGENTA, 4, GREEN);
         //add_rect(pm, screen_to_pixel(make_rect(.5, .1f, .6, .2), resolution), MAGENTA, 0, BLUE);
@@ -375,31 +391,20 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         memory->initialized = true;
     }
     angle += (f32)clock->dt;
-    //print("angle: %f\n", angle);
-
-
 
 
     // NOTE: process events.
     while(!events_empty(events)){
         Event event = event_get(events);
-        bool succeed = console_handle_events(event);
+        bool handled;
+        handled = handle_global_event(event);
 
-        if(event.type == KEYBOARD){
-            if(event.key_pressed){
-                if(event.keycode == ESCAPE){
-                    print("quiting\n");
-                    should_quit = true;
-                }
-            }
-            else{
-            }
+        if(console_is_open()){
+            handled = handle_console_event(event);
         }
     }
 
-    if(console_is_visible()){
-        draw_console(render_command_arena);
-    }
+    update_console();
     for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
         Entity *e = pm->entities + pm->free_entities[entity_index];
 
@@ -484,6 +489,9 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
         }
     }
 
+    if(console_is_visible()){
+        push_console(render_command_arena);
+    }
     String8 text = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
     //String8 text   = str8_literal("g");
     String8 strings[] = {
@@ -522,7 +530,6 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Control
     String8 s = str8_literal("Rafik hahahah LOLOLOLOL");
     //draw_string(render_buffer, make_v2(500, 300), s, 0xF8DB5E);
     //draw_bitmap(render_buffer, make_v2(100, 100), &pm->tree);
-    update_console();
 }
 
 #endif
