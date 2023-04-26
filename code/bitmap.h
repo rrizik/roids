@@ -1,6 +1,9 @@
 #ifndef BITMAP_H
 #define BITMAP_H
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 // IMPORTANT
 // UNTESTED We changed our Rect type to screenspace, and changed all functions. Some tested, some not.
 // CLEANUP
@@ -34,6 +37,29 @@ typedef struct Bitmap{
 	s32  height;
 	s32  stride;
 } Bitmap;
+
+//#define STBI_MALLOC, STBI_REALLOC, and STBI_FREE to avoid using malloc,realloc,free
+//#ifndef STBI_MALLOC
+//#define STBI_MALLOC(sz)           malloc(sz)
+//#define STBI_REALLOC(p,newsz)     realloc(p,newsz)
+//#define STBI_FREE(p)              free(p)
+//        STBI_ONLY_PNG
+//        STBI_ONLY_BMP
+static Bitmap
+stb_load_image(String8 dir, String8 file){
+    Bitmap result = {0};
+    ScratchArena scratch = begin_scratch(0);
+    String8 full_path = str8_concatenate(scratch.arena, dir, file);
+
+    int x,y,n;
+    int ok = stbi_info((char const*)full_path.str, &x, &y, &n);
+    result.base = (u8*)stbi_load((char const*)full_path.str, &result.width, &result.width, &result.stride, 0);
+//    unsigned char *data = stbi_load(filename, &x, &y, &n, 0);
+    result.stride = result.width * result.stride;
+
+    end_scratch(scratch);
+    return(result);
+}
 
 typedef struct BitScanResult{
     bool found;
@@ -69,25 +95,34 @@ load_bitmap(Arena *arena, String8 dir, String8 file_name){
 
         // NOTE: As bmps can have ARGB or RGBA or ..., we need to find where our color
         // shifts are and position the each 8 bit into a ARGB format.
-        u32 alpha_mask = ~(header->RedMask | header->GreenMask | header->BlueMask);
-        BitScanResult red_shift = find_first_set_bit(header->RedMask);
-        BitScanResult green_shift = find_first_set_bit(header->GreenMask);
-        BitScanResult blue_shift = find_first_set_bit(header->BlueMask);
-        BitScanResult alpha_shift = find_first_set_bit(alpha_mask);
+        BitScanResult red_shift;
+        BitScanResult green_shift;
+        BitScanResult blue_shift;
+        BitScanResult alpha_shift;
+        if(header->Compression == 3){
+            u32 alpha_mask = ~(header->RedMask | header->GreenMask | header->BlueMask);
+            BitScanResult red_shift = find_first_set_bit(header->RedMask);
+            BitScanResult green_shift = find_first_set_bit(header->GreenMask);
+            BitScanResult blue_shift = find_first_set_bit(header->BlueMask);
+            BitScanResult alpha_shift = find_first_set_bit(alpha_mask);
 
-        assert(alpha_shift.found);
-        assert(red_shift.found);
-        assert(green_shift.found);
-        assert(blue_shift.found);
+            assert(alpha_shift.found);
+            assert(red_shift.found);
+            assert(green_shift.found);
+            assert(blue_shift.found);
+        }
 
         u32* pixel = (u32*)result.base;
         for(s32 y=0; y < result.height; ++y){
             for(s32 x=0; x < result.width; ++x){
                 // get u32 color. shift colors out of correct location
-                u32 color_u32 = ((((*pixel >> alpha_shift.index) & 0xFF) << 24) |
-                                 (((*pixel >> red_shift.index) & 0xFF)   << 16) |
-                                 (((*pixel >> green_shift.index) & 0xFF)  << 8) |
-                                 (((*pixel >> blue_shift.index) & 0xFF)   << 0));
+                u32 color_u32 = *pixel;
+                if(header->Compression == 3){
+                    u32 color_u32 = ((((*pixel >> alpha_shift.index) & 0xFF) << 24) |
+                                     (((*pixel >> red_shift.index) & 0xFF)   << 16) |
+                                     (((*pixel >> green_shift.index) & 0xFF)  << 8) |
+                                     (((*pixel >> blue_shift.index) & 0xFF)   << 0));
+                }
 
                 // u32 to RGBA
                 RGBA color = {

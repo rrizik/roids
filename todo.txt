@@ -2,7 +2,6 @@
 ----- Questions ------
 ----------------------
 
-Ask about code/file organization
 immediate draw? how does it work, do you immediately apply the pixels to the back buffer? do you immediately update the back buffer?
 
 
@@ -10,19 +9,27 @@ immediate draw? how does it work, do you immediately apply the pixels to the bac
 ------- To-Dos -------
 ----------------------
 
-- change to bottom up y, I thought this is whatI had before but apparently not.
+serialization/deserialization
+    get it rotating properly
+    get it moving forward with velocity
+    write out the data to a file
+    read the data from a file and load the image
+
+do it in a human friendly format, text based format, easy to debug harder to code
+binary format, nice but harder to debug
+    copy of the in memory format, or different format
+    if different format, if you upate your engine you can use old saves
+
+
+array of data, put the size first and then put the data, or put in the data and have a special value to tell you when its done
+second approach is useful because
+
 - cast glyph data to bitmap?
 Rect:
     something not quite right with borders, especially when they are big and intrude
 
 Fonts:
-    add_text() maybe?
-    add_text_array() maybe?
     fix gamma colors. Do a linear blend.
-    let text input use font vertical/horizontal adjustment.
-
-draw text in console text bar
-produce output in console
 
 events:
     add mouse events
@@ -35,7 +42,6 @@ SIDE STEP A LITTLE:
     - when I come back to this, we need to do lighting + simd
 
 
-serialization/deserialization
 improve render pipeline
 add directx render pipeline
 maybe dynamic array
@@ -102,6 +108,10 @@ maybe dynamic array
     - had to flip all my rendering
     - finished the visual aspect of the console. No cursor moving yet. But we have History!!!
 
+4/24/2023:
+    - working console
+    - can run commands (add, exit)
+    - for now will pivot to something else
 
 
 

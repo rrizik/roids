@@ -12,6 +12,7 @@ typedef struct Entity{
     //ConsoleState console_state;
     u32 flags;
     Rect rect;
+    f32 scale;
     v2 origin;
     v2 x_axis;
     v2 y_axis;
@@ -31,6 +32,8 @@ typedef struct Entity{
     v2 p1 = p1;
     v2 p2 = p2;
     v2 p3 = p3;
+
+    f32 velocity;
 
     bool draw;
     bool fill;

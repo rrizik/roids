@@ -1,6 +1,8 @@
 #ifndef CONSOLE_H
 #define CONSOLE_H
 
+#include "command.h"
+
 typedef enum ConsoleState{
     CLOSED,
     OPEN,
@@ -38,7 +40,6 @@ global f32 cursor_height = 24;
 global f32 cursor_width  = 10;
 global f32 cursor_vertical_padding = 2;
 
-// console colors
 // how much/fast to open
 global f32 console_speed = 0.5f;
 global f32 console_t  = 0.0f;
@@ -65,11 +66,11 @@ init_console(PermanentMemory* pm){
     console.cursor_color = {125/255.0f, 125/255.0f, 125/255.0f, 1.0f};
 
     // init and load fonts
-    console.input_font.name = str8_literal("GolosText-Regular.ttf");
+    console.input_font.name = str8_literal("\\GolosText-Regular.ttf");
     console.input_font.size = 24;
     console.input_font.color = TEAL;
 
-    console.output_font.name = str8_literal("Inconsolata-Regular.ttf");
+    console.output_font.name = str8_literal("\\Inconsolata-Regular.ttf");
     console.output_font.size = 24;
     console.output_font.color = ORANGE;
 
@@ -199,7 +200,6 @@ handle_console_event(Event event){
             input_add_char(event.keycode);
             return(true);
         }
-        return(false);
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
@@ -208,11 +208,15 @@ handle_console_event(Event event){
                 return(true);
             }
             if(event.keycode == ENTER){
-                u8* str = (u8*)push_array(global_arena, u8, console.input_char_count + 1);
-                mem_copy(str, console.input, console.input_char_count);
+                u8* line_u8 = (u8*)push_array(global_arena, u8, console.input_char_count + 1);
+                mem_copy(line_u8, console.input, console.input_char_count);
 
-                String8 input_str = {str, console.input_char_count};
-                console_history_add(input_str);
+                String8 line_str8 = {line_u8, console.input_char_count};
+                line_str8 = str8_eat_spaces(line_str8);
+
+                console_history_add(line_str8);
+                run_command(line_str8);
+
                 return(true);
             }
         }

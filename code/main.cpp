@@ -1,3 +1,7 @@
+#pragma comment (lib, "user32.lib")
+#pragma comment (lib, "gdi32.lib")
+#pragma comment (lib, "winmm.lib")
+
 #include "base_inc.h"
 #include "win32_base_inc.h"
 
@@ -22,35 +26,6 @@ typedef struct Clock{
     GetSecondsElapsed* get_seconds_elapsed;
     GetMsElapsed* get_ms_elapsed;
 } Clock;
-
-typedef struct Button{
-    bool pressed;
-    bool held;
-} Button;
-
-typedef struct Mouse{
-    v2 pos;
-    v2 last_pos;
-    f32 dx;
-    f32 dy;
-    f32 wheel_direction;
-    bool tracking_leave;
-} Mouse;
-
-typedef struct Controller{
-    Button up;
-    Button down;
-    Button left;
-    Button right;
-    Button one;
-    Button two;
-    Button three;
-    Button four;
-    Button m_left;
-    Button m_right;
-    Button m_middle;
-    v2 mouse_pos;
-} Controller;
 
 typedef struct RenderBuffer{
     void* base;
@@ -83,7 +58,6 @@ typedef struct Memory{
 
 global bool should_quit;
 global RenderBuffer render_buffer;
-global Controller controller;
 global Memory memory;
 global Clock clock;
 #include "input.h"
@@ -321,7 +295,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         accumulator += frame_time;
         while(accumulator >= clock.dt){
-            update_game(&memory, &render_buffer, &events, &controller, &clock);
+            update_game(&memory, &render_buffer, &events, &clock);
             accumulator -= clock.dt;
             time_elapsed += clock.dt;
             simulations++;

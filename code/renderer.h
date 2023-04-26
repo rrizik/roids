@@ -209,7 +209,7 @@ push_rect(Arena *arena, Rect rect, RGBA color, s32 border_size = 0, RGBA border_
 }
 
 static void
-push_basis(Arena *arena, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, RGBA color){
+push_basis(Arena *arena, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, RGBA color = {0, 0, 0, 1}){
     BasisCommand* command = push_struct(arena, BasisCommand);
     command->ch.type = RenderCommand_Basis;
     command->ch.arena_used = arena->used;
@@ -638,7 +638,7 @@ draw_bitmap(RenderBuffer *render_buffer, v2 pos, Bitmap* texture){
 
 
 static void
-draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {1, 1, 1, 1}){
+draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1}){
 
     // pre-multiply alpha for color
     color.rgb *= color.a;
@@ -729,10 +729,10 @@ draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, B
                 pixel_color = srgb_to_linear(pixel_color);
 
                 // color tinting
-                texel.r *= color.r;
-                texel.g *= color.g;
-                texel.b *= color.b;
-                texel.a *= color.a;
+                //texel.r *= color.r;
+                //texel.g *= color.g;
+                //texel.b *= color.b;
+                //texel.a *= color.a;
 
                 // linear blend
                 RGBA write_color = {
