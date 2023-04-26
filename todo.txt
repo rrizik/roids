@@ -10,8 +10,6 @@ immediate draw? how does it work, do you immediately apply the pixels to the bac
 ----------------------
 
 serialization/deserialization
-    get it rotating properly
-    get it moving forward with velocity
     write out the data to a file
     read the data from a file and load the image
 
