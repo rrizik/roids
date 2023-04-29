@@ -13,11 +13,17 @@ serialization/deserialization
     write out the data to a file
     read the data from a file and load the image
 
-do it in a human friendly format, text based format, easy to debug harder to code
-binary format, nice but harder to debug
-    copy of the in memory format, or different format
-    if different format, if you upate your engine you can use old saves
+    do it in a human friendly format, text based format, easy to debug harder to code
+    binary format, nice but harder to debug
+        copy of the in memory format, or different format
+        if different format, if you upate your engine you can use old saves
 
+- sometimes D turning doesnt work. I think its the problem with the keyboard itself and not the program
+
+stb_image.h:
+    not loading data for some reason, even though,
+        int ok = stbi_info((char const*)full_path.str, &x, &y, &n);
+    gives back ok = 1
 
 array of data, put the size first and then put the data, or put in the data and have a special value to tell you when its done
 second approach is useful because
@@ -111,8 +117,14 @@ maybe dynamic array
     - can run commands (add, exit)
     - for now will pivot to something else
 
+4/26/2023:
+    - got a spaceship moving around with wasd
 
+4/27/2023:
+    - make a lot of vim improvements, nothing to do with the actual project
 
+4/28/2023:
+    - improved Controller. Now pressed and held work as expected
 
 
 

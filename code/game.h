@@ -31,13 +31,14 @@ typedef struct PermanentMemory{
     String8 data_dir; // CONSIDER: this might be something we want to be set on the platform side
     String8 fonts_dir; // CONSIDER: this might be something we want to be set on the platform side
     String8 sprites_dir; // CONSIDER: this might be something we want to be set on the platform side
+    String8 saves_dir; // CONSIDER: this might be something we want to be set on the platform side
 
-    s32 generation[100];
-    s32 free_entities[100];
-    s32 free_entities_at;
+    u32 generation[100];
+    u32 free_entities[100];
+    u32 free_entities_at;
 
     Entity entities[100];
-    s32 entity_count;
+    u32 entities_count;
 
     Entity* texture;
     Entity* circle;
@@ -84,7 +85,7 @@ static void
 remove_entity(PermanentMemory* pm, Entity* e){
     e->type = EntityType_None;
     pm->free_entities[++pm->free_entities_at] = e->index;
-    pm->entity_count--;
+    pm->entities_count--;
     e->index = 0;
     e->generation = 0;
 }
@@ -96,8 +97,8 @@ add_entity(PermanentMemory *pm, EntityType type){
         Entity *e = pm->entities + free_entity_index;
         e->index = free_entity_index;
         pm->generation[e->index]++;
-        pm->entity_count++;
-        e->generation = pm->generation[e->index];
+        pm->entities_count++;
+        e->generation = pm->generation[e->index]; // CONSIDER: this might not be necessary
         e->type = type;
 
         return(e);
@@ -340,72 +341,76 @@ handle_global_event(Event event){
 }
 
 
-typedef struct Button{
-    bool pressed;
-    bool held;
-} Button;
-
-typedef struct Mouse{
-    v2 pos;
-    v2 last_pos;
-    f32 dx;
-    f32 dy;
-    f32 wheel_direction;
-    bool tracking_leave;
-} Mouse;
-
-typedef struct Controller{
-    Button up;
-    Button down;
-    Button left;
-    Button right;
-    Button one;
-    Button two;
-    Button three;
-    Button four;
-    Button m_left;
-    Button m_right;
-    Button m_middle;
-    v2 mouse_pos;
-} Controller;
-global Controller controller;
-
 static bool
 handle_controller_events(Event event){
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == A_UPPER){
-                controller.left.pressed = true;
+                if(!event.repeat){
+                    controller.left.pressed = true;
+                }
+                controller.left.held = true;
                 return(true);
             }
             if(event.keycode == D_UPPER){
-                controller.right.pressed = true;
+                if(!event.repeat){
+                    controller.right.pressed = true;
+                }
+                controller.right.held = true;
                 return(true);
             }
             if(event.keycode == W_UPPER){
-                controller.up.pressed = true;
+                if(!event.repeat){
+                    controller.up.pressed = true;
+                }
+                controller.up.held = true;
                 return(true);
             }
             if(event.keycode == S_UPPER){
-                controller.down.pressed = true;
+                if(!event.repeat){
+                    controller.down.pressed = true;
+                }
+                controller.down.held = true;
+                return(true);
+            }
+            if(event.keycode == O_UPPER){
+                if(!event.repeat){
+                    controller.ser.pressed = true;
+                }
+                controller.ser.held = true;
+                return(true);
+            }
+            if(event.keycode == L_UPPER){
+                if(!event.repeat){
+                    controller.deser.pressed = true;
+                }
+                controller.deser.held = true;
                 return(true);
             }
         }
         else{
             if(event.keycode == A_UPPER){
-                controller.left.pressed = false;
+                controller.left.held = false;
                 return(true);
             }
             if(event.keycode == D_UPPER){
-                controller.right.pressed = false;
+                controller.right.held = false;
                 return(true);
             }
             if(event.keycode == W_UPPER){
-                controller.up.pressed = false;
+                controller.up.held = false;
                 return(true);
             }
             if(event.keycode == S_UPPER){
-                controller.down.pressed = false;
+                controller.down.held = false;
+                return(true);
+            }
+            if(event.keycode == O_UPPER){
+                controller.ser.held = false;
+                return(true);
+            }
+            if(event.keycode == L_UPPER){
+                controller.deser.held = false;
                 return(true);
             }
         }
@@ -438,6 +443,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         for(s32 i = pm->free_entities_at; i >= 0; --i){
             pm->free_entities[i] = pm->free_entities_at - i;
         }
+        pm->entities_count = 0;
 
         Entity *zero_entity = add_entity(pm, EntityType_None);
         //add_rect(pm, screen_to_pixel(make_rect(.1, .1f, .2, .2), resolution), MAGENTA);
@@ -449,6 +455,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         pm->data_dir = str8_concatenate(&pm->arena, pm->cwd, str8_literal("\\data"));
         pm->sprites_dir = str8_concatenate(&pm->arena, pm->data_dir, str8_literal("\\sprites"));
         pm->fonts_dir = str8_concatenate(&pm->arena, pm->data_dir, str8_literal("\\fonts"));
+        pm->saves_dir = str8_concatenate(&pm->arena, pm->data_dir, str8_literal("\\saves"));
 
         // basis test
         String8 tree_str = str8_literal("tree00.bmp");
@@ -504,7 +511,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
 
     // NOTE: process events.
     while(!events_empty(events)){
-        Event event = event_get(events);
+        Event event = events_get(events);
 
         bool handled;
         handled = handle_global_event(event);
@@ -518,35 +525,54 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         }
     }
 
-        //f32 ant_direction_radian = dir_to_rad(direction);
-        //f32 target_direction_radian = dir_to_rad(target_direction);
-        //v2 lerped_direction = rad_to_dir(slerp(ant_direction_radian, rotation_percent, target_direction_radian));
-        //direction = lerped_direction;
-        //rotation_percent += dt;
-        //if(rotation_percent > 1.0f){
-        //    rotation_percent = 1.0f;
-        //}
+    // serialize deserialize
+    if(controller.ser.pressed){
+        //for(u32 i
+        for(u32 i=0; i < array_count(pm->entities); ++i){
+            Entity* e = pm->entities + i;
+            if(e->type != EntityType_None){
+                FileData data = {0};
+                data.base = e;
+                data.size = sizeof(*e);
+                os_file_write(data, pm->saves_dir, str8_literal("\\save1.flux"), 0);
+                print("FOUND\n");
+            }
+        }
+        print("SERIALIZE\n");
+    }
+    if(controller.deser.pressed){
+        FileData data = os_file_read(&pm->arena, pm->saves_dir, str8_literal("\\save1.flux"));
+        Entity* e = (Entity*)data.base;
+        pm->ship->origin = e->origin;
+        pm->ship->x_axis = e->x_axis;
+        pm->ship->y_axis = e->y_axis;
+        pm->ship->direction = e->direction;
+        pm->ship->rad = e->rad;
+        print("DEEEEEEEESERIALIZE\n");
+    }
 
-    //f32 ship_dir = dir_to_rad(ship->direction);
-    ship->direction = rad_to_dir(ship->rad);
-
-    if(controller.right.pressed){
+    // rotate ship
+    if(controller.right.held){
         ship->rad -= 2 * (f32)clock->dt;
     }
-    if(controller.left.pressed){
+    if(controller.left.held){
         ship->rad += 2 * (f32)clock->dt;
     }
-    if(controller.up.pressed){
+
+    // increase ship velocity
+    if(controller.up.held){
         ship->velocity += clock->dt;
     }
-    if(controller.down.pressed){
+    if(controller.down.held){
         ship->velocity -= clock->dt;
     }
     clamp_f32(0, 1, &ship->velocity);
 
+    // move ship
+    ship->direction = rad_to_dir(ship->rad);
     ship->origin.x += (ship->direction.x * ship->velocity * ship->speed) * clock->dt;
     ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * clock->dt;
-    print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
+    //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
 
     update_console();
     for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
@@ -676,6 +702,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
     String8 s = str8_literal("Rafik hahahah LOLOLOLOL");
     //draw_string(render_buffer, make_v2(500, 300), s, 0xF8DB5E);
     //draw_bitmap(render_buffer, make_v2(100, 100), &pm->tree);
+
+    clear_controller_pressed(&controller);
 }
 
 #endif

@@ -1,6 +1,53 @@
 #ifndef INPUT_H
 #define INPUT_H
 
+typedef struct Button{
+    bool pressed;
+    bool held;
+} Button;
+
+typedef struct Mouse{
+    v2 pos;
+    v2 last_pos;
+    f32 dx;
+    f32 dy;
+    f32 wheel_direction;
+    bool tracking_leave;
+} Mouse;
+
+typedef struct Controller{
+    Button up;
+    Button down;
+    Button left;
+    Button right;
+    Button ser;
+    Button deser;
+    Button three;
+    Button four;
+    Button m_left;
+    Button m_right;
+    Button m_middle;
+    v2 mouse_pos;
+} Controller;
+global Controller controller;
+
+static void
+clear_controller_pressed(Controller* controller){
+    controller->ser.pressed = false;
+    controller->left.pressed = false;
+    controller->up.pressed = false;
+    controller->down.pressed = false;
+    controller->left.pressed = false;
+    controller->right.pressed = false;
+    controller->ser.pressed = false;
+    controller->deser.pressed = false;
+    controller->three.pressed = false;
+    controller->four.pressed = false;
+    controller->m_left.pressed = false;
+    controller->m_right.pressed = false;
+    controller->m_middle.pressed = false;
+}
+
 // CLEANUP: everything that is commented out, I dont think needs to exist.
 typedef enum KeyCode{
     UNKOWN = 0,
@@ -196,7 +243,7 @@ events_add(Events* events, Event event){
 }
 
 static Event
-event_get(Events* events){
+events_get(Events* events){
     assert(!events_empty(events));
 
     u32 masked_idx = mask(events, events->read++);

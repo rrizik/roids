@@ -214,7 +214,6 @@ handle_console_event(Event event){
                 String8 line_str8 = {line_u8, console.input_char_count};
                 line_str8 = str8_eat_spaces(line_str8);
 
-                console_history_add(line_str8);
                 run_command(line_str8);
 
                 return(true);

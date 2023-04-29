@@ -60,6 +60,14 @@ command_add(String8* args){
 }
 
 static void
+command_help(String8* args){
+    for(u32 i=0; i < command_count; ++i){
+        CommandInfo command = commands[i];
+        command_output(command.name);
+    }
+}
+
+static void
 command_exit(String8* args){
     command_output(str8_literal("Exiting!"));
     should_quit = true;
@@ -70,6 +78,7 @@ static void
 init_commands(){
     add_command(str8_literal("add"), 2, 2, command_add);
     add_command(str8_literal("exit"), 0, 0, command_exit);
+    add_command(str8_literal("help"), 0, 0, command_help);
 }
 
 static void
