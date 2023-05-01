@@ -11,6 +11,7 @@ typedef enum ConsoleState{
 
 #define INPUT_MAX_COUNT KB(4)
 #define CONSOLE_HISTORY_MAX KB(1)
+#define COMMAND_HISTORY_MAX KB(1)
 typedef struct Console{
     ConsoleState state;
 
@@ -23,14 +24,21 @@ typedef struct Console{
     RGBA input_background_color;
     RGBA cursor_color;
 
+    // TODO:INCOMPLETE:why not do String8 here?
     u8 input[INPUT_MAX_COUNT];
     u32 input_char_count;
 
-    String8 history[CONSOLE_HISTORY_MAX];
-    u32 history_count;
+    String8 output_history[CONSOLE_HISTORY_MAX];
+    u32 output_history_count;
+    u32 output_history_at;
+
+    String8 command_history[COMMAND_HISTORY_MAX];
+    u32 command_history_count;
+    u32 command_history_at;
 
     Font output_font;
     Font input_font;
+    Font command_history_font;
 } Console;
 global Console console;
 
@@ -74,6 +82,10 @@ init_console(PermanentMemory* pm){
     console.output_font.size = 24;
     console.output_font.color = ORANGE;
 
+    console.command_history_font.name = str8_literal("\\GolosText-Regular.ttf");
+    console.command_history_font.size = 24;
+    console.command_history_font.color = LIGHT_GRAY;
+
     bool succeed;
     succeed = load_font_ttf(&pm->arena, pm->fonts_dir, &console.input_font);
     assert(succeed);
@@ -82,6 +94,10 @@ init_console(PermanentMemory* pm){
     succeed = load_font_ttf(&pm->arena, pm->fonts_dir, &console.output_font);
     assert(succeed);
     load_font_glyphs(&pm->arena, &console.output_font);
+
+    succeed = load_font_ttf(&pm->arena, pm->fonts_dir, &console.command_history_font);
+    assert(succeed);
+    load_font_glyphs(&pm->arena, &console.command_history_font);
 }
 
 static bool
@@ -98,6 +114,7 @@ static void
 console_cursor_reset(){
     console.cursor_rect.x0 = console.output_rect.x0 + 10;
     console.cursor_rect.x1 = console.output_rect.x0 + 10 + cursor_width;
+    console.input_char_count = 0;
 }
 
 static void
@@ -122,12 +139,22 @@ input_remove_char(){
 }
 
 static void
-console_history_add(String8 str){
-    if(console.history_count < CONSOLE_HISTORY_MAX){
-        console.history[console.history_count] = str;
-        console.history_count++;
+console_store_output(String8 str){
+    if(console.output_history_count < CONSOLE_HISTORY_MAX){
+        console.output_history[console.output_history_count] = str;
+        console.output_history_count++;
         console.input_char_count = 0;
-        console_cursor_reset();
+        //console_cursor_reset();
+    }
+}
+
+static void
+console_store_command(String8 str){
+    if(console.command_history_count < COMMAND_HISTORY_MAX){
+        console.command_history[console.command_history_count] = str;
+        console.command_history_count++;
+        console.input_char_count = 0;
+        //console_cursor_reset();
     }
 }
 
@@ -141,15 +168,21 @@ push_console(Arena* command_arena){
 
         // push input string
         if(console.input_char_count > 0){
-            String8 input_str = str8(console.input, console.input_char_count);
-            push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
+            if(console.command_history_at > 0){
+                String8 input_str = str8(console.input, console.input_char_count);
+                push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.command_history_font, input_str);
+            }
+            else{
+                String8 input_str = str8(console.input, console.input_char_count);
+                push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
+            }
         }
 
         // push history in reverse order, but only if its on screen
         f32 unscaled_y_offset = 0.0f;
-        for(s32 i=console.history_count-1; i >= 0; --i){
+        for(s32 i=console.output_history_count-1; i >= 0; --i){
             if(console.history_pos.y + (unscaled_y_offset * console.output_font.scale) < resolution.h){
-                String8 next_string = console.history[i];
+                String8 next_string = console.output_history[i];
                 v2 new_pos = make_v2(console.history_pos.x, console.history_pos.y + (unscaled_y_offset * console.output_font.scale));
                 push_text(command_arena, new_pos, &console.output_font, next_string);
                 unscaled_y_offset += console.output_font.vertical_offset;
@@ -191,6 +224,9 @@ update_console(){
 
         console.history_pos.y = console.output_rect.y0 + 40;
     }
+
+    //if(console.command_history_at){
+    //}
 }
 
 static bool
@@ -203,6 +239,32 @@ handle_console_event(Event event){
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
+            if(event.keycode == ARROW_UP){
+                if(console.command_history_at < console.command_history_count){
+                    console_cursor_reset();
+                    console.command_history_at++;
+                    String8 command = console.command_history[console.command_history_count - console.command_history_at];
+                    for(u32 i=0; i < command.size; ++i){
+                        char c = command.str[i];
+                        input_add_char(c);
+                    }
+                    //mem_copy(&console.input, command.str, command.size);
+                    console.input_char_count = command.size;
+                }
+            }
+            if(event.keycode == ARROW_DOWN){
+                if(console.command_history_at > 0){
+                    console_cursor_reset();
+                    console.command_history_at--;
+                    String8 command = console.command_history[console.command_history_count - console.command_history_at];
+                    for(u32 i=0; i < command.size; ++i){
+                        char c = command.str[i];
+                        input_add_char(c);
+                    }
+                    console.input_char_count = command.size;
+                    console.input_char_count = command.size;
+                }
+            }
             if(event.keycode == BACKSPACE){
                 input_remove_char();
                 return(true);
@@ -214,7 +276,14 @@ handle_console_event(Event event){
                 String8 line_str8 = {line_u8, console.input_char_count};
                 line_str8 = str8_eat_spaces(line_str8);
 
+                parse_line(line_str8);
+                if(!command_args_count){ return(false); }
+
+                console_store_command(command_args[0]);
                 run_command(line_str8);
+
+                console_cursor_reset();
+                console.command_history_at = 0;
 
                 return(true);
             }

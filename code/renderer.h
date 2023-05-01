@@ -964,6 +964,88 @@ draw_circle(RenderBuffer *render_buffer, f32 xm, f32 ym, f32 r, RGBA color, bool
     } while (x < 0);
 }
 
+static void
+draw_commands(RenderBuffer *render_buffer, Arena *commands){
+    void* at = commands->base;
+    void* end = (u8*)commands->base + commands->used;
+    while(at != end){
+        CommandHeader* base_command = (CommandHeader*)at;
+
+        switch(base_command->type){
+            case RenderCommand_ClearColor:{
+                ClearColorCommand *command = (ClearColorCommand*)base_command;
+                clear_color(render_buffer, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Pixel:{
+                PixelCommand *command = (PixelCommand*)base_command;
+                draw_pixel(render_buffer, make_v2(command->ch.rect.x0, command->ch.rect.y0), command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Segment:{
+                SegmentCommand *command = (SegmentCommand*)base_command;
+                draw_segment(render_buffer, command->p0, command->p1, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Ray:{
+                RayCommand *command = (RayCommand*)base_command;
+                draw_ray(render_buffer, command->ch.rect, command->ch.direction, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Line:{
+                LineCommand *command = (LineCommand*)base_command;
+                draw_line(render_buffer, command->ch.rect, command->ch.direction, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Rect:{
+                RectCommand *command = (RectCommand*)base_command;
+                draw_rect(render_buffer, command->ch.rect, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Basis:{
+                BasisCommand *command = (BasisCommand*)base_command;
+#if 1
+                draw_bitmap_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture);
+#else
+                RGBA color = {
+                    .r = 0.5f + 0.5f * sin_f32(angle*2.0f),
+                    .g = 0.5f + 0.5f * cos_f32(angle),
+                    .b = 0.5f + 0.5f * sin_f32(angle),
+                    //.a = 1.0f,
+                    .a = 0.5f + 0.5f * cos_f32(angle*2.0f),
+                };
+                draw_bitmap_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture, color);
+#endif
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Box:{
+                BoxCommand *command = (BoxCommand*)base_command;
+                draw_box(render_buffer, command->ch.rect, command->ch.color);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Quad:{
+                QuadCommand *command = (QuadCommand*)base_command;
+                draw_quad(render_buffer, command->p0, command->p1, command->p2, command->p3, command->ch.color, command->ch.fill);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Triangle:{
+                TriangleCommand *command = (TriangleCommand*)base_command;
+                draw_triangle(render_buffer, command->p0, command->p1, command->p2, base_command->color, base_command->fill);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Circle:{
+                CircleCommand *command = (CircleCommand*)base_command;
+                draw_circle(render_buffer, command->ch.rect.x0, command->ch.rect.y0, command->ch.rad, command->ch.color, command->ch.fill);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+            case RenderCommand_Bitmap:{
+                BitmapCommand *command = (BitmapCommand*)base_command;
+                draw_bitmap(render_buffer, command->ch.rect.min, &command->texture);
+                at = (u8*)commands->base + command->ch.arena_used;
+            } break;
+        }
+    }
+}
 
 
 

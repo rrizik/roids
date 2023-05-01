@@ -19,12 +19,13 @@ static RGBA TEAL =    {0.0f, 1.0f, 1.0f,  1.0f};
 static RGBA PINK =    {0.92f, 0.62f, 0.96f, 1.0f};
 static RGBA YELLOW =  {0.9f, 0.9f, 0.0f,  1.0f};
 static RGBA ORANGE =  {1.0f, 0.5f, 0.15f,  1.0f};
-static RGBA DGRAY =   {0.5f, 0.5f, 0.5f,  1.0f};
-static RGBA LGRAY =   {0.8f, 0.8f, 0.8f,  1.0f};
+static RGBA DARK_GRAY =   {0.5f, 0.5f, 0.5f,  1.0f};
+static RGBA LIGHT_GRAY =   {0.8f, 0.8f, 0.8f,  1.0f};
 static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
 static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
 static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 
+#define ENTITIES_MAX 100
 typedef struct PermanentMemory{
     Arena arena;
     String8 cwd; // CONSIDER: this might be something we want to be set on the platform side
@@ -33,11 +34,11 @@ typedef struct PermanentMemory{
     String8 sprites_dir; // CONSIDER: this might be something we want to be set on the platform side
     String8 saves_dir; // CONSIDER: this might be something we want to be set on the platform side
 
-    u32 generation[100];
-    u32 free_entities[100];
+    u32 generation[ENTITIES_MAX];
+    u32 free_entities[ENTITIES_MAX];
     u32 free_entities_at;
 
-    Entity entities[100];
+    Entity entities[ENTITIES_MAX];
     u32 entities_count;
 
     Entity* texture;
@@ -45,6 +46,7 @@ typedef struct PermanentMemory{
     Entity* basis;
     Entity* ship;
     Bitmap tree;
+    bool ship_loaded;
 
 } PermanentMemory;
 global PermanentMemory* pm;
@@ -55,8 +57,6 @@ typedef struct TransientMemory{
     Arena *render_command_arena;
 } TransientMemory;
 global TransientMemory* tm;
-
-#include "console.h"
 
 static Entity*
 entity_from_handle(PermanentMemory* pm, EntityHandle handle){
@@ -164,7 +164,7 @@ add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, 
 
 static Entity*
 add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, RGBA color = {0, 0, 0, 1}){
-    Entity* e = add_entity(pm, EntityType_Basis);
+    Entity* e = add_entity(pm, EntityType_Ship);
     e->origin = origin;
     e->x_axis = x_axis;
     e->y_axis = y_axis;
@@ -174,6 +174,7 @@ add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, R
     e->rad = dir_to_rad(e->direction);
     e->speed = 250;
     e->scale = 50;
+    pm->ship_loaded = true; // TODO: get rid of
     return(e);
 }
 
@@ -227,87 +228,63 @@ add_bitmap(PermanentMemory* pm, v2 pos, Bitmap texture){
 }
 
 static void
-draw_commands(RenderBuffer *render_buffer, Arena *commands){
-    void* at = commands->base;
-    void* end = (u8*)commands->base + commands->used;
-    while(at != end){
-        CommandHeader* base_command = (CommandHeader*)at;
+entities_clear(PermanentMemory* pm){
+    pm->free_entities_at = array_count(pm->free_entities) - 1;
+    for(s32 i = pm->free_entities_at; i >= 0; --i){
+        pm->free_entities[i] = pm->free_entities_at - i;
+        pm->generation[i] = 0;
+    }
+    pm->entities_count = 0;
+}
 
-        switch(base_command->type){
-            case RenderCommand_ClearColor:{
-                ClearColorCommand *command = (ClearColorCommand*)base_command;
-                clear_color(render_buffer, command->ch.color);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Pixel:{
-                PixelCommand *command = (PixelCommand*)base_command;
-                draw_pixel(render_buffer, make_v2(command->ch.rect.x0, command->ch.rect.y0), command->ch.color);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Segment:{
-                SegmentCommand *command = (SegmentCommand*)base_command;
-                draw_segment(render_buffer, command->p0, command->p1, command->ch.color);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Ray:{
-                RayCommand *command = (RayCommand*)base_command;
-                draw_ray(render_buffer, command->ch.rect, command->ch.direction, command->ch.color);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Line:{
-                LineCommand *command = (LineCommand*)base_command;
-                draw_line(render_buffer, command->ch.rect, command->ch.direction, command->ch.color);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Rect:{
-                RectCommand *command = (RectCommand*)base_command;
-                draw_rect(render_buffer, command->ch.rect, command->ch.color);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Basis:{
-                BasisCommand *command = (BasisCommand*)base_command;
-#if 1
-                draw_bitmap_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture);
-#else
-                RGBA color = {
-                    .r = 0.5f + 0.5f * sin_f32(angle*2.0f),
-                    .g = 0.5f + 0.5f * cos_f32(angle),
-                    .b = 0.5f + 0.5f * sin_f32(angle),
-                    //.a = 1.0f,
-                    .a = 0.5f + 0.5f * cos_f32(angle*2.0f),
-                };
-                draw_bitmap_slow(render_buffer, command->ch.origin, command->ch.x_axis, command->ch.y_axis, &command->texture, color);
-#endif
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Box:{
-                BoxCommand *command = (BoxCommand*)base_command;
-                draw_box(render_buffer, command->ch.rect, command->ch.color);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Quad:{
-                QuadCommand *command = (QuadCommand*)base_command;
-                draw_quad(render_buffer, command->p0, command->p1, command->p2, command->p3, command->ch.color, command->ch.fill);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Triangle:{
-                TriangleCommand *command = (TriangleCommand*)base_command;
-                draw_triangle(render_buffer, command->p0, command->p1, command->p2, base_command->color, base_command->fill);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Circle:{
-                CircleCommand *command = (CircleCommand*)base_command;
-                draw_circle(render_buffer, command->ch.rect.x0, command->ch.rect.y0, command->ch.rad, command->ch.color, command->ch.fill);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
-            case RenderCommand_Bitmap:{
-                BitmapCommand *command = (BitmapCommand*)base_command;
-                draw_bitmap(render_buffer, command->ch.rect.min, &command->texture);
-                at = (u8*)commands->base + command->ch.arena_used;
-            } break;
+static void
+serialize_data(PermanentMemory* pm, String8 filename){
+    os_file_create(pm->saves_dir, filename, 1);
+    u32 offset = 0;
+    for(u32 i=0; i < array_count(pm->entities); ++i){
+        Entity* e = pm->entities + i;
+        if(e->type != EntityType_None){
+            size_t size = sizeof(*e);
+            FileData data = {
+                .base = e,
+                .size = size,
+            };
+            os_file_write(data, pm->saves_dir, filename, offset);
+            offset += size;
+            print("FOUND\n");
         }
     }
+    print("SERIALIZED\n");
 }
+
+static void
+deserialize_data(PermanentMemory* pm, String8 filename){
+    entities_clear(pm);
+    FileData data = os_file_read(&pm->arena, pm->saves_dir, filename);
+    u32 offset = 0;
+    while(offset < data.size){
+        Entity* e = (Entity*)((u8*)data.base + offset);
+        switch(e->type){
+            case EntityType_Ship:{
+                Entity* ship = add_entity(pm, EntityType_Ship);
+                *ship = *e;
+
+                String8 ship_str = str8_literal("\\ship_simple.bmp");
+                Bitmap ship_image = load_bitmap(&tm->arena, pm->sprites_dir, ship_str);
+                ship->texture = ship_image;
+
+                pm->ship = ship;
+                pm->ship_loaded = true;
+            } break;
+            case EntityType_Rect:{
+                add_rect(pm, e->rect, e->color, e->border_size, e->border_color);
+            } break;
+        }
+        offset += sizeof(*e);
+    }
+    print("DEEEEEEEESERIALIZED\n");
+}
+#include "console.h"
 
 static bool
 handle_global_event(Event event){
@@ -438,18 +415,10 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         tm->render_command_arena = push_arena(&tm->arena, MB(16));
         tm->frame_arena = push_arena(&tm->arena, MB(100));
 
-        // setup free entities array max -> 0;
-        pm->free_entities_at = array_count(pm->free_entities) - 1;
-        for(s32 i = pm->free_entities_at; i >= 0; --i){
-            pm->free_entities[i] = pm->free_entities_at - i;
-        }
-        pm->entities_count = 0;
+        // setup free entities array (max to 0)
+        entities_clear(pm);
 
-        Entity *zero_entity = add_entity(pm, EntityType_None);
-        //add_rect(pm, screen_to_pixel(make_rect(.1, .1f, .2, .2), resolution), MAGENTA);
-        //add_rect(pm, screen_to_pixel(make_rect(.3, .1f, .4, .2), resolution), MAGENTA, 4, GREEN);
-        //add_rect(pm, screen_to_pixel(make_rect(.5, .1f, .6, .2), resolution), MAGENTA, 0, BLUE);
-        //add_rect(pm, screen_to_pixel(make_rect(.7, .1f, .8, .2), resolution), MAGENTA, -20000, TEAL);
+        //Entity *zero_entity = add_entity(pm, EntityType_None);
 
         pm->cwd = os_get_cwd(&pm->arena);
         pm->data_dir = str8_concatenate(&pm->arena, pm->cwd, str8_literal("\\data"));
@@ -485,7 +454,11 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         //add_basis(pm, origin, x_axis, y_axis, tree_image, {0, 0, 0, 0});
         //add_basis(pm, origin, x_axis, y_axis, circle_image, {0, 0, 0, 0});
         //add_basis(pm, origin, x_axis, y_axis, test_image0, {0, 0, 0, 0});
-        pm->ship = add_ship(pm, make_v2(100, 100), x_axis, y_axis, ship_image, {0, 0, 0, 0});
+        //pm->ship = add_ship(pm, make_v2(100, 100), x_axis, y_axis, ship_image, {0, 0, 0, 0});
+        //add_rect(pm, rect_screen_to_pixel(make_rect(.1, .1f, .2, .2), resolution), MAGENTA);
+        //add_rect(pm, rect_screen_to_pixel(make_rect(.3, .1f, .4, .2), resolution), MAGENTA, 4, GREEN);
+        //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .1f, .6, .2), resolution), MAGENTA, 0, BLUE);
+        //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .1f, .8, .2), resolution), MAGENTA, -20000, TEAL);
 
         //Inconsolata-Regular
         Bitmap inconsolate[128];
@@ -506,7 +479,6 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
 
         memory->initialized = true;
     }
-    Entity* ship = pm->ship;
 
 
     // NOTE: process events.
@@ -525,54 +497,40 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         }
     }
 
+    print("at: %i\n", console.command_history_at);
     // serialize deserialize
     if(controller.ser.pressed){
-        //for(u32 i
-        for(u32 i=0; i < array_count(pm->entities); ++i){
-            Entity* e = pm->entities + i;
-            if(e->type != EntityType_None){
-                FileData data = {0};
-                data.base = e;
-                data.size = sizeof(*e);
-                os_file_write(data, pm->saves_dir, str8_literal("\\save1.flux"), 0);
-                print("FOUND\n");
-            }
-        }
-        print("SERIALIZE\n");
+        serialize_data(pm, str8_literal("\\save1.flux"));
     }
     if(controller.deser.pressed){
-        FileData data = os_file_read(&pm->arena, pm->saves_dir, str8_literal("\\save1.flux"));
-        Entity* e = (Entity*)data.base;
-        pm->ship->origin = e->origin;
-        pm->ship->x_axis = e->x_axis;
-        pm->ship->y_axis = e->y_axis;
-        pm->ship->direction = e->direction;
-        pm->ship->rad = e->rad;
-        print("DEEEEEEEESERIALIZE\n");
+        deserialize_data(pm, str8_literal("\\save1.flux"));
     }
 
-    // rotate ship
-    if(controller.right.held){
-        ship->rad -= 2 * (f32)clock->dt;
-    }
-    if(controller.left.held){
-        ship->rad += 2 * (f32)clock->dt;
-    }
+    if(pm->ship_loaded){
+        Entity* ship = pm->ship;
+        // rotate ship
+        if(controller.right.held){
+            ship->rad -= 2 * (f32)clock->dt;
+        }
+        if(controller.left.held){
+            ship->rad += 2 * (f32)clock->dt;
+        }
 
-    // increase ship velocity
-    if(controller.up.held){
-        ship->velocity += clock->dt;
-    }
-    if(controller.down.held){
-        ship->velocity -= clock->dt;
-    }
-    clamp_f32(0, 1, &ship->velocity);
+        // increase ship velocity
+        if(controller.up.held){
+            ship->velocity += clock->dt;
+        }
+        if(controller.down.held){
+            ship->velocity -= clock->dt;
+        }
+        clamp_f32(0, 1, &ship->velocity);
 
-    // move ship
-    ship->direction = rad_to_dir(ship->rad);
-    ship->origin.x += (ship->direction.x * ship->velocity * ship->speed) * clock->dt;
-    ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * clock->dt;
-    //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
+        // move ship
+        ship->direction = rad_to_dir(ship->rad);
+        ship->origin.x += (ship->direction.x * ship->velocity * ship->speed) * clock->dt;
+        ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * clock->dt;
+        //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
+    }
 
     update_console();
     for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
@@ -603,6 +561,16 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
                 }
                 push_rect(render_command_arena, border, e->border_color);
                 push_rect(render_command_arena, rect, e->color);
+            }break;
+            case EntityType_Ship:{
+                f32 deg = rad_to_deg(e->rad);
+                deg -= 90;
+                f32 rad = deg_to_rad(deg);
+                e->x_axis = e->scale * make_v2(cos_f32(rad), sin_f32(rad));
+                e->y_axis = perp(e->x_axis);
+                v2 center_org = e->origin - 0.5*e->x_axis - 0.5*e->y_axis;
+
+                push_basis(render_command_arena, center_org, e->x_axis, e->y_axis, e->texture);
             }break;
             case EntityType_Basis:{
 				v2 dim = {5, 5};
@@ -704,6 +672,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
     //draw_bitmap(render_buffer, make_v2(100, 100), &pm->tree);
 
     clear_controller_pressed(&controller);
+    arena_free(&tm->arena);
 }
 
 #endif

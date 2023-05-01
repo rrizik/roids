@@ -18,6 +18,7 @@ serialization/deserialization
         copy of the in memory format, or different format
         if different format, if you upate your engine you can use old saves
 
+- Need to change basis/Basis to something better
 - sometimes D turning doesnt work. I think its the problem with the keyboard itself and not the program
 
 stb_image.h:
@@ -125,7 +126,15 @@ maybe dynamic array
 
 4/28/2023:
     - improved Controller. Now pressed and held work as expected
+    - got first step of serialization/deserialization working on the ship
 
+4/29/2023:
+    - improved serialization with O/L. now serializes multiple entities of different types
+
+4/30/2023:
+    - now can serialize/deserialize from console
+    - seems to be working as expected, although I'm sure there will be unkown bugs here and there
+    - console now can scroll up and down through command history
 
 
 
