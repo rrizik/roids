@@ -114,7 +114,8 @@ typedef struct Font{
 
 static bool
 load_font_ttf(Arena* arena, String8 dir, Font* font){
-    FileData data = os_file_read(arena, dir, font->name);
+    FileData data;
+    os_file_read(&data, arena, dir, font->name);
     if(!stbtt_InitFont(&font->info, (u8*)data.base, 0)){
         return(false);
     }

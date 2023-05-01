@@ -9,7 +9,7 @@
 
 #include "entity.h"
 
-static Font font_incon;
+static Font global_font = {0};
 
 static RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
 static RGBA GREEN =   {0.0f, 1.0f, 0.0f,  1.0f};
@@ -239,7 +239,9 @@ entities_clear(PermanentMemory* pm){
 
 static void
 serialize_data(PermanentMemory* pm, String8 filename){
-    os_file_create(pm->saves_dir, filename, 1);
+    ScratchArena scratch = begin_scratch(1);
+    String8 dir = str8_concatenate(scratch.arena, pm->saves_dir, str8_literal("\\"));
+    os_file_create(dir, filename, 1);
     u32 offset = 0;
     for(u32 i=0; i < array_count(pm->entities); ++i){
         Entity* e = pm->entities + i;
@@ -249,41 +251,46 @@ serialize_data(PermanentMemory* pm, String8 filename){
                 .base = e,
                 .size = size,
             };
-            os_file_write(data, pm->saves_dir, filename, offset);
+            os_file_write(data, dir, filename, offset);
             offset += size;
-            print("FOUND\n");
         }
     }
-    print("SERIALIZED\n");
+    end_scratch(scratch);
 }
 
 static void
 deserialize_data(PermanentMemory* pm, String8 filename){
-    entities_clear(pm);
-    FileData data = os_file_read(&pm->arena, pm->saves_dir, filename);
-    u32 offset = 0;
-    while(offset < data.size){
-        Entity* e = (Entity*)((u8*)data.base + offset);
-        switch(e->type){
-            case EntityType_Ship:{
-                Entity* ship = add_entity(pm, EntityType_Ship);
-                *ship = *e;
+    ScratchArena scratch = begin_scratch(1);
+    String8 dir = str8_concatenate(scratch.arena, pm->saves_dir, str8_literal("\\"));
+    FileData data;
+    bool succeed = os_file_read(&data, &pm->arena, dir, filename);
+    end_scratch(scratch);
+    if(succeed){
+        entities_clear(pm);
+        u32 offset = 0;
+        while(offset < data.size){
+            Entity* e = (Entity*)((u8*)data.base + offset);
+            switch(e->type){
+                case EntityType_Ship:{
+                    Entity* ship = add_entity(pm, EntityType_Ship);
+                    *ship = *e;
 
-                String8 ship_str = str8_literal("\\ship_simple.bmp");
-                Bitmap ship_image = load_bitmap(&tm->arena, pm->sprites_dir, ship_str);
-                ship->texture = ship_image;
+                    String8 ship_str = str8_literal("\\ship_simple.bmp");
+                    Bitmap ship_image = load_bitmap(&tm->arena, pm->sprites_dir, ship_str);
+                    ship->texture = ship_image;
 
-                pm->ship = ship;
-                pm->ship_loaded = true;
-            } break;
-            case EntityType_Rect:{
-                add_rect(pm, e->rect, e->color, e->border_size, e->border_color);
-            } break;
+                    pm->ship = ship;
+                    pm->ship_loaded = true;
+                } break;
+                case EntityType_Rect:{
+                    add_rect(pm, e->rect, e->color, e->border_size, e->border_color);
+                } break;
+            }
+            offset += sizeof(*e);
         }
-        offset += sizeof(*e);
     }
-    print("DEEEEEEEESERIALIZED\n");
 }
+
 #include "console.h"
 
 static bool
@@ -291,8 +298,8 @@ handle_global_event(Event event){
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == ESCAPE){
-                print("quiting\n");
-                should_quit = true;
+                //print("quiting\n");
+                //should_quit = true;
             }
             if(event.keycode == TILDE && !event.repeat){
                 console_t = 0;
@@ -455,10 +462,10 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         //add_basis(pm, origin, x_axis, y_axis, circle_image, {0, 0, 0, 0});
         //add_basis(pm, origin, x_axis, y_axis, test_image0, {0, 0, 0, 0});
         //pm->ship = add_ship(pm, make_v2(100, 100), x_axis, y_axis, ship_image, {0, 0, 0, 0});
-        //add_rect(pm, rect_screen_to_pixel(make_rect(.1, .1f, .2, .2), resolution), MAGENTA);
-        //add_rect(pm, rect_screen_to_pixel(make_rect(.3, .1f, .4, .2), resolution), MAGENTA, 4, GREEN);
-        //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .1f, .6, .2), resolution), MAGENTA, 0, BLUE);
-        //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .1f, .8, .2), resolution), MAGENTA, -20000, TEAL);
+        //add_rect(pm, rect_screen_to_pixel(make_rect(.1, .5f, .2, .6), resolution), MAGENTA);
+        //add_rect(pm, rect_screen_to_pixel(make_rect(.3, .5f, .4, .6), resolution), MAGENTA, 4, GREEN);
+        //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
+        //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .5f, .8, .6), resolution), MAGENTA, -20000, TEAL);
 
         //Inconsolata-Regular
         Bitmap inconsolate[128];
@@ -471,9 +478,13 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         String8 golos = str8_literal("\\GolosText-Regular.ttf");
         String8 arial = str8_literal("\\arial.ttf");
         String8 incon = str8_literal("\\consola.ttf");
-        //bool succeed = load_font_ttf(&pm->arena, pm->fonts_dir, arial, &font_incon);
-        //assert(succeed);
-        //load_font_glyphs(&pm->arena, 24, ORANGE, &font_incon);
+        global_font.name = str8_literal("\\GolosText-Regular.ttf");
+        global_font.size = 24;
+        global_font.color = WHITE;
+        bool succeed = load_font_ttf(&pm->arena, pm->fonts_dir, &global_font);
+        assert(succeed);
+        load_font_glyphs(&pm->arena, &global_font);
+
         init_console(pm);
         init_commands();
 
@@ -497,14 +508,13 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         }
     }
 
-    print("at: %i\n", console.command_history_at);
     // serialize deserialize
-    if(controller.ser.pressed){
-        serialize_data(pm, str8_literal("\\save1.flux"));
-    }
-    if(controller.deser.pressed){
-        deserialize_data(pm, str8_literal("\\save1.flux"));
-    }
+    //if(controller.ser.pressed){
+    //    serialize_data(pm, str8_literal("\\save1.r"));
+    //}
+    //if(controller.deser.pressed){
+    //    deserialize_data(pm, str8_literal("\\save1.r"));
+    //}
 
     if(pm->ship_loaded){
         Entity* ship = pm->ship;
@@ -635,25 +645,25 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
     String8 text = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
     //String8 text   = str8_literal("g");
     String8 strings[] = {
-        str8_literal("This is me rendering an array of pre-constructed String8's."),
-        str8_literal("I want to be able to build and render individual characters as I type them."),
-        str8_literal("As you can see below, the characters are not aligned or kerned properly."),
-        str8_literal("I want to be able to construct a String8 with every additional character,"),
-        str8_literal("to be able to align (verticaly/horizontaly) and kern properly."),
+        str8_literal("Console:"),
+        str8_literal("  - Cursor - left/right movement. up/down through history. home/end."),
+        str8_literal("  - Editing - start, middle, end of cursor position"),
+        str8_literal("  - Commands - console commands like (help, exit, add, save, load)"),
+        str8_literal("                           - save/load will serialize/deserialize entity data"),
     };
-    //push_text_array(render_command_arena, make_v2(10.0f, (f32)(resolution.h - 50)), &font_incon, strings, array_count(strings));
-    //push_text(render_command_arena, make_v2(100, 200), &font_incon, text);
+    push_text_array(render_command_arena, make_v2((resolution.x/2.0f) - 50, (f32)(resolution.h/2.0f) -250), &global_font, strings, array_count(strings));
+    //push_text(render_command_arena, make_v2(100, 200), &global_font, text);
 
     //String8 one   = str8_literal("get! This is my program.");
     //String8 two   = str8_literal("It renders fonts.");
     //String8 three = str8_literal("Here is some dummy text 123.");
     //String8 four  = str8_literal("More Dummy Text ONETWOTHREE");
     //String8 five  = str8_literal("END OF DUMMY_TEXT_TEST.H OK");
-    //push_text(render_command_arena, make_v2(0, resolution.h - 50), &font_incon, one);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 100), &font_incon, two);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 150), &font_incon, three);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 200), &font_incon, four);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 250), &font_incon, five);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 50), &global_font, one);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 100), &global_font, two);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 150), &global_font, three);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 200), &global_font, four);
+    //push_text(render_command_arena, make_v2(0, resolution.h - 250), &global_font, five);
     //push_segment(render_command_arena, make_v2(0, resolution.h - 50), make_v2(700, resolution.h - 50), RED);
     //push_segment(render_command_arena, make_v2(0, resolution.h - 100), make_v2(700, resolution.h - 100), RED);
     //push_segment(render_command_arena, make_v2(0, resolution.h - 150), make_v2(700, resolution.h - 150), RED);

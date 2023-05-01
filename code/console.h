@@ -23,6 +23,7 @@ typedef struct Console{
     RGBA output_background_color;
     RGBA input_background_color;
     RGBA cursor_color;
+    u32  cursor_index;
 
     // TODO:INCOMPLETE:why not do String8 here?
     u8 input[INPUT_MAX_COUNT];
@@ -114,27 +115,98 @@ static void
 console_cursor_reset(){
     console.cursor_rect.x0 = console.output_rect.x0 + 10;
     console.cursor_rect.x1 = console.output_rect.x0 + 10 + cursor_width;
+    console.cursor_index = 0;
+}
+
+static void
+console_clear_input(){
     console.input_char_count = 0;
 }
 
 static void
 input_add_char(u8 c){
     if(console.input_char_count < INPUT_MAX_COUNT){
-        console.input[console.input_char_count++] = c;
+        if(console.cursor_index < console.input_char_count){
+            ScratchArena scratch = begin_scratch(0);
+            defer(end_scratch(scratch));
 
-        Glyph glyph = console.input_font.glyphs[c];
-        console.cursor_rect.x0 += (glyph.advance_width * console.input_font.scale);
-        console.cursor_rect.x1 += (glyph.advance_width * console.input_font.scale);
+            String8 left = {
+                .str = push_array(scratch.arena, u8, console.cursor_index),
+                .size = console.cursor_index,
+            };
+            mem_copy(left.str, console.input, left.size);
+            String8 right = {
+                .str = push_array(scratch.arena, u8, console.input_char_count - console.cursor_index),
+                .size = console.input_char_count - console.cursor_index,
+            };
+            mem_copy(right.str, console.input + console.cursor_index, right.size);
+
+            u32 index = 0;
+            for(u32 i=0; i < left.size; ++i){
+                console.input[index++] = left.str[i];
+            }
+            console.input[index++] = c;
+            for(u32 i=0; i < right.size; ++i){
+                console.input[index++] = right.str[i];
+            }
+
+            console.cursor_index++;
+            console.input_char_count++;
+            Glyph glyph = console.input_font.glyphs[c];
+            console.cursor_rect.x0 += (glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x1 += (glyph.advance_width * console.input_font.scale);
+        }
+        else{
+            console.input[console.input_char_count++] = c;
+            console.cursor_index++;
+
+            Glyph glyph = console.input_font.glyphs[c];
+            console.cursor_rect.x0 += (glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x1 += (glyph.advance_width * console.input_font.scale);
+        }
     }
 }
 
 static void
 input_remove_char(){
-    if(console.input_char_count > 0){
-        u8 c = console.input[--console.input_char_count];
-        Glyph glyph = console.input_font.glyphs[c];
-        console.cursor_rect.x0 -= (glyph.advance_width * console.input_font.scale);
-        console.cursor_rect.x1 -= (glyph.advance_width * console.input_font.scale);
+    if(console.input_char_count > 0 && console.cursor_index > 0){
+        if(console.cursor_index < console.input_char_count){
+            ScratchArena scratch = begin_scratch(0);
+            defer(end_scratch(scratch));
+
+            String8 left = {
+                .str = push_array(scratch.arena, u8, console.cursor_index-1),
+                .size = console.cursor_index-1,
+            };
+            mem_copy(left.str, console.input, left.size);
+            String8 right = {
+                .str = push_array(scratch.arena, u8, console.input_char_count - console.cursor_index),
+                .size = console.input_char_count - console.cursor_index,
+            };
+            mem_copy(right.str, console.input + console.cursor_index, right.size);
+
+            console.input_char_count--;
+            u8 c = console.input[--console.cursor_index];
+            u32 index = 0;
+            for(u32 i=0; i < left.size; ++i){
+                console.input[index++] = left.str[i];
+            }
+            for(u32 i=0; i < right.size; ++i){
+                console.input[index++] = right.str[i];
+            }
+
+            Glyph glyph = console.input_font.glyphs[c];
+            console.cursor_rect.x0 -= (glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x1 -= (glyph.advance_width * console.input_font.scale);
+        }
+        else{
+            u8 c = console.input[--console.input_char_count];
+            console.cursor_index--;
+
+            Glyph glyph = console.input_font.glyphs[c];
+            console.cursor_rect.x0 -= (glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x1 -= (glyph.advance_width * console.input_font.scale);
+        }
     }
 }
 
@@ -144,7 +216,6 @@ console_store_output(String8 str){
         console.output_history[console.output_history_count] = str;
         console.output_history_count++;
         console.input_char_count = 0;
-        //console_cursor_reset();
     }
 }
 
@@ -154,7 +225,6 @@ console_store_command(String8 str){
         console.command_history[console.command_history_count] = str;
         console.command_history_count++;
         console.input_char_count = 0;
-        //console_cursor_reset();
     }
 }
 
@@ -168,14 +238,16 @@ push_console(Arena* command_arena){
 
         // push input string
         if(console.input_char_count > 0){
-            if(console.command_history_at > 0){
-                String8 input_str = str8(console.input, console.input_char_count);
-                push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.command_history_font, input_str);
-            }
-            else{
-                String8 input_str = str8(console.input, console.input_char_count);
-                push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
-            }
+            String8 input_str = str8(console.input, console.input_char_count);
+            push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
+            //if(console.command_history_at > 0){
+            //    String8 input_str = str8(console.input, console.input_char_count);
+            //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.command_history_font, input_str);
+            //}
+            //else{
+            //    String8 input_str = str8(console.input, console.input_char_count);
+            //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
+            //}
         }
 
         // push history in reverse order, but only if its on screen
@@ -224,9 +296,6 @@ update_console(){
 
         console.history_pos.y = console.output_rect.y0 + 40;
     }
-
-    //if(console.command_history_at){
-    //}
 }
 
 static bool
@@ -239,22 +308,53 @@ handle_console_event(Event event){
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
+            if(event.keycode == HOME){
+                console_cursor_reset();
+            }
+            if(event.keycode == END){
+                for(u32 i=console.cursor_index; i < console.input_char_count; ++i){
+                    char c = console.input[i];
+                    Glyph glyph = console.input_font.glyphs[c];
+                    console.cursor_rect.x0 += (glyph.advance_width * console.input_font.scale);
+                    console.cursor_rect.x1 += (glyph.advance_width * console.input_font.scale);
+                    console.cursor_index++;
+                }
+            }
+            if(event.keycode == ARROW_RIGHT){
+                if(console.cursor_index < console.input_char_count){
+                    char c = console.input[console.cursor_index];
+                    Glyph glyph = console.input_font.glyphs[c];
+                    console.cursor_rect.x0 += (glyph.advance_width * console.input_font.scale);
+                    console.cursor_rect.x1 += (glyph.advance_width * console.input_font.scale);
+                    console.cursor_index++;
+                }
+            }
+            if(event.keycode == ARROW_LEFT){
+                if(console.cursor_index > 0){
+                    console.cursor_index--;
+                    char c = console.input[console.cursor_index];
+                    Glyph glyph = console.input_font.glyphs[c];
+                    console.cursor_rect.x0 -= (glyph.advance_width * console.input_font.scale);
+                    console.cursor_rect.x1 -= (glyph.advance_width * console.input_font.scale);
+                }
+            }
             if(event.keycode == ARROW_UP){
                 if(console.command_history_at < console.command_history_count){
                     console_cursor_reset();
+                    console_clear_input();
                     console.command_history_at++;
                     String8 command = console.command_history[console.command_history_count - console.command_history_at];
                     for(u32 i=0; i < command.size; ++i){
                         char c = command.str[i];
                         input_add_char(c);
                     }
-                    //mem_copy(&console.input, command.str, command.size);
                     console.input_char_count = command.size;
                 }
             }
             if(event.keycode == ARROW_DOWN){
                 if(console.command_history_at > 0){
                     console_cursor_reset();
+                    console_clear_input();
                     console.command_history_at--;
                     String8 command = console.command_history[console.command_history_count - console.command_history_at];
                     for(u32 i=0; i < command.size; ++i){
@@ -279,10 +379,11 @@ handle_console_event(Event event){
                 parse_line(line_str8);
                 if(!command_args_count){ return(false); }
 
-                console_store_command(command_args[0]);
+                console_store_command(line_str8);
                 run_command(line_str8);
 
                 console_cursor_reset();
+                console_clear_input();
                 console.command_history_at = 0;
 
                 return(true);

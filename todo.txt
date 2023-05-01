@@ -9,17 +9,12 @@ immediate draw? how does it work, do you immediately apply the pixels to the bac
 ------- To-Dos -------
 ----------------------
 
-serialization/deserialization
-    write out the data to a file
-    read the data from a file and load the image
-
-    do it in a human friendly format, text based format, easy to debug harder to code
-    binary format, nice but harder to debug
-        copy of the in memory format, or different format
-        if different format, if you upate your engine you can use old saves
-
 - Need to change basis/Basis to something better
 - sometimes D turning doesnt work. I think its the problem with the keyboard itself and not the program
+
+String8:
+    - need to work on String8 builer. String8Node String8List String8Join and all the helper functions.
+    - will be lots of work
 
 stb_image.h:
     not loading data for some reason, even though,
@@ -134,7 +129,11 @@ maybe dynamic array
 4/30/2023:
     - now can serialize/deserialize from console
     - seems to be working as expected, although I'm sure there will be unkown bugs here and there
-    - console now can scroll up and down through command history
+    - console all normal console functionality works:
+        up/down to scroll through history
+        left/right to move cursor between characters
+            insert,delete between characters
+        home/end to jump from start to end of text
 
 
 
