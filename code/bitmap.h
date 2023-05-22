@@ -2,7 +2,23 @@
 #define BITMAP_H
 
 #define STB_IMAGE_IMPLEMENTATION
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wconversion"
+#pragma clang diagnostic ignored "-Wall"
+#pragma clang diagnostic ignored "-Wextra"
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#pragma clang diagnostic ignored "-Wcast-qual"
+#pragma clang diagnostic ignored "-Wshadow"
+#pragma clang diagnostic ignored "-Wdouble-promotion"
+#pragma clang diagnostic ignored "-Wreserved-id-macro"
+#pragma clang diagnostic ignored "-Wcast-qual"
+#pragma clang diagnostic ignored "-Wshadow"
+#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+#pragma clang diagnostic ignored "-Wcomma"
+#pragma clang diagnostic ignored "-Wdisabled-macro-expansion"
+#pragma clang diagnostic ignored "-Wextra-semi-stmt"
 #include "stb_image.h"
+#pragma clang diagnostic pop
 
 // IMPORTANT
 // UNTESTED We changed our Rect type to screenspace, and changed all functions. Some tested, some not.
@@ -49,7 +65,7 @@ static Bitmap
 stb_load_image(String8 dir, String8 file){
     Bitmap result = {0};
     ScratchArena scratch = begin_scratch(0);
-    String8 full_path = str8_concatenate(scratch.arena, dir, file);
+    String8 full_path = str8_path_append(scratch.arena, dir, file);
 
     int x,y,n;
     int ok = stbi_info((char const*)full_path.str, &x, &y, &n);

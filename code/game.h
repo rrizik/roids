@@ -239,9 +239,8 @@ entities_clear(PermanentMemory* pm){
 
 static void
 serialize_data(PermanentMemory* pm, String8 filename){
-    ScratchArena scratch = begin_scratch(1);
-    String8 dir = str8_concatenate(scratch.arena, pm->saves_dir, str8_literal("\\"));
-    os_file_create(dir, filename, 1);
+    // TODO: CLEANUP: INCOMPLETE: YUCK: This is garbage. Make String8 better so I can build strings and paths better
+    os_file_create(pm->saves_dir, filename, 1);
     u32 offset = 0;
     for(u32 i=0; i < array_count(pm->entities); ++i){
         Entity* e = pm->entities + i;
@@ -251,20 +250,17 @@ serialize_data(PermanentMemory* pm, String8 filename){
                 .base = e,
                 .size = size,
             };
-            os_file_write(data, dir, filename, offset);
+            os_file_write(data, pm->saves_dir, filename, offset);
             offset += size;
         }
     }
-    end_scratch(scratch);
 }
 
 static void
 deserialize_data(PermanentMemory* pm, String8 filename){
-    ScratchArena scratch = begin_scratch(1);
-    String8 dir = str8_concatenate(scratch.arena, pm->saves_dir, str8_literal("\\"));
+    // TODO: CLEANUP: INCOMPLETE: YUCK: This is garbage. Make String8 better so I can build strings and paths better
     FileData data;
-    bool succeed = os_file_read(&data, &pm->arena, dir, filename);
-    end_scratch(scratch);
+    bool succeed = os_file_read(&data, &pm->arena, pm->saves_dir, filename);
     if(succeed){
         entities_clear(pm);
         u32 offset = 0;
@@ -425,26 +421,23 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         // setup free entities array (max to 0)
         entities_clear(pm);
 
-        //Entity *zero_entity = add_entity(pm, EntityType_None);
-
         pm->cwd = os_get_cwd(&pm->arena);
-        pm->data_dir = str8_concatenate(&pm->arena, pm->cwd, str8_literal("\\data"));
-        pm->sprites_dir = str8_concatenate(&pm->arena, pm->data_dir, str8_literal("\\sprites"));
-        pm->fonts_dir = str8_concatenate(&pm->arena, pm->data_dir, str8_literal("\\fonts"));
-        pm->saves_dir = str8_concatenate(&pm->arena, pm->data_dir, str8_literal("\\saves"));
+        pm->data_dir    = str8_path_append(&pm->arena, pm->cwd,      str8_literal("data"));
+        pm->sprites_dir = str8_path_append(&pm->arena, pm->data_dir, str8_literal("sprites"));
+        pm->fonts_dir   = str8_path_append(&pm->arena, pm->data_dir, str8_literal("fonts"));
+        pm->saves_dir   = str8_path_append(&pm->arena, pm->data_dir, str8_literal("saves"));
 
         // basis test
-        String8 tree_str = str8_literal("tree00.bmp");
-        String8 image_str = str8_literal("image.bmp");
-        String8 test_str = str8_literal("\\test3.bmp");
-        String8 circle_str = str8_literal("\\circle.bmp");
-        String8 ship_str = str8_literal("\\ship_simple.bmp");
+        String8 tree_str   = str8_literal("tree00.bmp");
+        String8 image_str  = str8_literal("image.bmp");
+        String8 test_str   = str8_literal("test3.bmp");
+        String8 circle_str = str8_literal("circle.bmp");
+        String8 ship_str   = str8_literal("ship_simple.bmp");
 
-        Bitmap image_image = load_bitmap(&tm->arena, pm->data_dir, image_str);
+        Bitmap image_image = load_bitmap(&tm->arena, pm->sprites_dir, image_str);
         Bitmap ship_image = load_bitmap(&tm->arena, pm->sprites_dir, ship_str);
         Bitmap tree_image = load_bitmap(&pm->arena, pm->sprites_dir, tree_str);
         Bitmap circle_image = load_bitmap(&tm->arena, pm->sprites_dir, circle_str);
-
 
         //Bitmap ship_image = load_bitmap(&pm->arena, pm->sprites_dir, ship_str);
         //Bitmap aa = stb_load_image(pm->sprites_dir, circle_str);

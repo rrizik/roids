@@ -1,6 +1,6 @@
-#pragma comment (lib, "user32.lib")
-#pragma comment (lib, "gdi32.lib")
-#pragma comment (lib, "winmm.lib")
+#pragma comment(lib, "user32.lib")
+#pragma comment(lib, "gdi32.lib")
+#pragma comment(lib, "winmm.lib")
 
 #include "base_inc.h"
 #include "win32_base_inc.h"
