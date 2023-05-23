@@ -150,10 +150,10 @@ load_font_glyphs(Arena* arena, Font* font){
                 f32 linear_alpha = alpha/255.0f;
                 RGBA c = {font->color.r, font->color.g, font->color.b, (f32)alpha};
 
-                *dest++ = (((alpha) << 24) |
-                           ((u32)(c.r * 255.0f) << 16) |
-                           ((u32)(c.g * 255.0f) <<  8) |
-                           ((u32)(c.b * 255.0f) <<  0));
+                *dest++ = ((u32)((alpha) << 24) |
+                          ((u32)(c.r * 255.0f) << 16) |
+                          ((u32)(c.g * 255.0f) <<  8) |
+                          ((u32)(c.b * 255.0f) <<  0));
                 //*dest++ = (u32)((alpha << 24) | 0xFFFFFF);
 
             }
@@ -165,12 +165,12 @@ load_font_glyphs(Arena* arena, Font* font){
 static s32
 string_width_in_pixels(String8 str, Font* font){
     s32 result = 0;
-    for(s32 i=0; i < str.size; ++i){
+    for(u64 i=0; i < str.size; ++i){
         u8* c = str.str + i;
         Glyph* glyph = font->glyphs + *c;
         result += glyph->advance_width;
     }
-    return(result * font->scale);
+    return(round_f32_s32((f32)result * font->scale));
 }
 
 #endif

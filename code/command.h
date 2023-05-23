@@ -75,7 +75,7 @@ static void
 command_add(String8* args){
     s32 left = atoi((char const*)(args->str));
     s32 right = atoi((char const*)(args + 1)->str);
-    u32 value = left + right;
+    s32 value = left + right;
     String8 result = str8_format(global_arena, "Result: %i", value);
     console_store_output(result);
 }

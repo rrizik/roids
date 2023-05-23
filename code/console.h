@@ -108,7 +108,7 @@ console_is_open(){
 
 static bool
 console_is_visible(){
-    return(console.output_rect.y0 < resolution.h);
+    return(console.output_rect.y0 < (f32)resolution.h);
 }
 
 static void
@@ -153,16 +153,16 @@ input_add_char(u8 c){
             console.cursor_index++;
             console.input_char_count++;
             Glyph glyph = console.input_font.glyphs[c];
-            console.cursor_rect.x0 += (glyph.advance_width * console.input_font.scale);
-            console.cursor_rect.x1 += (glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x0 += ((f32)glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x1 += ((f32)glyph.advance_width * console.input_font.scale);
         }
         else{
             console.input[console.input_char_count++] = c;
             console.cursor_index++;
 
             Glyph glyph = console.input_font.glyphs[c];
-            console.cursor_rect.x0 += (glyph.advance_width * console.input_font.scale);
-            console.cursor_rect.x1 += (glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x0 += ((f32)glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x1 += ((f32)glyph.advance_width * console.input_font.scale);
         }
     }
 }
@@ -196,16 +196,16 @@ input_remove_char(){
             }
 
             Glyph glyph = console.input_font.glyphs[c];
-            console.cursor_rect.x0 -= (glyph.advance_width * console.input_font.scale);
-            console.cursor_rect.x1 -= (glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x0 -= ((f32)glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x1 -= ((f32)glyph.advance_width * console.input_font.scale);
         }
         else{
             u8 c = console.input[--console.input_char_count];
             console.cursor_index--;
 
             Glyph glyph = console.input_font.glyphs[c];
-            console.cursor_rect.x0 -= (glyph.advance_width * console.input_font.scale);
-            console.cursor_rect.x1 -= (glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x0 -= ((f32)glyph.advance_width * console.input_font.scale);
+            console.cursor_rect.x1 -= ((f32)glyph.advance_width * console.input_font.scale);
         }
     }
 }
@@ -252,12 +252,12 @@ push_console(Arena* command_arena){
 
         // push history in reverse order, but only if its on screen
         f32 unscaled_y_offset = 0.0f;
-        for(s32 i=console.output_history_count-1; i >= 0; --i){
-            if(console.history_pos.y + (unscaled_y_offset * console.output_font.scale) < resolution.h){
+        for(u32 i=console.output_history_count-1; i < console.output_history_count; --i){
+            if(console.history_pos.y + (unscaled_y_offset * console.output_font.scale) < (f32)resolution.h){
                 String8 next_string = console.output_history[i];
                 v2 new_pos = make_v2(console.history_pos.x, console.history_pos.y + (unscaled_y_offset * console.output_font.scale));
                 push_text(command_arena, new_pos, &console.output_font, next_string);
-                unscaled_y_offset += console.output_font.vertical_offset;
+                unscaled_y_offset += (f32)console.output_font.vertical_offset;
             }
         }
     }
@@ -302,7 +302,7 @@ static bool
 handle_console_event(Event event){
     if(event.type == TEXT_INPUT){
         if(event.keycode != '`' && event.keycode != '~'){
-            input_add_char(event.keycode);
+            input_add_char((u8)event.keycode);
             return(true);
         }
     }
@@ -313,29 +313,29 @@ handle_console_event(Event event){
             }
             if(event.keycode == END){
                 for(u32 i=console.cursor_index; i < console.input_char_count; ++i){
-                    char c = console.input[i];
+                    u8 c = console.input[i];
                     Glyph glyph = console.input_font.glyphs[c];
-                    console.cursor_rect.x0 += (glyph.advance_width * console.input_font.scale);
-                    console.cursor_rect.x1 += (glyph.advance_width * console.input_font.scale);
+                    console.cursor_rect.x0 += ((f32)glyph.advance_width * console.input_font.scale);
+                    console.cursor_rect.x1 += ((f32)glyph.advance_width * console.input_font.scale);
                     console.cursor_index++;
                 }
             }
             if(event.keycode == ARROW_RIGHT){
                 if(console.cursor_index < console.input_char_count){
-                    char c = console.input[console.cursor_index];
+                    u8 c = console.input[console.cursor_index];
                     Glyph glyph = console.input_font.glyphs[c];
-                    console.cursor_rect.x0 += (glyph.advance_width * console.input_font.scale);
-                    console.cursor_rect.x1 += (glyph.advance_width * console.input_font.scale);
+                    console.cursor_rect.x0 += ((f32)glyph.advance_width * console.input_font.scale);
+                    console.cursor_rect.x1 += ((f32)glyph.advance_width * console.input_font.scale);
                     console.cursor_index++;
                 }
             }
             if(event.keycode == ARROW_LEFT){
                 if(console.cursor_index > 0){
                     console.cursor_index--;
-                    char c = console.input[console.cursor_index];
+                    u8 c = console.input[console.cursor_index];
                     Glyph glyph = console.input_font.glyphs[c];
-                    console.cursor_rect.x0 -= (glyph.advance_width * console.input_font.scale);
-                    console.cursor_rect.x1 -= (glyph.advance_width * console.input_font.scale);
+                    console.cursor_rect.x0 -= ((f32)glyph.advance_width * console.input_font.scale);
+                    console.cursor_rect.x1 -= ((f32)glyph.advance_width * console.input_font.scale);
                 }
             }
             if(event.keycode == ARROW_UP){
@@ -345,10 +345,10 @@ handle_console_event(Event event){
                     console.command_history_at++;
                     String8 command = console.command_history[console.command_history_count - console.command_history_at];
                     for(u32 i=0; i < command.size; ++i){
-                        char c = command.str[i];
+                        u8 c = command.str[i];
                         input_add_char(c);
                     }
-                    console.input_char_count = command.size;
+                    console.input_char_count = (u32)command.size;
                 }
             }
             if(event.keycode == ARROW_DOWN){
@@ -358,11 +358,11 @@ handle_console_event(Event event){
                     console.command_history_at--;
                     String8 command = console.command_history[console.command_history_count - console.command_history_at];
                     for(u32 i=0; i < command.size; ++i){
-                        char c = command.str[i];
+                        u8 c = command.str[i];
                         input_add_char(c);
                     }
-                    console.input_char_count = command.size;
-                    console.input_char_count = command.size;
+                    console.input_char_count = (u32)command.size;
+                    console.input_char_count = (u32)command.size;
                 }
             }
             if(event.keycode == BACKSPACE){

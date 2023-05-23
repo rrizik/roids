@@ -92,8 +92,8 @@ remove_entity(PermanentMemory* pm, Entity* e){
 
 static Entity*
 add_entity(PermanentMemory *pm, EntityType type){
-    if(pm->free_entities_at >= 0){
-        s32 free_entity_index = pm->free_entities[pm->free_entities_at--];
+    if(pm->free_entities_at < ENTITIES_MAX){
+        u32 free_entity_index = pm->free_entities[pm->free_entities_at--];
         Entity *e = pm->entities + free_entity_index;
         e->index = free_entity_index;
         pm->generation[e->index]++;
@@ -229,8 +229,8 @@ add_bitmap(PermanentMemory* pm, v2 pos, Bitmap texture){
 
 static void
 entities_clear(PermanentMemory* pm){
-    pm->free_entities_at = array_count(pm->free_entities) - 1;
-    for(s32 i = pm->free_entities_at; i >= 0; --i){
+    pm->free_entities_at = ENTITIES_MAX - 1;
+    for(u32 i = pm->free_entities_at; i <= pm->free_entities_at; --i){
         pm->free_entities[i] = pm->free_entities_at - i;
         pm->generation[i] = 0;
     }
@@ -521,17 +521,17 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
 
         // increase ship velocity
         if(controller.up.held){
-            ship->velocity += clock->dt;
+            ship->velocity += (f32)clock->dt;
         }
         if(controller.down.held){
-            ship->velocity -= clock->dt;
+            ship->velocity -= (f32)clock->dt;
         }
         clamp_f32(0, 1, &ship->velocity);
 
         // move ship
         ship->direction = rad_to_dir(ship->rad);
-        ship->origin.x += (ship->direction.x * ship->velocity * ship->speed) * clock->dt;
-        ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * clock->dt;
+        ship->origin.x += (ship->direction.x * ship->velocity * ship->speed) * (f32)clock->dt;
+        ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * (f32)clock->dt;
         //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
     }
 
@@ -540,6 +540,8 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         Entity *e = pm->entities + pm->free_entities[entity_index];
 
         switch(e->type){
+            case EntityType_Glyph:{
+            }break;
             case EntityType_Pixel:{
                 push_pixel(render_command_arena, e->rect, e->color);
             }break;
@@ -644,7 +646,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         str8_literal("  - Commands - console commands like (help, exit, add, save, load)"),
         str8_literal("                           - save/load will serialize/deserialize entity data"),
     };
-    push_text_array(render_command_arena, make_v2((resolution.x/2.0f) - 50, (f32)(resolution.h/2.0f) -250), &global_font, strings, array_count(strings));
+    push_text_array(render_command_arena, make_v2(((f32)resolution.x/2.0f) - 50, ((f32)resolution.h/2.0f) -250), &global_font, strings, array_count(strings));
     //push_text(render_command_arena, make_v2(100, 200), &global_font, text);
 
     //String8 one   = str8_literal("get! This is my program.");
