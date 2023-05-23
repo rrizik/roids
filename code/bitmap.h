@@ -102,7 +102,7 @@ load_bitmap(Arena *arena, String8 dir, String8 file_name){
     Bitmap result = {0};
 
     FileData bitmap_file;
-    bool succeed = os_file_read(&bitmap_file, arena, dir, file_name);
+    bool succeed = os_file_read(arena, &bitmap_file, dir, file_name);
     if(succeed){
         BitmapHeader *header = (BitmapHeader *)bitmap_file.base;
         result.base = (u8 *)bitmap_file.base + header->bitmap_offset;

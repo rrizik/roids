@@ -239,7 +239,6 @@ entities_clear(PermanentMemory* pm){
 
 static void
 serialize_data(PermanentMemory* pm, String8 filename){
-    // TODO: CLEANUP: INCOMPLETE: YUCK: This is garbage. Make String8 better so I can build strings and paths better
     os_file_create(pm->saves_dir, filename, 1);
     u32 offset = 0;
     for(u32 i=0; i < array_count(pm->entities); ++i){
@@ -258,9 +257,8 @@ serialize_data(PermanentMemory* pm, String8 filename){
 
 static void
 deserialize_data(PermanentMemory* pm, String8 filename){
-    // TODO: CLEANUP: INCOMPLETE: YUCK: This is garbage. Make String8 better so I can build strings and paths better
     FileData data;
-    bool succeed = os_file_read(&data, &pm->arena, pm->saves_dir, filename);
+    bool succeed = os_file_read(&pm->arena, &data, pm->saves_dir, filename);
     if(succeed){
         entities_clear(pm);
         u32 offset = 0;
@@ -500,14 +498,6 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
 
         }
     }
-
-    // serialize deserialize
-    //if(controller.ser.pressed){
-    //    serialize_data(pm, str8_literal("\\save1.r"));
-    //}
-    //if(controller.deser.pressed){
-    //    deserialize_data(pm, str8_literal("\\save1.r"));
-    //}
 
     if(pm->ship_loaded){
         Entity* ship = pm->ship;

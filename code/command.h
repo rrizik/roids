@@ -81,10 +81,28 @@ command_add(String8* args){
 }
 
 static void
+command_list_saves(String8* args){
+    ScratchArena scratch = begin_scratch(1);
+    defer(end_scratch(scratch));
+
+    String8Node files = {0};
+    files.next = &files;
+    files.prev = &files;
+    os_dir_files(scratch.arena, &files, pm->saves_dir);
+    dll_pop_front(&files);
+    dll_pop_front(&files);
+
+    for(String8Node* file = files.next; file != &files; file = file->next){
+        console_store_output(file->str);
+    }
+}
+
+static void
 init_commands(){
     add_command(str8_literal("load"), 1, 1, command_load);
     add_command(str8_literal("save"), 1, 1, command_save);
     add_command(str8_literal("add"), 2, 2, command_add);
+    add_command(str8_literal("list_saves"), 0, 0, command_list_saves);
     add_command(str8_literal("exit"), 0, 0, command_exit);
     add_command(str8_literal("help"), 0, 0, command_help);
 }
@@ -107,22 +125,6 @@ parse_line(String8 line){
 
 static void
 run_command(String8 line){
-    // collect arguments
-    //String8 remaining = line;
-    //while(remaining.size){
-    //    remaining = str8_eat_spaces(remaining);
-    //    if(remaining.size < 1){ break; }
-
-    //    u64 idx = str8_char_from_left(remaining, ' ');
-    //    String8 left_arg = str8_split_left(remaining, idx);
-    //    String8 arg = push_string(global_arena, left_arg);
-	//	add_argument(arg);
-
-    //    remaining = str8_advance(remaining, idx);
-    //}
-
-    //if(!command_args_count){ return; }
-
     // separate command from arguments
     String8 command_name = command_args[0];
     String8* arguments = command_args + 1;
@@ -144,6 +146,7 @@ run_command(String8 line){
             }
 
             command.proc(arguments);
+            console_store_output(str8_literal(""));
             break;
         }
     }
