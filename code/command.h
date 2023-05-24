@@ -104,6 +104,7 @@ init_commands(){
     add_command(str8_literal("add"), 2, 2, command_add);
     add_command(str8_literal("list_saves"), 0, 0, command_list_saves);
     add_command(str8_literal("exit"), 0, 0, command_exit);
+    add_command(str8_literal("quit"), 0, 0, command_exit);
     add_command(str8_literal("help"), 0, 0, command_help);
 }
 

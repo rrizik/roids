@@ -289,11 +289,15 @@ deserialize_data(PermanentMemory* pm, String8 filename){
 
 static bool
 handle_global_event(Event event){
+    if(event.type == QUIT){
+        print("quiting\n");
+        should_quit = true;
+    }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == ESCAPE){
-                //print("quiting\n");
-                //should_quit = true;
+                print("quiting\n");
+                should_quit = true;
             }
             if(event.keycode == TILDE && !event.repeat){
                 console_t = 0;
@@ -351,20 +355,6 @@ handle_controller_events(Event event){
                 controller.down.held = true;
                 return(true);
             }
-            if(event.keycode == O_UPPER){
-                if(!event.repeat){
-                    controller.ser.pressed = true;
-                }
-                controller.ser.held = true;
-                return(true);
-            }
-            if(event.keycode == L_UPPER){
-                if(!event.repeat){
-                    controller.deser.pressed = true;
-                }
-                controller.deser.held = true;
-                return(true);
-            }
         }
         else{
             if(event.keycode == A_UPPER){
@@ -381,14 +371,6 @@ handle_controller_events(Event event){
             }
             if(event.keycode == S_UPPER){
                 controller.down.held = false;
-                return(true);
-            }
-            if(event.keycode == O_UPPER){
-                controller.ser.held = false;
-                return(true);
-            }
-            if(event.keycode == L_UPPER){
-                controller.deser.held = false;
                 return(true);
             }
         }
@@ -636,7 +618,7 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         str8_literal("  - Commands - console commands like (help, exit, add, save, load)"),
         str8_literal("                           - save/load will serialize/deserialize entity data"),
     };
-    push_text_array(render_command_arena, make_v2(((f32)resolution.x/2.0f) - 50, ((f32)resolution.h/2.0f) -250), &global_font, strings, array_count(strings));
+    //push_text_array(render_command_arena, make_v2(((f32)resolution.x/2.0f) - 50, ((f32)resolution.h/2.0f) -250), &global_font, strings, array_count(strings));
     //push_text(render_command_arena, make_v2(100, 200), &global_font, text);
 
     //String8 one   = str8_literal("get! This is my program.");

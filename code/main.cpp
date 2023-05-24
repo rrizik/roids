@@ -161,22 +161,69 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         case WM_CLOSE:
         case WM_QUIT:
         case WM_DESTROY:{
-            print("quiting\n");
-            should_quit = true;
-        } break;
-        case WM_MOUSEMOVE:{
-            //controller.mouse_pos.x = (s32)(l_param & 0xFFFF);
-            //controller.mouse_pos.y = render_buffer.height - (s32)(l_param >> 16);
+            Event event;
+            event.type = QUIT;
+            events_add(&events, event);
         } break;
 
-        //case WM_LBUTTONUP:
-        //case WM_RBUTTONUP:
-        //case WM_MBUTTONUP:
-        //case WM_LBUTTONDOWN:
-        //case WM_RBUTTONDOWN:
-        //case WM_MBUTTONDOWN:{
-        //    print("VK_CODE: %llu\n", w_param);
-        //} break;
+        case WM_MOUSEMOVE:{
+            Event event;
+            event.type = MOUSE;
+            event.mouse_pos.x = (l_param & 0xFFFF) - render_buffer.padding;
+            event.mouse_pos.y = (SCREEN_HEIGHT - (s32)(l_param >> 16)) + render_buffer.padding; // (0, 0) bottom left
+
+            event.mouse_dx = event.mouse_pos.x - last_mouse_x;
+            event.mouse_dy = event.mouse_pos.y - last_mouse_y;
+            //print("x: %i, y: %i, dx: %i, dy: %i\n", event.mouse_pos.x, event.mouse_pos.y, event.mouse_dx, event.mouse_dy);
+
+            last_mouse_x = event.mouse_pos.x;
+            last_mouse_y = event.mouse_pos.y;
+            events_add(&events, event);
+        } break;
+
+        case WM_MOUSEWHEEL:{
+            Event event;
+            event.type = KEYBOARD;
+            event.mouse_wheel_dir = GET_WHEEL_DELTA_WPARAM(w_param) > 0? 1 : -1;
+            events_add(&events, event);
+        } break;
+
+        case WM_LBUTTONDOWN:
+        case WM_LBUTTONUP:{
+            Event event;
+            event.type = KEYBOARD;
+            event.keycode = MOUSE_BUTTON_LEFT;
+
+            bool pressed = false;
+            if(message == WM_LBUTTONDOWN){ pressed = true; }
+            event.key_pressed = pressed;
+
+            events_add(&events, event);
+        } break;
+        case WM_RBUTTONDOWN:
+        case WM_RBUTTONUP:{
+            Event event;
+            event.type = KEYBOARD;
+            event.keycode = MOUSE_BUTTON_RIGHT;
+
+            bool pressed = false;
+            if(message == WM_RBUTTONDOWN){ pressed = true; }
+            event.key_pressed = pressed;
+
+            events_add(&events, event);
+        } break;
+        case WM_MBUTTONDOWN:
+        case WM_MBUTTONUP:{
+            Event event;
+            event.type = KEYBOARD;
+            event.keycode = MOUSE_BUTTON_MIDDLE;
+
+            bool pressed = false;
+            if(message == WM_MBUTTONDOWN){ pressed = true; }
+            event.key_pressed = pressed;
+
+            events_add(&events, event);
+        } break;
 
         case WM_CHAR:{
             u64 keycode = w_param;
@@ -190,22 +237,23 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
 
         } break;
         case WM_SYSKEYDOWN:
-        case WM_KEYDOWN: {
+        case WM_KEYDOWN:{
             Event event;
             event.type = KEYBOARD;
             event.keycode = w_param;
             event.repeat = ((s32)l_param) & 0x40000000;
 
             event.key_pressed = 1;
-            event.alt_pressed =   alt_pressed;
+            event.alt_pressed   = alt_pressed;
             event.shift_pressed = shift_pressed;
-            event.ctrl_pressed =  ctrl_pressed;
+            event.ctrl_pressed  = ctrl_pressed;
 
             events_add(&events, event);
 
             if(w_param == VK_MENU)    { alt_pressed   = true; }
             if(w_param == VK_SHIFT)   { shift_pressed = true; }
             if(w_param == VK_CONTROL) { ctrl_pressed  = true; }
+            //print("keycode: %i, repeat: %i, pressed: %i, s: %i, c: %i, a: %i\n", event.keycode, event.repeat, event.key_pressed, event.shift_pressed, event.ctrl_pressed, event.alt_pressed);
         } break;
         case WM_SYSKEYUP:
         case WM_KEYUP:{
@@ -214,15 +262,16 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             event.keycode = w_param; // TODO figure out how to use this to get the right keycode
 
             event.key_pressed = 0;
-            event.alt_pressed =   alt_pressed;
+            event.alt_pressed   = alt_pressed;
             event.shift_pressed = shift_pressed;
-            event.ctrl_pressed =  ctrl_pressed;
+            event.ctrl_pressed  = ctrl_pressed;
 
             events_add(&events, event);
 
             if(w_param == VK_MENU)    { alt_pressed   = false; }
             if(w_param == VK_SHIFT)   { shift_pressed = false; }
             if(w_param == VK_CONTROL) { ctrl_pressed  = false; }
+            //print("keycode: %i, repeat: %i, pressed: %i, s: %i, c: %i, a: %i\n", event.keycode, event.repeat, event.key_pressed, event.shift_pressed, event.ctrl_pressed, event.alt_pressed);
         } break;
         default:{
             result = DefWindowProcW(hwnd, message, w_param, l_param);

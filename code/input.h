@@ -9,19 +9,19 @@ typedef struct Button{
 typedef struct Mouse{
     v2 pos;
     v2 last_pos;
-    f32 dx;
-    f32 dy;
+    s32 dx;
+    s32 dy;
     f32 wheel_direction;
     bool tracking_leave;
 } Mouse;
+global Mouse mouse;
 
 typedef struct Controller{
+    Mouse mouse;
     Button up;
     Button down;
     Button left;
     Button right;
-    Button ser;
-    Button deser;
     Button three;
     Button four;
     Button m_left;
@@ -33,14 +33,11 @@ global Controller controller;
 
 static void
 clear_controller_pressed(Controller* controller){
-    controller->ser.pressed = false;
     controller->left.pressed = false;
     controller->up.pressed = false;
     controller->down.pressed = false;
     controller->left.pressed = false;
     controller->right.pressed = false;
-    controller->ser.pressed = false;
-    controller->deser.pressed = false;
     controller->three.pressed = false;
     controller->four.pressed = false;
     controller->m_left.pressed = false;
@@ -53,9 +50,14 @@ typedef enum KeyCode{
     UNKOWN = 0,
 
     // INCOMPLETE: these need to be looked at again when we do mouse
-    L_MOUSE_BUTTON = 1,
-    R_MOUSE_BUTTON = 2,
-    M_MOUSE_BUTTON = 4,
+    MOUSE_BUTTON_LEFT   = 1,
+    MOUSE_BUTTON_RIGHT  = 2,
+    MOUSE_BUTTON_MIDDLE = 3,
+
+    //SL_MOUSE_BUTTON  = 1,
+    //SR_MOUSE_BUTTON  = 2,
+    //SLR_MOUSE_BUTTON = 3,
+    //SM_MOUSE_BUTTON  = 16,
 
     BACKSPACE = 8,
     TAB       = 9,
@@ -176,13 +178,17 @@ typedef enum KeyCode{
  	TILDE = 192,
 } KeyCode;
 
-// TODO: Verify if I need this, I think I do but if I do, leave a note and explain why
+// TODO: Verify if I need this.
 global bool alt_pressed;
 global bool shift_pressed;
 global bool ctrl_pressed;
+global s32 last_mouse_x;
+global s32 last_mouse_y;
 
 typedef enum EventType{
+    QUIT,
     KEYBOARD,
+    MOUSE,
     TEXT_INPUT,
 } EventType;
 
@@ -195,6 +201,11 @@ typedef struct Event{
     bool ctrl_pressed;
     bool alt_pressed;
     bool repeat;
+
+    s32 mouse_wheel_dir;
+    v2s32 mouse_pos;
+    s32 mouse_dx;
+    s32 mouse_dy;
 } Event;
 
 // NOTE: Must be a size that is a power of 2
