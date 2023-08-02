@@ -39,35 +39,35 @@ static u64 font[] = {
 	0x1800181818180000UL, 0x0000000018181818UL, 0x18701818180E0000UL, 0x000000000E181818UL, 0x000000003B6E0000UL, 0x0000000000000000UL, 0x63361C0800000000UL, 0x00000000007F6363UL,
 };
 
-static void
-draw_string(RenderBuffer* rb, v2 pos, String8 string, u32 color){
-    s32 pos_x  = round_f32_s32(pos.x);
-
-    for(u32 i=0; i < string.size; ++i){
-        u8 c = string.str[i];
-        if(c > 127){ c = '?'; }
-
-        u8 *data = (u8*)font + (c * GLYPH_HEIGHT);
-
-        u8 *row = (u8 *)rb->base +
-                   ((rb->height - (s32)pos.y - 1) * rb->stride) +
-                   ((s32)pos_x * rb->bytes_per_pixel);
-
-        for(s32 x=0; x < GLYPH_HEIGHT; ++x){
-            u32 *pixel = (u32*)row;
-            u8 byte = data[x];
-
-            for(s32 y=0; y < GLYPH_WIDTH; ++y){
-                if(byte & (1 << y)){
-                    *pixel = color;
-                }
-                pixel++;
-            }
-            row += rb->stride;
-        }
-        pos_x += GLYPH_WIDTH;
-    }
-}
+//static void
+//draw_string(RenderBuffer* rb, v2 pos, String8 string, u32 color){
+//    s32 pos_x  = round_f32_s32(pos.x);
+//
+//    for(u32 i=0; i < string.size; ++i){
+//        u8 c = string.str[i];
+//        if(c > 127){ c = '?'; }
+//
+//        u8 *data = (u8*)font + (c * GLYPH_HEIGHT);
+//
+//        u8 *row = (u8 *)rb->base +
+//                   ((rb->height - (s32)pos.y - 1) * rb->stride) +
+//                   ((s32)pos_x * rb->bytes_per_pixel);
+//
+//        for(s32 x=0; x < GLYPH_HEIGHT; ++x){
+//            u32 *pixel = (u32*)row;
+//            u8 byte = data[x];
+//
+//            for(s32 y=0; y < GLYPH_WIDTH; ++y){
+//                if(byte & (1 << y)){
+//                    *pixel = color;
+//                }
+//                pixel++;
+//            }
+//            row += rb->stride;
+//        }
+//        pos_x += GLYPH_WIDTH;
+//    }
+//}
 
 // --------------------------
 // stb_truetype implementation
@@ -114,11 +114,15 @@ typedef struct Font{
 
 static bool
 load_font_ttf(Arena* arena, String8 dir, Font* font){
-    FileData data;
-    os_file_read(arena, &data, dir, font->name);
-    if(!stbtt_InitFont(&font->info, (u8*)data.base, 0)){
+    File file = os_file_open(dir, font->name);
+    assert_fh(file);
+
+    String8 data =  os_file_read(arena, &file);
+    if(!stbtt_InitFont(&font->info, (u8*)data.str, 0)){
         return(false);
     }
+
+    os_file_close(&file);
     return(true);
 }
 

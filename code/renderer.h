@@ -601,6 +601,18 @@ clear_color(RenderBuffer *render_buffer, RGBA color={0, 0, 0, 1}){
     }
 }
 
+// IMPORTANT: Martins example of how to clear screen in a way that us user friendly
+static void
+clear_image(void* pix, int width, int height, int pitch, uint32_t color){
+    for(int y=0; y<height; y++){
+        u32* row = (u32*)( (u8*)pix + y * pitch );
+
+        for(int x=0; x<width; x++) {
+            row[x] = color;
+        }
+    }
+}
+
 // TODO: clear only a region
 // INCOMPLETE: Rect type has changed
 //static void
@@ -638,16 +650,17 @@ draw_bitmap(RenderBuffer *render_buffer, v2 pos, Bitmap* texture){
 
 
 static void
-draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1}){
+draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA tint_color = {0, 0, 0, 1}){
 
     // pre-multiply alpha for color
-    color.rgb *= color.a;
+    tint_color.rgb *= tint_color.a;
 
     f32 inv_xaxis_mag_sqrt = 1.0f / magnitude_sqrt_v2(x_axis);
     f32 inv_yaxis_mag_sqrt = 1.0f / magnitude_sqrt_v2(y_axis);
 
     s32 max_width = render_buffer->width - 1;
     s32 max_height = render_buffer->height - 1;
+
     s32 xmax = 0;
     s32 xmin = max_width;
     s32 ymax = 0;
@@ -670,9 +683,9 @@ draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, B
     if(xmax > max_width){ xmax = max_width; }
     if(ymax > max_height){ ymax = max_height; }
 
-    u8 *row = (u8 *)render_buffer->base +
-               (ymin * render_buffer->stride) +
-               (xmin * render_buffer->bytes_per_pixel);
+    u8 *row = (u8*)render_buffer->base +
+                  (ymin * render_buffer->stride) +
+                  (xmin * render_buffer->bytes_per_pixel);
     for(s32 y=ymin; y < ymax; ++y){
         u32* pixel = (u32*)row;
         for(s32 x=xmin; x <= xmax; ++x){
@@ -689,50 +702,52 @@ draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, B
                 f32 u = inv_xaxis_mag_sqrt * dot_v2(dist, x_axis);
                 f32 v = inv_yaxis_mag_sqrt * dot_v2(dist, y_axis);
 
-                assert(u >= 0.0f && u <= 1.0f);
-                assert(v >= 0.0f && v <= 1.0f);
+                //assert(u >= 0.0f && u <= 1.0f);
+                //assert(v >= 0.0f && v <= 1.0f);
 
-                //f32 tx = ((u * (f32)(texture->width  - 1)) + 0.5f);
-                //f32 ty = ((v * (f32)(texture->height - 1)) + 0.5f);
-                f32 tx = 1.0f + ((u * (f32)(texture->width  - 3)) + 0.5f);
-                f32 ty = 1.0f + ((v * (f32)(texture->height - 3)) + 0.5f);
+                f32 tx = ((u * (f32)(texture->width  - 2)));
+                f32 ty = ((v * (f32)(texture->height - 2)));
+                //f32 tx = 1.0f + ((u * (f32)(texture->width  - 3)) + 0.5f);
+                //f32 ty = 1.0f + ((v * (f32)(texture->height - 3)) + 0.5f);
                 s32 x = (s32)tx;
                 s32 y = (s32)ty;
                 f32 fx = tx - (f32)x;
                 f32 fy = ty - (f32)y;
 
-                assert(x >= 0 && x < texture->width);
-                assert(y >= 0 && y < texture->height);
+                //assert(x >= 0 && x < texture->width);
+                //assert(y >= 0 && y < texture->height);
 
-                // select 4 pixels
-                u8* texel_ptr = ((u8*)texture->base + (y * texture->stride) + (x * 4));
+                // select 4 pixels from source
+                u8*  texel_ptr = ((u8*)texture->base + (y * texture->stride) + (x * 4));
                 u32* texel_ptr_a = (u32*)(texel_ptr);
                 u32* texel_ptr_b = (u32*)(texel_ptr + sizeof(u32));
                 u32* texel_ptr_c = (u32*)(texel_ptr + texture->stride);
                 u32* texel_ptr_d = (u32*)(texel_ptr + texture->stride + sizeof(u32));
 
-                // convert to RGBA normalized
+                // convert source to RGBA normalized
                 RGBA texel_a = u32_to_rgba_normal(*texel_ptr_a);
                 RGBA texel_b = u32_to_rgba_normal(*texel_ptr_b);
                 RGBA texel_c = u32_to_rgba_normal(*texel_ptr_c);
                 RGBA texel_d = u32_to_rgba_normal(*texel_ptr_d);
 
-                // convert to linear space
+                // convert source to linear space
                 texel_a = srgb_to_linear(texel_a);
                 texel_b = srgb_to_linear(texel_b);
                 texel_c = srgb_to_linear(texel_c);
                 texel_d = srgb_to_linear(texel_d);
 
-                // bilinear filtering
+                // bilinear filtering on source
                 RGBA texel = lerp(lerp(texel_a, texel_b, fx), lerp(texel_c, texel_d, fx), fy);
-                RGBA pixel_color = u32_to_rgba_normal(*pixel);
-                pixel_color = srgb_to_linear(pixel_color);
 
                 // color tinting
-                //texel.r *= color.r;
-                //texel.g *= color.g;
-                //texel.b *= color.b;
-                //texel.a *= color.a;
+                //texel.r *= tint_color.r;
+                //texel.g *= tint_color.g;
+                //texel.b *= tint_color.b;
+                //texel.a *= tint_color.a;
+
+                // convert dest to linear space
+                RGBA pixel_color = u32_to_rgba_normal(*pixel);
+                pixel_color = srgb_to_linear(pixel_color);
 
                 // linear blend
                 RGBA write_color = {
@@ -742,7 +757,7 @@ draw_bitmap_slow(RenderBuffer *render_buffer, v2 origin, v2 x_axis, v2 y_axis, B
                     .a = ((1.0f - texel.a) * pixel_color.a) + texel.a,
                 };
 
-                // convert to SRGB space
+                // convert to sRGB space, normal
                 write_color = linear_to_srgb(write_color);
 
                 // write color

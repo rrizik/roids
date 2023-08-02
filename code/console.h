@@ -228,40 +228,40 @@ console_store_command(String8 str){
     }
 }
 
-static void
-push_console(Arena* command_arena){
-    if(console_is_visible()){
-        // push console rects
-        push_rect(command_arena, console.output_rect, console.output_background_color);
-        push_rect(command_arena, console.input_rect, console.input_background_color);
-        push_rect(command_arena, console.cursor_rect, console.cursor_color);
-
-        // push input string
-        if(console.input_char_count > 0){
-            String8 input_str = str8(console.input, console.input_char_count);
-            push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
-            //if(console.command_history_at > 0){
-            //    String8 input_str = str8(console.input, console.input_char_count);
-            //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.command_history_font, input_str);
-            //}
-            //else{
-            //    String8 input_str = str8(console.input, console.input_char_count);
-            //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
-            //}
-        }
-
-        // push history in reverse order, but only if its on screen
-        f32 unscaled_y_offset = 0.0f;
-        for(u32 i=console.output_history_count-1; i < console.output_history_count; --i){
-            if(console.history_pos.y + (unscaled_y_offset * console.output_font.scale) < (f32)resolution.h){
-                String8 next_string = console.output_history[i];
-                v2 new_pos = make_v2(console.history_pos.x, console.history_pos.y + (unscaled_y_offset * console.output_font.scale));
-                push_text(command_arena, new_pos, &console.output_font, next_string);
-                unscaled_y_offset += (f32)console.output_font.vertical_offset;
-            }
-        }
-    }
-}
+//static void
+//push_console(Arena* command_arena){
+//    if(console_is_visible()){
+//        // push console rects
+//        push_rect(command_arena, console.output_rect, console.output_background_color);
+//        push_rect(command_arena, console.input_rect, console.input_background_color);
+//        push_rect(command_arena, console.cursor_rect, console.cursor_color);
+//
+//        // push input string
+//        if(console.input_char_count > 0){
+//            String8 input_str = str8(console.input, console.input_char_count);
+//            push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
+//            //if(console.command_history_at > 0){
+//            //    String8 input_str = str8(console.input, console.input_char_count);
+//            //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.command_history_font, input_str);
+//            //}
+//            //else{
+//            //    String8 input_str = str8(console.input, console.input_char_count);
+//            //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
+//            //}
+//        }
+//
+//        // push history in reverse order, but only if its on screen
+//        f32 unscaled_y_offset = 0.0f;
+//        for(u32 i=console.output_history_count-1; i < console.output_history_count; --i){
+//            if(console.history_pos.y + (unscaled_y_offset * console.output_font.scale) < (f32)resolution.h){
+//                String8 next_string = console.output_history[i];
+//                v2 new_pos = make_v2(console.history_pos.x, console.history_pos.y + (unscaled_y_offset * console.output_font.scale));
+//                push_text(command_arena, new_pos, &console.output_font, next_string);
+//                unscaled_y_offset += (f32)console.output_font.vertical_offset;
+//            }
+//        }
+//    }
+//}
 
 static void
 update_console(){
@@ -374,7 +374,7 @@ handle_console_event(Event event){
                 mem_copy(line_u8, console.input, console.input_char_count);
 
                 String8 line_str8 = {line_u8, console.input_char_count};
-                line_str8 = str8_eat_spaces(line_str8);
+                line_str8 = str8_eat_whitespace(line_str8);
 
                 parse_line(line_str8);
                 if(!command_args_count){ return(false); }

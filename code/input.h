@@ -254,7 +254,7 @@ events_add(Events* events, Event event){
 }
 
 static Event
-events_get(Events* events){
+events_next(Events* events){
     assert(!events_empty(events));
 
     u32 masked_idx = mask(events, events->read++);

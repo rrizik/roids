@@ -40,11 +40,6 @@ static void console_store_output(String8 str);
 static void console_store_command(String8 str);
 
 static void
-command_default(String8* args){
-    console_store_output(str8_literal("Default command proc!"));
-}
-
-static void
 command_help(String8* args){
     for(u32 i=0; i < command_count; ++i){
         CommandInfo command = commands[i];
@@ -62,13 +57,13 @@ command_exit(String8* args){
 static void
 command_load(String8* args){
     deserialize_data(pm, *args);
-    console_store_output(str8_format(global_arena, "loading from file: %s", args->str));
+    console_store_output(str8_formatted(global_arena, "loading from file: %s", args->str));
 }
 
 static void
 command_save(String8* args){
     serialize_data(pm, *args);
-    console_store_output(str8_format(global_arena, "saving to file: %s", args->str));
+    console_store_output(str8_formatted(global_arena, "saving to file: %s", args->str));
 }
 
 static void
@@ -76,18 +71,19 @@ command_add(String8* args){
     s32 left = atoi((char const*)(args->str));
     s32 right = atoi((char const*)(args + 1)->str);
     s32 value = left + right;
-    String8 result = str8_format(global_arena, "Result: %i", value);
+    String8 result = str8_formatted(global_arena, "Result: %i", value);
     console_store_output(result);
 }
 
 static void
-command_list_saves(String8* args){
-    ScratchArena scratch = begin_scratch(1);
+command_saves(String8* args){
+    ScratchArena scratch = begin_scratch(0);
     defer(end_scratch(scratch));
 
     String8Node files = {0};
     files.next = &files;
     files.prev = &files;
+    // TODO: I DONT THINK I SHOULD BE PASSING A SCRATCH HERE?
     os_dir_files(scratch.arena, &files, pm->saves_dir);
     dll_pop_front(&files);
     dll_pop_front(&files);
@@ -102,7 +98,7 @@ init_commands(){
     add_command(str8_literal("load"), 1, 1, command_load);
     add_command(str8_literal("save"), 1, 1, command_save);
     add_command(str8_literal("add"), 2, 2, command_add);
-    add_command(str8_literal("list_saves"), 0, 0, command_list_saves);
+    add_command(str8_literal("saves"), 0, 0, command_saves);
     add_command(str8_literal("exit"), 0, 0, command_exit);
     add_command(str8_literal("quit"), 0, 0, command_exit);
     add_command(str8_literal("help"), 0, 0, command_help);
@@ -112,7 +108,7 @@ static void
 parse_line(String8 line){
     String8 remaining = line;
     while(remaining.size){
-        remaining = str8_eat_spaces(remaining);
+        remaining = str8_eat_whitespace(remaining);
         if(remaining.size < 1){ break; }
 
         u64 idx = str8_char_from_left(remaining, ' ');
@@ -138,11 +134,11 @@ run_command(String8 line){
         if(str8_cmp(command_name, command.name)){
             found = true;
             if(command.min_args > command_args_count){
-                console_store_output(str8_format(global_arena, "Argument count less than min - Expected %i - Got: %i", command.min_args, command_args_count));
+                console_store_output(str8_formatted(global_arena, "Argument count less than min - Expected %i - Got: %i", command.min_args, command_args_count));
                 break;
             }
             if(command.max_args < command_args_count){
-                console_store_output(str8_format(global_arena, "Argument count greater than max - Expected %i - Got: %i", command.max_args, command_args_count));
+                console_store_output(str8_formatted(global_arena, "Argument count greater than max - Expected %i - Got: %i", command.max_args, command_args_count));
                 break;
             }
 
@@ -154,7 +150,7 @@ run_command(String8 line){
 
     // output unkown command
     if(!found){
-        console_store_output(str8_format(global_arena, "Unkown command: %s", command_name.str));
+        console_store_output(str8_formatted(global_arena, "Unkown command: %s", command_name.str));
     }
     command_args_count = 0;
 }

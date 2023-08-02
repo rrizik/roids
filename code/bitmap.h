@@ -96,80 +96,83 @@ find_first_set_bit(u32 value){
     return(result);
 }
 
-// CONSIDER: do we need to pass in arena here? and if we do, why don't we use it to allocate an arena type instead of using it for os_file_read()
 static Bitmap
 load_bitmap(Arena *arena, String8 dir, String8 file_name){
+    // NOTE: Returns back a pre-multiplied alpha bitmap
     Bitmap result = {0};
 
-    FileData bitmap_file;
-    bool succeed = os_file_read(arena, &bitmap_file, dir, file_name);
-    if(succeed){
-        BitmapHeader *header = (BitmapHeader *)bitmap_file.base;
-        result.base = (u8 *)bitmap_file.base + header->bitmap_offset;
-        result.width = header->width;
-        result.height = header->height;
-        result.stride = header->width * 4;
+    File file = os_file_open(dir, file_name);
+    assert_fh(file);
+    defer(os_file_close(&file));
 
-        // NOTE: As bmps can have ARGB or RGBA or ..., we need to find where our color
-        // shifts are and position the each 8 bit into a ARGB format.
-        BitScanResult red_shift;
-        BitScanResult green_shift;
-        BitScanResult blue_shift;
-        BitScanResult alpha_shift;
-        if(header->Compression == 3){
-            u32 alpha_mask = ~(header->RedMask | header->GreenMask | header->BlueMask);
-            BitScanResult red_shift = find_first_set_bit(header->RedMask);
-            BitScanResult green_shift = find_first_set_bit(header->GreenMask);
-            BitScanResult blue_shift = find_first_set_bit(header->BlueMask);
-            BitScanResult alpha_shift = find_first_set_bit(alpha_mask);
+    String8 bitmap_file = os_file_read(arena, &file);
 
-            assert(alpha_shift.found);
-            assert(red_shift.found);
-            assert(green_shift.found);
-            assert(blue_shift.found);
-        }
+    BitmapHeader *header = (BitmapHeader *)bitmap_file.str;
+    result.base = (u8 *)bitmap_file.str + header->bitmap_offset;
+    result.width = header->width;
+    result.height = header->height;
+    result.stride = header->width * 4;
 
-        u32* pixel = (u32*)result.base;
-        for(s32 y=0; y < result.height; ++y){
-            for(s32 x=0; x < result.width; ++x){
-                // get u32 color. shift colors out of correct location
-                u32 color_u32 = *pixel;
-                if(header->Compression == 3){
-                    u32 color_u32 = ((((*pixel >> alpha_shift.index) & 0xFF) << 24) |
-                                     (((*pixel >> red_shift.index) & 0xFF)   << 16) |
-                                     (((*pixel >> green_shift.index) & 0xFF)  << 8) |
-                                     (((*pixel >> blue_shift.index) & 0xFF)   << 0));
-                }
+    // NOTE: As bmps can have ARGB or RGBA or ..., we need to find where our color
+    // shifts are and position the each 8 bit into a ARGB format.
+    BitScanResult red_shift;
+    BitScanResult green_shift;
+    BitScanResult blue_shift;
+    BitScanResult alpha_shift;
+    if(header->Compression == 3){
+        u32 alpha_mask = ~(header->RedMask | header->GreenMask | header->BlueMask);
+        BitScanResult red_shift = find_first_set_bit(header->RedMask);
+        BitScanResult green_shift = find_first_set_bit(header->GreenMask);
+        BitScanResult blue_shift = find_first_set_bit(header->BlueMask);
+        BitScanResult alpha_shift = find_first_set_bit(alpha_mask);
 
-                // u32 to RGBA
-                RGBA color = {
-                    .a = ((f32)((color_u32 >> 24) & 0xFF) / 255.0f),
-                    .r = ((f32)((color_u32 >> 16) & 0xFF) / 255.0f),
-                    .g = ((f32)((color_u32 >> 8) & 0xFF) / 255.0f),
-                    .b = ((f32)((color_u32 >> 0) & 0xFF) / 255.0f),
-                };
+        assert(alpha_shift.found);
+        assert(red_shift.found);
+        assert(green_shift.found);
+        assert(blue_shift.found);
+    }
 
-                // SRGB to linear
-                color.r = square_f32(color.r),
-                color.g = square_f32(color.g),
-                color.b = square_f32(color.b),
-
-                // gamma correction
-                color.rgb *= color.a;
-
-                // linear to SRGB
-                color.r = sqrt_f32(color.r),
-                color.g = sqrt_f32(color.g),
-                color.b = sqrt_f32(color.b),
-
-                // write pixel
-                *pixel++ = (u32)(round_f32_u32(color.a * 255.0f) << 24 |
-                                 round_f32_u32(color.r * 255.0f) << 16 |
-                                 round_f32_u32(color.g * 255.0f) << 8 |
-                                 round_f32_u32(color.b * 255.0f) << 0);
+    u32* pixel = (u32*)result.base;
+    for(s32 y=0; y < result.height; ++y){
+        for(s32 x=0; x < result.width; ++x){
+            // get u32 color. shift colors out of correct location
+            u32 color_u32 = *pixel;
+            if(header->Compression == 3){
+                u32 color_u32 = ((((*pixel >> alpha_shift.index) & 0xFF) << 24) |
+                                 (((*pixel >> red_shift.index) & 0xFF)   << 16) |
+                                 (((*pixel >> green_shift.index) & 0xFF)  << 8) |
+                                 (((*pixel >> blue_shift.index) & 0xFF)   << 0));
             }
+
+            // u32 to RGBA
+            RGBA color = {
+                .a = ((f32)((color_u32 >> 24) & 0xFF) / 255.0f),
+                .r = ((f32)((color_u32 >> 16) & 0xFF) / 255.0f),
+                .g = ((f32)((color_u32 >> 8) & 0xFF) / 255.0f),
+                .b = ((f32)((color_u32 >> 0) & 0xFF) / 255.0f),
+            };
+
+            // sRGB to linear
+            color.r = square_f32(color.r),
+            color.g = square_f32(color.g),
+            color.b = square_f32(color.b),
+
+            // gamma correction
+            color.rgb *= color.a;
+
+            // linear to sRGB
+            color.r = sqrt_f32(color.r),
+            color.g = sqrt_f32(color.g),
+            color.b = sqrt_f32(color.b),
+
+            // write pixel
+            *pixel++ = (u32)(round_f32_u32(color.a * 255.0f) << 24 |
+                             round_f32_u32(color.r * 255.0f) << 16 |
+                             round_f32_u32(color.g * 255.0f) << 8  |
+                             round_f32_u32(color.b * 255.0f) << 0);
         }
     }
+
     return(result);
 }
 

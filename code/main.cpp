@@ -1,14 +1,13 @@
-#pragma comment(lib, "user32.lib")
-#pragma comment(lib, "gdi32.lib")
-#pragma comment(lib, "winmm.lib")
-
-#include "base_inc.h"
-#include "win32_base_inc.h"
+#pragma comment(lib, "user32")
+//#pragma comment(lib, "gdi32")
+//#pragma comment(lib, "winmm")
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 
-#define BYTES_PER_PIXEL 4
+#include "base_inc.h"
+#include "win32_base_inc.h"
+#include "directx.h"
 
 global v2s32 resolution = {
     .x = SCREEN_WIDTH,
@@ -27,23 +26,6 @@ typedef struct Clock{
     GetMsElapsed* get_ms_elapsed;
 } Clock;
 
-typedef struct RenderBuffer{
-    void* base;
-    size_t size;
-
-    s32 padding;
-    s32 width;
-    s32 height;
-    s32 bytes_per_pixel;
-    s32 stride;
-
-    BITMAPINFO bitmap_info;
-
-    Arena* render_command_arena;
-    Arena* arena;
-    HDC device_context;
-} RenderBuffer;
-
 typedef struct Memory{
     void* base;
     size_t size;
@@ -56,8 +38,9 @@ typedef struct Memory{
     bool initialized;
 } Memory;
 
+
+global Arena* global_arena = os_make_arena(MB(1));
 global bool should_quit;
-global RenderBuffer render_buffer;
 global Memory memory;
 global Clock clock;
 #include "input.h"
@@ -101,63 +84,12 @@ init_memory(Memory* m){
     m->transient_base = (u8*)m->base + m->permanent_size;
 }
 
-static void
-init_render_buffer(RenderBuffer* rb, s32 width, s32 height){
-    rb->width   = width;
-    rb->height  = height;
-    rb->padding = 10;
-
-    rb->bitmap_info.bmiHeader.biSize     = sizeof(BITMAPINFOHEADER);
-    rb->bitmap_info.bmiHeader.biWidth    = width;
-    rb->bitmap_info.bmiHeader.biHeight   = height;
-    rb->bitmap_info.bmiHeader.biPlanes   = 1;
-    rb->bitmap_info.bmiHeader.biBitCount = 32;
-    rb->bitmap_info.bmiHeader.biCompression = BI_RGB;
-
-    s32 bytes_per_pixel = 4;
-    rb->bytes_per_pixel = bytes_per_pixel;
-    rb->stride = width * bytes_per_pixel;
-    rb->size   = (u32)(width * height * bytes_per_pixel);
-    rb->base   = os_virtual_alloc(rb->size);
-
-    rb->render_command_arena = make_arena(MB(16));
-    rb->arena = make_arena(MB(4));
-}
-
-static void
-update_window(RenderBuffer rb){
-    s32 padding = rb.padding;
-
-    PatBlt(rb.device_context, 0, 0, rb.width + padding, padding, WHITENESS);
-    PatBlt(rb.device_context, 0, padding, padding, rb.height + padding, WHITENESS);
-    PatBlt(rb.device_context, rb.width + padding, 0, padding, rb.height + padding, WHITENESS);
-    PatBlt(rb.device_context, padding, rb.height + padding, rb.width + padding, padding, WHITENESS);
-
-    if(StretchDIBits(rb.device_context,
-                     padding, padding, rb.width, rb.height,
-                     0, 0, rb.width, rb.height,
-                     rb.base, &rb.bitmap_info, DIB_RGB_COLORS, SRCCOPY))
-    {
-    }
-    else{
-        OutputDebugStringA("StrechDIBits failed\n");
-    }
-}
-
-
-global Arena* global_arena = os_make_arena(MB(1));
 #include "game.h"
 
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
     LRESULT result = 0;
 
     switch(message){
-        case WM_PAINT:{
-            PAINTSTRUCT paint;
-            BeginPaint(hwnd, &paint);
-            update_window(render_buffer);
-            EndPaint(hwnd, &paint);
-        } break;
         case WM_CLOSE:
         case WM_QUIT:
         case WM_DESTROY:{
@@ -166,11 +98,12 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             events_add(&events, event);
         } break;
 
+        // TODO: mouse_pos now is probably wrong, fix it
         case WM_MOUSEMOVE:{
             Event event;
             event.type = MOUSE;
-            event.mouse_pos.x = (l_param & 0xFFFF) - render_buffer.padding;
-            event.mouse_pos.y = (SCREEN_HEIGHT - (s32)(l_param >> 16)) + render_buffer.padding; // (0, 0) bottom left
+            event.mouse_pos.x = (l_param & 0xFFFF); //- render_buffer.padding;
+            event.mouse_pos.y = (SCREEN_HEIGHT - (s32)(l_param >> 16)); //+ render_buffer.padding; // (0, 0) bottom left
 
             event.mouse_dx = event.mouse_pos.x - last_mouse_x;
             event.mouse_dy = event.mouse_pos.y - last_mouse_y;
@@ -280,6 +213,12 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
     return(result);
 }
 
+struct Window{
+    u32 width;
+    u32 height;
+    HWND handle;
+};
+
 static bool
 win32_init(){
     WNDCLASSW window_class = {
@@ -298,76 +237,127 @@ win32_init(){
     return(false);
 }
 
-static HWND
+static Window
 win32_window_create(wchar* window_name, u32 width, u32 height){
-    HWND handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, width, height, 0, 0, GetModuleHandle(0), 0);
-    assert(IsWindow(handle));
+    Window result = {0};
+    result.width = width;
+    result.height = height;
+    result.handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, result.width, result.height, 0, 0, GetModuleHandle(0), 0);
+    assert(IsWindow(result.handle));
 
-    return(handle);
+    return(result);
 }
 
+static HRESULT hresult;
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
 
-    assert(win32_init());
-    HWND window = win32_window_create(L"flux", SCREEN_WIDTH + 30, SCREEN_HEIGHT + 50);
+    bool succeed = win32_init();
+    assert(succeed);
+
+    Window window = win32_window_create(L"Roids", SCREEN_WIDTH + 30, SCREEN_HEIGHT + 50);
+
+
+    // NOTE: Create device, device_context, swap_chain
+    HRESULT result;
+    result = d3d_create_device_and_swapchain(window.handle);
+    assert_hr(result);
+
+    // NOTE: Init backbuffer
+    result = d3d_create_framebuffer();
+    assert_hr(result);
+
+    // NOTE: Init viewport
+    d3d_init_viewport();
+
+    // NOTE: Init depthbuffer
+    //result = d3d_create_depthbuffer();
+    //assert_hr(result);
+
+    result = d3d_init_shaders();
+    assert_hr(result);
+
+    // NOTE: Create vertex_buffer
+    result = d3d_create_vertex_buffer();
+    assert_hr(result);
+
+
+
+
+
+
+
+
+
+
+
+
 
     init_memory(&memory);
     init_clock(&clock);
-    init_render_buffer(&render_buffer, SCREEN_WIDTH, SCREEN_HEIGHT);
     init_events(&events);
 
-    should_quit = false;
+    //should_quit = false;
 
-    f64 FPS = 0;
-    f64 MSPF = 0;
-    u64 frame_count = 0;
+    //f64 FPS = 0;
+    //f64 MSPF = 0;
+    //u64 frame_count = 0;
 
     clock.dt =  1.0/240.0;
     f64 accumulator = 0.0;
     s64 last_ticks = clock.get_ticks();
     s64 second_marker = clock.get_ticks();
-	u32 simulations = 0;
 
-    render_buffer.device_context = GetDC(window);
+	u32 simulations = 0;
     f64 time_elapsed = 0;
     while(!should_quit){
         MSG message;
-        while(PeekMessageW(&message, window, 0, 0, PM_REMOVE)){
+        while(PeekMessageW(&message, window.handle, 0, 0, PM_REMOVE)){
             TranslateMessage(&message);
             DispatchMessage(&message);
         }
 
         s64 now_ticks = clock.get_ticks();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
-        MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
+        //MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
         accumulator += frame_time;
         while(accumulator >= clock.dt){
-            update_game(&memory, &render_buffer, &events, &clock);
+            update_game(&memory, &events, &clock);
             accumulator -= clock.dt;
             time_elapsed += clock.dt;
             simulations++;
         }
 
-        frame_count++;
-		simulations = 0;
-        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), second_marker);
-        if(second_elapsed > 1){
-            FPS = ((f64)frame_count / second_elapsed);
-            second_marker = clock.get_ticks();
-            frame_count = 0;
-        }
+
+        // NOTE: Clear screen to color
+        f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
+        d3d_context->ClearRenderTargetView(d3d_framebuffer, background_color);
+
+        d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        d3d_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
+
+        d3d_context->VSSetShader(vertex_shader, 0, 0);
+        d3d_context->PSSetShader(pixel_shader, 0, 0);
+
+        //d3d_context->OMSetRenderTargets(1, &d3d_framebuffer, d3d_depthbuffer);
+        d3d_context->OMSetRenderTargets(1, &d3d_framebuffer, 0);
+
+        d3d_context->Draw(3, 0);
+
+        d3d_swapchain->Present(1, 0);
+
+        //frame_count++;
+		//simulations = 0;
+        //f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), second_marker);
+        //if(second_elapsed > 1){
+        //    FPS = ((f64)frame_count / second_elapsed);
+        //    second_marker = clock.get_ticks();
+        //    frame_count = 0;
+        //}
         //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed);
-
-        draw_commands(&render_buffer, render_buffer.render_command_arena);
-        update_window(render_buffer);
-
-        if(simulations){
-            //handle_debug_counters(simulations);
-        }
     }
-    ReleaseDC(window, render_buffer.device_context);
 
     return(0);
 }
+

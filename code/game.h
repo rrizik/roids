@@ -5,7 +5,7 @@
 #include "rect.h"
 #include "bitmap.h"
 #include "font.h"
-#include "renderer.h"
+//#include "renderer.h"
 
 #include "entity.h"
 
@@ -153,7 +153,7 @@ add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor 
 
 static Entity*
 add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, RGBA color = {0, 0, 0, 1}){
-    Entity* e = add_entity(pm, EntityType_Basis);
+    Entity* e = add_entity(pm, EntityType_Bases);
     e->origin = origin;
     e->x_axis = x_axis;
     e->y_axis = y_axis;
@@ -175,6 +175,21 @@ add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, R
     e->speed = 250;
     e->scale = 50;
     pm->ship_loaded = true; // TODO: get rid of
+    return(e);
+}
+
+static Entity*
+add_bullet(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, RGBA color = {0, 0, 0, 1}){
+    Entity* e = add_entity(pm, EntityType_Bullet);
+    e->origin = origin;
+    e->x_axis = x_axis;
+    e->y_axis = y_axis;
+    e->color = color;
+    e->texture = texture;
+    e->direction = make_v2(0, 1);
+    e->rad = dir_to_rad(e->direction);
+    e->speed = 250;
+    e->scale = 10;
     return(e);
 }
 
@@ -239,49 +254,40 @@ entities_clear(PermanentMemory* pm){
 
 static void
 serialize_data(PermanentMemory* pm, String8 filename){
-    os_file_create(pm->saves_dir, filename, 1);
-    u32 offset = 0;
-    for(u32 i=0; i < array_count(pm->entities); ++i){
-        Entity* e = pm->entities + i;
-        if(e->type != EntityType_None){
-            size_t size = sizeof(*e);
-            FileData data = {
-                .base = e,
-                .size = size,
-            };
-            os_file_write(data, pm->saves_dir, filename, offset);
-            offset += size;
-        }
-    }
+    File file = os_file_open(pm->saves_dir, filename, 1);
+    assert_fh(file);
+
+    os_file_write(&file, pm->entities, sizeof(Entity) * ENTITIES_MAX);
+    os_file_close(&file);
 }
 
 static void
 deserialize_data(PermanentMemory* pm, String8 filename){
-    FileData data;
-    bool succeed = os_file_read(&pm->arena, &data, pm->saves_dir, filename);
-    if(succeed){
-        entities_clear(pm);
-        u32 offset = 0;
-        while(offset < data.size){
-            Entity* e = (Entity*)((u8*)data.base + offset);
-            switch(e->type){
-                case EntityType_Ship:{
-                    Entity* ship = add_entity(pm, EntityType_Ship);
-                    *ship = *e;
+    File file = os_file_open(pm->saves_dir, filename);
+    assert_fh(file);
+    String8 data = os_file_read(&pm->arena, &file);
 
-                    String8 ship_str = str8_literal("\\ship_simple.bmp");
-                    Bitmap ship_image = load_bitmap(&tm->arena, pm->sprites_dir, ship_str);
-                    ship->texture = ship_image;
+    entities_clear(pm);
+    u32 offset = 0;
+    while(offset < data.size){
+        Entity* e = (Entity*)(data.str + offset);
+        switch(e->type){
+            case EntityType_Ship:{
+                Entity* ship = add_entity(pm, EntityType_Ship);
+                *ship = *e;
 
-                    pm->ship = ship;
-                    pm->ship_loaded = true;
-                } break;
-                case EntityType_Rect:{
-                    add_rect(pm, e->rect, e->color, e->border_size, e->border_color);
-                } break;
-            }
-            offset += sizeof(*e);
+                String8 ship_str = str8_literal("\\ship_simple.bmp");
+                Bitmap ship_image = load_bitmap(&tm->arena, pm->sprites_dir, ship_str);
+                ship->texture = ship_image;
+
+                pm->ship = ship;
+                pm->ship_loaded = true;
+            } break;
+            case EntityType_Rect:{
+                add_rect(pm, e->rect, e->color, e->border_size, e->border_color);
+            } break;
         }
+        offset += sizeof(*e);
     }
 }
 
@@ -378,17 +384,19 @@ handle_controller_events(Event event){
     return(false);
 }
 
+static f32 angle = 0;
 static void
-update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* clock){
+//update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* clock){
+update_game(Memory* memory, Events* events, Clock* clock){
     assert(sizeof(PermanentMemory) < memory->permanent_size);
     assert(sizeof(TransientMemory) < memory->transient_size);
     pm = (PermanentMemory*)memory->permanent_base;
     tm = (TransientMemory*)memory->transient_base;
 
 
-    arena_free(render_buffer->render_command_arena);
-    push_clear_color(render_buffer->render_command_arena, BLACK);
-    Arena* render_command_arena = render_buffer->render_command_arena;
+    //arena_free(render_buffer->render_command_arena);
+    //push_clear_color(render_buffer->render_command_arena, BLACK);
+    //Arena* render_command_arena = render_buffer->render_command_arena;
     if(!memory->initialized){
         Button a = controller.up;
 
@@ -413,11 +421,13 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
         String8 test_str   = str8_literal("test3.bmp");
         String8 circle_str = str8_literal("circle.bmp");
         String8 ship_str   = str8_literal("ship_simple.bmp");
+        String8 bullet_str = str8_literal("bullet4.bmp");
 
         Bitmap image_image = load_bitmap(&tm->arena, pm->sprites_dir, image_str);
         Bitmap ship_image = load_bitmap(&tm->arena, pm->sprites_dir, ship_str);
         Bitmap tree_image = load_bitmap(&pm->arena, pm->sprites_dir, tree_str);
         Bitmap circle_image = load_bitmap(&tm->arena, pm->sprites_dir, circle_str);
+        Bitmap bullet_image = load_bitmap(&tm->arena, pm->sprites_dir, bullet_str);
 
         //Bitmap ship_image = load_bitmap(&pm->arena, pm->sprites_dir, ship_str);
         //Bitmap aa = stb_load_image(pm->sprites_dir, circle_str);
@@ -428,13 +438,15 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
 
 		v2 origin = make_v2((f32)resolution.x/2, (f32)resolution.y/2);
         v2 direction = make_v2(0, 1);
-		v2 x_axis = 100.0f * make_v2(cos_f32(dir_to_rad(direction)), sin_f32(dir_to_rad(direction)));
+		//v2 x_axis = 100.0f * make_v2(cos_f32(dir_to_rad(direction)), sin_f32(dir_to_rad(direction)));
+		v2 x_axis = make_v2(1, 1);
 		v2 y_axis = make_v2(-x_axis.y, x_axis.x);
         //pm->ship = add_basis(pm, origin, x_axis, y_axis, ship_image, {0, 0, 0, 0});
         //add_basis(pm, origin, x_axis, y_axis, tree_image, {0, 0, 0, 0});
         //add_basis(pm, origin, x_axis, y_axis, circle_image, {0, 0, 0, 0});
         //add_basis(pm, origin, x_axis, y_axis, test_image0, {0, 0, 0, 0});
         //pm->ship = add_ship(pm, make_v2(100, 100), x_axis, y_axis, ship_image, {0, 0, 0, 0});
+        Entity* bullet = add_bullet(pm, origin, x_axis, y_axis, bullet_image, {0, 0, 0, 0});
         //add_rect(pm, rect_screen_to_pixel(make_rect(.1, .5f, .2, .6), resolution), MAGENTA);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.3, .5f, .4, .6), resolution), MAGENTA, 4, GREEN);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
@@ -463,11 +475,12 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
 
         memory->initialized = true;
     }
+    angle += (f32)clock->dt;
 
 
     // NOTE: process events.
     while(!events_empty(events)){
-        Event event = events_get(events);
+        Event event = events_next(events);
 
         bool handled;
         handled = handle_global_event(event);
@@ -508,107 +521,121 @@ update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* 
     }
 
     update_console();
-    for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
-        Entity *e = pm->entities + pm->free_entities[entity_index];
+    //for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
+    //    Entity *e = pm->entities + pm->free_entities[entity_index];
 
-        switch(e->type){
-            case EntityType_Glyph:{
-            }break;
-            case EntityType_Pixel:{
-                push_pixel(render_command_arena, e->rect, e->color);
-            }break;
-            case EntityType_Segment:{
-                push_segment(render_command_arena, e->p0, e->p1, e->color);
-            }break;
-            case EntityType_Line:{
-                push_line(render_command_arena, e->rect, e->direction, e->color);
-            }break;
-            case EntityType_Ray:{
-                push_ray(render_command_arena, e->rect, e->direction, e->color);
-            }break;
-            case EntityType_Rect:{
-                Rect border;
-                Rect rect = e->rect;
-                if(e->border_size > 0){
-                    border = rect_calc_border(e->rect, e->border_size);
-                }
-                if(e->border_size < 0){
-                    border = e->rect;
-                    rect = rect_calc_border(e->rect, e->border_size);
-                }
-                push_rect(render_command_arena, border, e->border_color);
-                push_rect(render_command_arena, rect, e->color);
-            }break;
-            case EntityType_Ship:{
-                f32 deg = rad_to_deg(e->rad);
-                deg -= 90;
-                f32 rad = deg_to_rad(deg);
-                e->x_axis = e->scale * make_v2(cos_f32(rad), sin_f32(rad));
-                e->y_axis = perp(e->x_axis);
-                v2 center_org = e->origin - 0.5*e->x_axis - 0.5*e->y_axis;
+    //    switch(e->type){
+    //        case EntityType_Glyph:{
+    //        }break;
+    //        case EntityType_Pixel:{
+    //            push_pixel(render_command_arena, e->rect, e->color);
+    //        }break;
+    //        case EntityType_Segment:{
+    //            push_segment(render_command_arena, e->p0, e->p1, e->color);
+    //        }break;
+    //        case EntityType_Line:{
+    //            push_line(render_command_arena, e->rect, e->direction, e->color);
+    //        }break;
+    //        case EntityType_Ray:{
+    //            push_ray(render_command_arena, e->rect, e->direction, e->color);
+    //        }break;
+    //        case EntityType_Rect:{
+    //            Rect border;
+    //            Rect rect = e->rect;
+    //            if(e->border_size > 0){
+    //                border = rect_calc_border(e->rect, e->border_size);
+    //            }
+    //            if(e->border_size < 0){
+    //                border = e->rect;
+    //                rect = rect_calc_border(e->rect, e->border_size);
+    //            }
+    //            push_rect(render_command_arena, border, e->border_color);
+    //            push_rect(render_command_arena, rect, e->color);
+    //        }break;
+    //        case EntityType_Bullet:
+    //        case EntityType_Ship:{
+    //            e->rad = angle;
+    //            f32 deg = rad_to_deg(e->rad);
+    //            deg -= 90;
+    //            f32 rad = deg_to_rad(deg);
+    //            //e->x_axis = e->scale * make_v2(cos_f32(rad), sin_f32(rad));
+    //            //e->y_axis = perp(e->x_axis);
+    //            //e->x_axis = make_v2((f32)e->texture.width, 0);
+    //            //e->y_axis = make_v2(0, (f32)e->texture.height);
 
-                push_basis(render_command_arena, center_org, e->x_axis, e->y_axis, e->texture);
-            }break;
-            case EntityType_Basis:{
-				v2 dim = {5, 5};
-				v2 min = e->origin;
-                //RGBA color = {1, 1, 0, 1};
-                //f32 disp = 50.0f * cos_f32(angle);
-                //e->origin = make_v2((f32)resolution.x/2, (f32)resolution.y/2);
-                f32 deg = rad_to_deg(e->rad);
-                deg -= 90;
-                f32 rad = deg_to_rad(deg);
-                e->x_axis = e->scale * make_v2(cos_f32(rad), sin_f32(rad));
-                e->y_axis = perp(e->x_axis);
-                //
-                //e->x_axis = (50.0f + 50.0f * cos_f32(angle*2)) * make_v2(cos_f32(angle*2), sin_f32(angle*2));
-                //e->y_axis = (50.0f + 50.0f * cos_f32(angle*2)) * make_v2(cos_f32((angle*2) + 1.0f), sin_f32((angle*2) + 1.0f));
-                //
-                //e->y_axis = make_v2(-e->x_axis.y, e->x_axis.x);
-                //e->x_axis = {300, 0};
-                //e->y_axis = make_v2(-e->x_axis.y, e->x_axis.x);
-                //e->y_axis = {0, 400};
+    //            e->x_axis = e->scale * make_v2((f32)e->texture.width * cos_f32(e->rad), (f32)e->texture.height * sin_f32(e->rad));
+    //            e->y_axis = e->scale * make_v2((f32)e->texture.width * -sin_f32(e->rad), (f32)e->texture.height * cos_f32(e->rad));
+    //            //e->y_axis = perp(e->x_axis);
+    //            print("scale: %f - w: %i - h: %i - rad: %f\n", e->scale, e->texture.width, e->texture.height, e->rad);
+    //            print("x - xx: %f - xy: %f\n", e->x_axis.x, e->x_axis.y);
+    //            print("y - yx: %f - yy: %f\n", e->y_axis.x, e->y_axis.y);
 
-                push_basis(render_command_arena, e->origin - 0.5*e->x_axis - 0.5*e->y_axis, e->x_axis, e->y_axis, e->texture);
+    //            //e->x_axis = e->scale * make_v2((f32)e->texture.width * cos_f32(rad), 0);
+    //            //e->y_axis = e->scale * make_v2((f32)e->texture.width * cos_f32(rad), 0);
+    //            v2 center_org = e->origin - 0.5*e->x_axis - 0.5*e->y_axis;
 
-                //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
+    //            push_basis(render_command_arena, center_org, e->x_axis, e->y_axis, e->texture);
+    //        }break;
+    //        case EntityType_Bases:{
+	//			v2 dim = {5, 5};
+	//			v2 min = e->origin;
+    //            //RGBA color = {1, 1, 0, 1};
+    //            //f32 disp = 50.0f * cos_f32(angle);
+    //            //e->origin = make_v2((f32)resolution.x/2, (f32)resolution.y/2);
+    //            f32 deg = rad_to_deg(e->rad);
+    //            deg -= 90;
+    //            f32 rad = deg_to_rad(deg);
+    //            e->x_axis = e->scale * make_v2(cos_f32(rad), sin_f32(rad));
+    //            e->y_axis = perp(e->x_axis);
+    //            //
+    //            //e->x_axis = (50.0f + 50.0f * cos_f32(angle*2)) * make_v2(cos_f32(angle*2), sin_f32(angle*2));
+    //            //e->y_axis = (50.0f + 50.0f * cos_f32(angle*2)) * make_v2(cos_f32((angle*2) + 1.0f), sin_f32((angle*2) + 1.0f));
+    //            //
+    //            //e->y_axis = make_v2(-e->x_axis.y, e->x_axis.x);
+    //            //e->x_axis = {300, 0};
+    //            //e->y_axis = make_v2(-e->x_axis.y, e->x_axis.x);
+    //            //e->y_axis = {0, 400};
 
-				min = e->origin + e->x_axis;
-                //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
+    //            push_basis(render_command_arena, e->origin - 0.5*e->x_axis - 0.5*e->y_axis, e->x_axis, e->y_axis, e->texture);
 
-				min = e->origin + e->y_axis;
-                //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
+    //            //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
 
-                v2 max = e->origin + e->x_axis + e->y_axis;
-                //push_rect(render_command_arena, make_rect(max - dim, max + dim), color);
+	//			min = e->origin + e->x_axis;
+    //            //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
 
-            }break;
-            case EntityType_Box:{
-                push_box(render_command_arena, e->rect, e->color);
-            }break;
-            case EntityType_Quad:{
-                push_quad(render_command_arena, e->p0, e->p1, e->p2, e->p3, e->color, e->fill);
-            }break;
-            case EntityType_Triangle:{
-                push_triangle(render_command_arena, e->p0, e->p1, e->p2, e->color, e->fill);
-            }break;
-            case EntityType_Circle:{
-                push_circle(render_command_arena, e->rect, e->rad, e->color, e->fill);
-            }break;
-            case EntityType_Bitmap:{
-                push_bitmap(render_command_arena, e->rect, e->texture);
-            }break;
-            case EntityType_None:{
-            }break;
-            case EntityType_Object:{
-            }break;
-            invalid_default_case;
-        }
-    }
+	//			min = e->origin + e->y_axis;
+    //            //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
 
-    if(console_is_visible()){
-        push_console(render_command_arena);
-    }
+    //            v2 max = e->origin + e->x_axis + e->y_axis;
+    //            //push_rect(render_command_arena, make_rect(max - dim, max + dim), color);
+
+    //        }break;
+    //        case EntityType_Box:{
+    //            push_box(render_command_arena, e->rect, e->color);
+    //        }break;
+    //        case EntityType_Quad:{
+    //            push_quad(render_command_arena, e->p0, e->p1, e->p2, e->p3, e->color, e->fill);
+    //        }break;
+    //        case EntityType_Triangle:{
+    //            push_triangle(render_command_arena, e->p0, e->p1, e->p2, e->color, e->fill);
+    //        }break;
+    //        case EntityType_Circle:{
+    //            push_circle(render_command_arena, e->rect, e->rad, e->color, e->fill);
+    //        }break;
+    //        case EntityType_Bitmap:{
+    //            push_bitmap(render_command_arena, e->rect, e->texture);
+    //        }break;
+    //        case EntityType_None:{
+    //        }break;
+    //        case EntityType_Object:{
+    //        }break;
+    //        invalid_default_case;
+    //    }
+    //}
+
+    //if(console_is_visible()){
+    //    push_console(render_command_arena);
+    //}
     String8 text = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
     //String8 text   = str8_literal("g");
     String8 strings[] = {
