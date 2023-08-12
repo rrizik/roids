@@ -28,11 +28,6 @@ static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 #define ENTITIES_MAX 100
 typedef struct PermanentMemory{
     Arena arena;
-    String8 cwd; // CONSIDER: this might be something we want to be set on the platform side
-    String8 data_dir; // CONSIDER: this might be something we want to be set on the platform side
-    String8 fonts_dir; // CONSIDER: this might be something we want to be set on the platform side
-    String8 sprites_dir; // CONSIDER: this might be something we want to be set on the platform side
-    String8 saves_dir; // CONSIDER: this might be something we want to be set on the platform side
 
     u32 generation[ENTITIES_MAX];
     u32 free_entities[ENTITIES_MAX];
@@ -254,7 +249,7 @@ entities_clear(PermanentMemory* pm){
 
 static void
 serialize_data(PermanentMemory* pm, String8 filename){
-    File file = os_file_open(pm->saves_dir, filename, 1);
+    File file = os_file_open(path_saves, filename, 1);
     assert_fh(file);
 
     os_file_write(&file, pm->entities, sizeof(Entity) * ENTITIES_MAX);
@@ -263,7 +258,7 @@ serialize_data(PermanentMemory* pm, String8 filename){
 
 static void
 deserialize_data(PermanentMemory* pm, String8 filename){
-    File file = os_file_open(pm->saves_dir, filename);
+    File file = os_file_open(path_saves, filename);
     assert_fh(file);
     String8 data = os_file_read(&pm->arena, &file);
 
@@ -277,7 +272,7 @@ deserialize_data(PermanentMemory* pm, String8 filename){
                 *ship = *e;
 
                 String8 ship_str = str8_literal("\\ship_simple.bmp");
-                Bitmap ship_image = load_bitmap(&tm->arena, pm->sprites_dir, ship_str);
+                Bitmap ship_image = load_bitmap(&tm->arena, path_saves, ship_str);
                 ship->texture = ship_image;
 
                 pm->ship = ship;
@@ -409,11 +404,9 @@ update_game(Memory* memory, Events* events, Clock* clock){
         // setup free entities array (max to 0)
         entities_clear(pm);
 
-        pm->cwd = os_get_cwd(&pm->arena);
-        pm->data_dir    = str8_path_append(&pm->arena, pm->cwd,      str8_literal("data"));
-        pm->sprites_dir = str8_path_append(&pm->arena, pm->data_dir, str8_literal("sprites"));
-        pm->fonts_dir   = str8_path_append(&pm->arena, pm->data_dir, str8_literal("fonts"));
-        pm->saves_dir   = str8_path_append(&pm->arena, pm->data_dir, str8_literal("saves"));
+        //pm->sprites_dir = str8_path_append(&pm->arena, path_data, str8_literal("sprites"));
+        //pm->fonts_dir   = str8_path_append(&pm->arena, path_data, str8_literal("fonts"));
+        //pm->saves_dir   = str8_path_append(&pm->arena, path_data, str8_literal("saves"));
 
         // basis test
         String8 tree_str   = str8_literal("tree00.bmp");
@@ -423,11 +416,11 @@ update_game(Memory* memory, Events* events, Clock* clock){
         String8 ship_str   = str8_literal("ship_simple.bmp");
         String8 bullet_str = str8_literal("bullet4.bmp");
 
-        Bitmap image_image = load_bitmap(&tm->arena, pm->sprites_dir, image_str);
-        Bitmap ship_image = load_bitmap(&tm->arena, pm->sprites_dir, ship_str);
-        Bitmap tree_image = load_bitmap(&pm->arena, pm->sprites_dir, tree_str);
-        Bitmap circle_image = load_bitmap(&tm->arena, pm->sprites_dir, circle_str);
-        Bitmap bullet_image = load_bitmap(&tm->arena, pm->sprites_dir, bullet_str);
+        Bitmap image_image = load_bitmap(&tm->arena, path_sprites, image_str);
+        Bitmap ship_image = load_bitmap(&tm->arena, path_sprites, ship_str);
+        Bitmap tree_image = load_bitmap(&pm->arena, path_sprites, tree_str);
+        Bitmap circle_image = load_bitmap(&tm->arena, path_sprites, circle_str);
+        Bitmap bullet_image = load_bitmap(&tm->arena, path_sprites, bullet_str);
 
         //Bitmap ship_image = load_bitmap(&pm->arena, pm->sprites_dir, ship_str);
         //Bitmap aa = stb_load_image(pm->sprites_dir, circle_str);
@@ -466,7 +459,7 @@ update_game(Memory* memory, Events* events, Clock* clock){
         global_font.name = str8_literal("\\GolosText-Regular.ttf");
         global_font.size = 24;
         global_font.color = WHITE;
-        bool succeed = load_font_ttf(&pm->arena, pm->fonts_dir, &global_font);
+        bool succeed = load_font_ttf(&pm->arena, path_fonts, &global_font);
         assert(succeed);
         load_font_glyphs(&pm->arena, &global_font);
 

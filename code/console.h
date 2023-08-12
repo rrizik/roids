@@ -88,15 +88,15 @@ init_console(PermanentMemory* pm){
     console.command_history_font.color = LIGHT_GRAY;
 
     bool succeed;
-    succeed = load_font_ttf(&pm->arena, pm->fonts_dir, &console.input_font);
+    succeed = load_font_ttf(&pm->arena, path_fonts, &console.input_font);
     assert(succeed);
     load_font_glyphs(&pm->arena, &console.input_font);
 
-    succeed = load_font_ttf(&pm->arena, pm->fonts_dir, &console.output_font);
+    succeed = load_font_ttf(&pm->arena, path_fonts, &console.output_font);
     assert(succeed);
     load_font_glyphs(&pm->arena, &console.output_font);
 
-    succeed = load_font_ttf(&pm->arena, pm->fonts_dir, &console.command_history_font);
+    succeed = load_font_ttf(&pm->arena, path_fonts, &console.command_history_font);
     assert(succeed);
     load_font_glyphs(&pm->arena, &console.command_history_font);
 }

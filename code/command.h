@@ -84,7 +84,7 @@ command_saves(String8* args){
     files.next = &files;
     files.prev = &files;
     // TODO: I DONT THINK I SHOULD BE PASSING A SCRATCH HERE?
-    os_dir_files(scratch.arena, &files, pm->saves_dir);
+    os_dir_files(scratch.arena, &files, path_saves);
     dll_pop_front(&files);
     dll_pop_front(&files);
 

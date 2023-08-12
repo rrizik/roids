@@ -101,7 +101,7 @@ d3d_create_depthbuffer(){
 }
 
 static HRESULT
-d3d_init_shaders(){
+d3d_init_shaders(String8 path_src){
     HRESULT result = ZERO_INIT;
 
 #if DEBUG
@@ -110,20 +110,27 @@ d3d_init_shaders(){
     u32 shader_compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
+    ScratchArena scratch = begin_scratch(0);
+    String8 shader_file = str8_literal("simple_shader.hlsl");
+    String8 utf8_shader_path = str8_path_append(scratch.arena, path_src, shader_file);
+    String16 utf16_shader_path = os_utf8_utf16(scratch.arena, utf8_shader_path);
     ID3DBlob* vs_blob, *ps_blob, *error;
-    result = D3DCompileFromFile(L"code\\simple_shader.hlsl", 0, 0, "vs_main", "vs_5_0", shader_compile_flags, 0, &vs_blob, &error);
+    //result = D3DCompileFromFile(L"code\\simple_shader.hlsl", 0, 0, "vs_main", "vs_5_0", shader_compile_flags, 0, &vs_blob, &error);
+    result = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "vs_main", "vs_5_0", shader_compile_flags, 0, &vs_blob, &error);
     if(FAILED(result)) {
         print("Error: failed D3DCompileFromFile()\n");
         print("--- Message: %s\n", (char*)error->GetBufferPointer());
         return(result);
     }
 
-    result = D3DCompileFromFile(L"code\\simple_shader.hlsl", 0, 0, "ps_main", "ps_5_0", shader_compile_flags, 0, &ps_blob, &error);
+    //result = D3DCompileFromFile(L"code\\simple_shader.hlsl", 0, 0, "ps_main", "ps_5_0", shader_compile_flags, 0, &ps_blob, &error);
+    result = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "ps_main", "ps_5_0", shader_compile_flags, 0, &ps_blob, &error);
     if(FAILED(result)) {
         print("Error: failed D3DCompileFromFile()\n");
         print("--- Message: %s\n", (char*)error->GetBufferPointer());
         return(result);
     }
+    end_scratch(scratch);
 
     result = d3d_device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &vertex_shader);
     if(FAILED(result)) { return(result); }

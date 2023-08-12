@@ -84,7 +84,6 @@ init_memory(Memory* m){
     m->transient_base = (u8*)m->base + m->permanent_size;
 }
 
-#include "game.h"
 
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
     LRESULT result = 0;
@@ -248,13 +247,47 @@ win32_window_create(wchar* window_name, u32 width, u32 height){
     return(result);
 }
 
+static String8 path_cwd;
+static String8 path_exe;
+static String8 path_working_directory;
+static String8 path_data;
+static String8 path_sprites;
+static String8 path_fonts;
+static String8 path_saves;
+static String8 path_src;
+static void
+init_paths(Arena* arena){
+    path_exe = os_get_exe_path(global_arena);
+    path_cwd = os_get_cwd(global_arena);
+    ScratchArena scratch = begin_scratch(0);
+    String8Node split_exe_path = str8_split(scratch.arena, path_exe, '\\');
+
+    dll_pop_back(&split_exe_path);
+    dll_pop_back(&split_exe_path);
+    String8Join opts = {
+        .mid = str8_literal("\\"),
+    };
+    path_working_directory = str8_join(global_arena, &split_exe_path, opts);
+    path_data = str8_path_append(arena, path_working_directory, str8_literal("data"));
+    path_src  = str8_path_append(arena, path_working_directory, str8_literal("code"));
+    path_sprites = str8_path_append(arena, path_data, str8_literal("sprites"));
+    path_fonts   = str8_path_append(arena, path_data, str8_literal("fonts"));
+    path_saves   = str8_path_append(arena, path_data, str8_literal("saves"));
+    end_scratch(scratch);
+}
+
+#include "game.h"
 static HRESULT hresult;
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
 
     bool succeed = win32_init();
     assert(succeed);
 
+    init_paths(global_arena);
+
+
     Window window = win32_window_create(L"Roids", SCREEN_WIDTH + 30, SCREEN_HEIGHT + 50);
+
 
 
     // NOTE: Create device, device_context, swap_chain
@@ -273,7 +306,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     //result = d3d_create_depthbuffer();
     //assert_hr(result);
 
-    result = d3d_init_shaders();
+    result = d3d_init_shaders(path_src);
     assert_hr(result);
 
     // NOTE: Create vertex_buffer
