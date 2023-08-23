@@ -100,7 +100,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         // TODO: mouse_pos now is probably wrong, fix it
         case WM_MOUSEMOVE:{
             Event event;
-            event.type = MOUSE;
+            event.type = MOUSE; // TODO: maybe have this be a KEYBOARD event
             event.mouse_pos.x = (l_param & 0xFFFF); //- render_buffer.padding;
             event.mouse_pos.y = (SCREEN_HEIGHT - (s32)(l_param >> 16)); //+ render_buffer.padding; // (0, 0) bottom left
 
@@ -247,36 +247,34 @@ win32_window_create(wchar* window_name, u32 width, u32 height){
     return(result);
 }
 
-static String8 path_cwd;
 static String8 path_exe;
-static String8 path_working_directory;
+static String8 path_cwd;
 static String8 path_data;
 static String8 path_sprites;
 static String8 path_fonts;
 static String8 path_saves;
-static String8 path_src;
+static String8 path_shaders;
 static void
 init_paths(Arena* arena){
     path_exe = os_get_exe_path(global_arena);
-    path_cwd = os_get_cwd(global_arena);
+
     ScratchArena scratch = begin_scratch(0);
     String8Node split_exe_path = str8_split(scratch.arena, path_exe, '\\');
+    dll_pop_back(&split_exe_path);
+    dll_pop_back(&split_exe_path);
+    String8Join opts = { .mid = str8_literal("\\"), };
+    path_cwd = str8_join(global_arena, &split_exe_path, opts);
+    end_scratch(scratch);
 
-    dll_pop_back(&split_exe_path);
-    dll_pop_back(&split_exe_path);
-    String8Join opts = {
-        .mid = str8_literal("\\"),
-    };
-    path_working_directory = str8_join(global_arena, &split_exe_path, opts);
-    path_data = str8_path_append(arena, path_working_directory, str8_literal("data"));
-    path_src  = str8_path_append(arena, path_working_directory, str8_literal("code"));
+    path_data    = str8_path_append(arena, path_cwd, str8_literal("data"));
     path_sprites = str8_path_append(arena, path_data, str8_literal("sprites"));
     path_fonts   = str8_path_append(arena, path_data, str8_literal("fonts"));
     path_saves   = str8_path_append(arena, path_data, str8_literal("saves"));
-    end_scratch(scratch);
+    path_shaders = str8_path_append(arena, path_data, str8_literal("shaders"));
 }
 
 #include "game.h"
+static f32 cangle = 0;
 static HRESULT hresult;
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
 
@@ -285,51 +283,48 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
     init_paths(global_arena);
 
+    random_seed(0, 1);
 
-    Window window = win32_window_create(L"Roids", SCREEN_WIDTH + 30, SCREEN_HEIGHT + 50);
+    Window window = win32_window_create(L"Roids", SCREEN_WIDTH, SCREEN_HEIGHT);
 
-
-
-    // NOTE: Create device, device_context, swap_chain
+    // D3D11 stuff
     HRESULT result;
-    result = d3d_create_device_and_swapchain(window.handle);
-    assert_hr(result);
+    d3d_create_device_and_context();
+    d3d_create_swapchain(window.handle);
 
-    // NOTE: Init backbuffer
-    result = d3d_create_framebuffer();
-    assert_hr(result);
+    d3d_create_framebuffer();
+    d3d_create_depthbuffer();
+    d3d_create_depthstencil();
 
-    // NOTE: Init viewport
-    d3d_init_viewport();
+    d3d_create_rasterizer_state();
+    d3d_create_sampler_state();
+    d3d_set_viewport();
 
-    // NOTE: Init depthbuffer
-    //result = d3d_create_depthbuffer();
-    //assert_hr(result);
+    d3d_load_vertex_shader(path_shaders);
+    d3d_load_pixel_shader(path_shaders);
 
-    result = d3d_init_shaders(path_src);
-    assert_hr(result);
-
-    // NOTE: Create vertex_buffer
-    result = d3d_create_vertex_buffer();
-    assert_hr(result);
-
+    d3d_create_vertex_buffer();
+    d3d_create_index_buffer();
+    //d3d_set_vertex_buffer(cube, array_count(cube));
+    //d3d_set_index_buffer(indicies, array_count(indicies));
+    d3d_create_constant_buffer();
 
 
+    d3d_context->VSSetShader(vertex_shader, 0, 0);
+    d3d_context->PSSetShader(pixel_shader, 0, 0);
+    d3d_context->PSSetConstantBuffers(0, 1, &ps_constant_buffer);
+    d3d_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
+    d3d_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
 
-
-
-
-
-
-
-
+    d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
+    d3d_context->OMSetBlendState(0, 0, 0xffffffff);
 
 
     init_memory(&memory);
     init_clock(&clock);
     init_events(&events);
 
-    //should_quit = false;
 
     //f64 FPS = 0;
     //f64 MSPF = 0;
@@ -342,6 +337,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
 	u32 simulations = 0;
     f64 time_elapsed = 0;
+
+    should_quit = false;
     while(!should_quit){
         MSG message;
         while(PeekMessageW(&message, window.handle, 0, 0, PM_REMOVE)){
@@ -362,23 +359,96 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             simulations++;
         }
 
+        f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
+        //f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
 
-        // NOTE: Clear screen to color
+        d3d_create_constant_buffer();
+
         f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
-        d3d_context->ClearRenderTargetView(d3d_framebuffer, background_color);
+        d3d_context->ClearRenderTargetView(d3d_framebuffer_view, background_color);
+        d3d_context->ClearDepthStencilView(d3d_depthbuffer_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
+        if(memory.initialized){
+        for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
+            Entity *e = pm->entities + pm->free_entities[entity_index];
 
-        d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-        d3d_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
+            switch(e->type){
+                case EntityType_Cube:{
+                    print("index: %i\n", e->index);
+                    e->angle += (f32)clock.dt;
 
-        d3d_context->VSSetShader(vertex_shader, 0, 0);
-        d3d_context->PSSetShader(pixel_shader, 0, 0);
+                    Mesh mesh = pm->meshes[EntityType_Cube];
+                    d3d_context->IASetVertexBuffers(0, 1, &mesh.vertex_buffer, &vertex_stride, &vertex_offset);
+                    d3d_context->IASetIndexBuffer(mesh.index_buffer, DXGI_FORMAT_R32_UINT, 0);
+                    print("z mouse: %f\n", (f32)controller.mouse_pos.y/SCREEN_HEIGHT * 10);
+                    print("x: %f - y: %f - z: %f\n", e->pos.x, e->pos.y, e->pos.y);
 
-        //d3d_context->OMSetRenderTargets(1, &d3d_framebuffer, d3d_depthbuffer);
-        d3d_context->OMSetRenderTargets(1, &d3d_framebuffer, 0);
+                    if(e->index == 120){
+                        vs_cb.transform = XMMatrixTranspose(
+                            XMMatrixRotationZ(e->angle) *
+                            XMMatrixRotationY(e->angle) *
+                            XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
+                            XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
+                            XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
+                        );
+                        d3d_context->VSSetConstantBuffers(0, 1, &vs_constant_buffer);
+                    }
+                    if(e->index == 121){
+                        vs_cb2.transform = XMMatrixTranspose(
+                            XMMatrixRotationZ(e->angle) *
+                            XMMatrixRotationX(e->angle) *
+                            XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
+                            XMMatrixTranslation(e->pos.x, e->pos.y, (f32)controller.mouse_pos.y/SCREEN_HEIGHT * 10) *
+                            XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
+                        );
+                        d3d_context->VSSetConstantBuffers(0, 1, &vs_constant_buffer2);
+                    }
 
-        d3d_context->Draw(3, 0);
-
+                    d3d_context->DrawIndexed(index_count, 0, 0);
+                } break;
+            }
+        }
+        }
         d3d_swapchain->Present(1, 0);
+
+        //POINT p = {controller.mouse_pos.x, controller.mouse_pos.y};
+        //ScreenToClient(window.handle, &p);
+        //vs_cb.transform = XMMatrixTranspose(
+        //        XMMatrixRotationZ(angle) *
+        //        XMMatrixRotationX(angle) *
+        //        XMMatrixTranslation(0.0f, 0.0f, (f32)controller.mouse_pos.y/SCREEN_HEIGHT * 10) *
+        //        //XMMatrixTranslation(0.0f, 0.0f, 8.0f) *
+        //        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
+        //);
+        //vs_cb2.transform = XMMatrixTranspose(
+        //        XMMatrixRotationZ(angle) *
+        //        XMMatrixRotationY(angle) *
+        //        XMMatrixScaling(0.5f, 0.5f, 0.5f) *
+        //        //XMMatrixTranslation((f32)p.x/SCREEN_WIDTH, (f32)p.y/SCREEN_HEIGHT, 10.0f) *
+        //        XMMatrixTranslation(0.0f, 0.0f, 4.0f) *
+        //        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
+        //);
+        //print("%i - %i\n", controller.mouse_pos.x, controller.mouse_pos.y);
+        //print("n:%f - n:%f\n", (f32)controller.mouse_pos.x/SCREEN_WIDTH * 3, (f32)controller.mouse_pos.y/SCREEN_HEIGHT * 3);
+        ////print("%i - %i\n", p.x, p.y);
+
+
+        //// NOTE: Clear screen to color
+        //f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
+        //d3d_context->ClearRenderTargetView(d3d_framebuffer, background_color);
+        //d3d_context->ClearDepthStencilView(d3d_depth_stencil_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+
+        // QUESTION: Does this stuff have to happen every time? I feel like no
+
+        //d3d_context->VSSetConstantBuffers(0, 1, &vs_constant_buffer);
+        //d3d_context->DrawIndexed(index_count, 0, 0);
+
+        //d3d_context->IASetVertexBuffers(0, 1, &vertex_buffer2, &vertex_stride, &vertex_offset);
+        //d3d_context->IASetIndexBuffer(index_buffer2, DXGI_FORMAT_R32_UINT, 0);
+        //d3d_context->VSSetConstantBuffers(0, 1, &vs_constant_buffer2);
+        //d3d_context->DrawIndexed(index_count, 0, 0);
+        //d3d_context->Draw(array_count(verticies), 0);
+
 
         //frame_count++;
 		//simulations = 0;

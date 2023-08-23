@@ -27,7 +27,7 @@ typedef struct Controller{
     Button m_left;
     Button m_right;
     Button m_middle;
-    v2 mouse_pos;
+    v2s32 mouse_pos;
 } Controller;
 global Controller controller;
 

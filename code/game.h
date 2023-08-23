@@ -36,6 +36,8 @@ typedef struct PermanentMemory{
     Entity entities[ENTITIES_MAX];
     u32 entities_count;
 
+    Mesh meshes[100];
+
     Entity* texture;
     Entity* circle;
     Entity* basis;
@@ -52,6 +54,13 @@ typedef struct TransientMemory{
     Arena *render_command_arena;
 } TransientMemory;
 global TransientMemory* tm;
+
+static void
+init_meshes(Mesh* meshes){
+    Mesh* mesh = (Mesh*)(meshes + EntityType_Cube);
+    d3d_set_vertex_buffer(mesh, cube, array_count(cube));
+    d3d_set_index_buffer(mesh, cube_indicies, array_count(cube_indicies));
+}
 
 static Entity*
 entity_from_handle(PermanentMemory* pm, EntityHandle handle){
@@ -95,6 +104,7 @@ add_entity(PermanentMemory *pm, EntityType type){
         pm->entities_count++;
         e->generation = pm->generation[e->index]; // CONSIDER: this might not be necessary
         e->type = type;
+        d3d_init_constant_buffer(&e->constant_buffer, e->vs_constant_buffer);
 
         return(e);
     }
@@ -168,7 +178,7 @@ add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, R
     e->direction = make_v2(0, 1);
     e->rad = dir_to_rad(e->direction);
     e->speed = 250;
-    e->scale = 50;
+    //e->scale = 50;
     pm->ship_loaded = true; // TODO: get rid of
     return(e);
 }
@@ -184,7 +194,17 @@ add_bullet(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture,
     e->direction = make_v2(0, 1);
     e->rad = dir_to_rad(e->direction);
     e->speed = 250;
-    e->scale = 10;
+    //e->scale = 10;
+    return(e);
+}
+
+static Entity*
+add_cube(PermanentMemory* pm, v3 pos, f32 angle, v3 scale, u32 index){
+    Entity* e = add_entity(pm, EntityType_Cube);
+    e->index = index;
+    e->pos = pos;
+    e->angle = angle;
+    e->scale = scale;
     return(e);
 }
 
@@ -326,6 +346,9 @@ handle_global_event(Event event){
 
 static bool
 handle_controller_events(Event event){
+    if(event.type == MOUSE){
+        controller.mouse_pos = event.mouse_pos;
+    }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == A_UPPER){
@@ -380,6 +403,8 @@ handle_controller_events(Event event){
 }
 
 static f32 angle = 0;
+static Entity* first;
+static Entity* second;
 static void
 //update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* clock){
 update_game(Memory* memory, Events* events, Clock* clock){
@@ -402,6 +427,7 @@ update_game(Memory* memory, Events* events, Clock* clock){
         tm->frame_arena = push_arena(&tm->arena, MB(100));
 
         // setup free entities array (max to 0)
+        init_meshes(pm->meshes);
         entities_clear(pm);
 
         //pm->sprites_dir = str8_path_append(&pm->arena, path_data, str8_literal("sprites"));
@@ -445,6 +471,8 @@ update_game(Memory* memory, Events* events, Clock* clock){
         //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .5f, .8, .6), resolution), MAGENTA, -20000, TEAL);
 
+        first = add_cube(pm, make_v3(0.0f, 0.0f, 4.0f), 0.0f, make_v3(0.2f, 0.2f, 0.2f), 120);
+        second = add_cube(pm, make_v3(0.0f, 0.0f, 4.0f), 0.0f, make_v3(1.0f, 1.0f, 1.0f), 121);
         //Inconsolata-Regular
         Bitmap inconsolate[128];
 
@@ -469,6 +497,7 @@ update_game(Memory* memory, Events* events, Clock* clock){
         memory->initialized = true;
     }
     angle += (f32)clock->dt;
+    //second->pos.z = cos_f32(angle);
 
 
     // NOTE: process events.
