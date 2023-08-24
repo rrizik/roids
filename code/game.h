@@ -57,9 +57,17 @@ global TransientMemory* tm;
 
 static void
 init_meshes(Mesh* meshes){
-    Mesh* mesh = (Mesh*)(meshes + EntityType_Cube);
-    d3d_set_vertex_buffer(mesh, cube, array_count(cube));
-    d3d_set_index_buffer(mesh, cube_indicies, array_count(cube_indicies));
+    // CUBE
+    Mesh* cube_mesh = (Mesh*)(meshes + EntityType_Cube);
+    cube_mesh->vertex_offset = 0;
+    cube_mesh->vertex_stride = sizeof(v3);
+    cube_mesh->vertex_count = array_count(cube);
+    d3d_init_vertex_buffer(cube_mesh, cube);
+
+    cube_mesh->index_stride = sizeof(u32);
+    cube_mesh->index_count = array_count(cube_indicies);
+    d3d_init_index_buffer(cube_mesh, cube_indicies);
+    ////////////////////////////////
 }
 
 static Entity*
@@ -104,7 +112,6 @@ add_entity(PermanentMemory *pm, EntityType type){
         pm->entities_count++;
         e->generation = pm->generation[e->index]; // CONSIDER: this might not be necessary
         e->type = type;
-        d3d_init_constant_buffer(&e->constant_buffer, e->vs_constant_buffer);
 
         return(e);
     }
@@ -201,6 +208,16 @@ add_bullet(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture,
 static Entity*
 add_cube(PermanentMemory* pm, v3 pos, f32 angle, v3 scale, u32 index){
     Entity* e = add_entity(pm, EntityType_Cube);
+    e->index = index;
+    e->pos = pos;
+    e->angle = angle;
+    e->scale = scale;
+    return(e);
+}
+
+static Entity*
+add_player(PermanentMemory* pm, v3 pos, f32 angle, v3 scale, u32 index){
+    Entity* e = add_entity(pm, EntityType_Player);
     e->index = index;
     e->pos = pos;
     e->angle = angle;
@@ -472,7 +489,7 @@ update_game(Memory* memory, Events* events, Clock* clock){
         //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .5f, .8, .6), resolution), MAGENTA, -20000, TEAL);
 
         first = add_cube(pm, make_v3(0.0f, 0.0f, 4.0f), 0.0f, make_v3(0.2f, 0.2f, 0.2f), 120);
-        second = add_cube(pm, make_v3(0.0f, 0.0f, 4.0f), 0.0f, make_v3(1.0f, 1.0f, 1.0f), 121);
+        second = add_player(pm, make_v3(0.0f, 0.0f, 4.0f), 0.0f, make_v3(1.0f, 1.0f, 1.0f), 121);
         //Inconsolata-Regular
         Bitmap inconsolate[128];
 
@@ -516,14 +533,30 @@ update_game(Memory* memory, Events* events, Clock* clock){
         }
     }
 
+    if(controller.right.held){
+        second->pos.x += 4 * (f32)clock->dt;
+    }
+    if(controller.left.held){
+        second->pos.x -= 4 * (f32)clock->dt;
+    }
+    if(controller.up.held){
+        second->pos.y += 4 * (f32)clock->dt;
+    }
+    if(controller.down.held){
+        second->pos.y -= 4 * (f32)clock->dt;
+    }
+
+    print("second: (%f, %f, %f)\n", second->pos.x, second->pos.y, second->pos.z);
     if(pm->ship_loaded){
         Entity* ship = pm->ship;
         // rotate ship
         if(controller.right.held){
             ship->rad -= 2 * (f32)clock->dt;
+            second->pos.x += 1 * (f32)clock->dt;
         }
         if(controller.left.held){
             ship->rad += 2 * (f32)clock->dt;
+            second->pos.x -= 1 * (f32)clock->dt;
         }
 
         // increase ship velocity

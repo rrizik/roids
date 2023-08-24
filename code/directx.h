@@ -27,8 +27,7 @@ global ID3D11SamplerState* d3d_sampler_state           = 0;
 
 global ID3D11Buffer* vertex_buffer   = 0;
 global ID3D11Buffer* index_buffer    = 0;
-global ID3D11Buffer* vs_constant_buffer  = 0;
-global ID3D11Buffer* vs_constant_buffer2 = 0;
+global ID3D11Buffer* constant_buffer  = 0;
 global ID3D11Buffer* ps_constant_buffer  = 0;
 
 global ID3D11VertexShader* vertex_shader = 0;
@@ -251,15 +250,14 @@ d3d_load_pixel_shader(String8 path){
 typedef struct Mesh{
     ID3D11Buffer* vertex_buffer;
     ID3D11Buffer* index_buffer;
+    u32 vertex_offset;
     u32 vertex_stride;
+    u32 vertex_count;
+    u32 index_stride;
     u32 index_count;
 } Mesh;
 
-typedef struct Vertex{
-    v3 position;
-} Vertex;
-
-static Vertex cube[] = {
+static v3 cube[] = {
     { make_v3(-1.0f, -1.0f, -1.0f) },
     { make_v3( 1.0f, -1.0f, -1.0f) },
     { make_v3(-1.0f,  1.0f, -1.0f) },
@@ -271,9 +269,6 @@ static Vertex cube[] = {
 };
 
 
-static u32 vertex_count = array_count(cube);
-static u32 vertex_stride = sizeof(Vertex);
-static u32 vertex_offset = 0;
 
 static u32 cube_indicies[] = {
     0,2,1, 2,3,1,
@@ -283,76 +278,46 @@ static u32 cube_indicies[] = {
     0,4,2, 2,4,6,
     0,1,4, 1,5,4,
 };
-static u32 index_stride = sizeof(u32);
-static u32 index_count = array_count(cube_indicies);
 
 static void
-d3d_create_vertex_buffer(){
-    D3D11_BUFFER_DESC buffer_desc = {0};
-    buffer_desc.StructureByteStride = vertex_stride;
-    buffer_desc.ByteWidth = vertex_stride * vertex_count;
-    buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
-    buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA vertex_resource = {0};
-    vertex_resource.pSysMem = cube;
-    HRESULT result = d3d_device->CreateBuffer(&buffer_desc, &vertex_resource, &vertex_buffer);
-    assert_hr(result);
-}
-
-static void
-d3d_set_vertex_buffer(Mesh* mesh, Vertex* verticies, u32 count){
-    mesh->vertex_stride = sizeof(Vertex);
+d3d_init_vertex_buffer(Mesh* mesh, v3* verticies){
+    HRESULT hr;
 
     D3D11_BUFFER_DESC buffer_desc = {0};
     buffer_desc.StructureByteStride = mesh->vertex_stride;
-    buffer_desc.ByteWidth = mesh->vertex_stride * count;
-    buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
+    buffer_desc.ByteWidth = mesh->vertex_stride * mesh->vertex_count;
+    buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
     buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
     D3D11_SUBRESOURCE_DATA vertex_resource = {0};
     vertex_resource.pSysMem = verticies;
-    HRESULT result = d3d_device->CreateBuffer(&buffer_desc, &vertex_resource, &mesh->vertex_buffer);
+    hr = d3d_device->CreateBuffer(&buffer_desc, &vertex_resource, &mesh->vertex_buffer);
+    assert_hr(hr);
 
-    d3d_context->IASetVertexBuffers(0, 1, &mesh->vertex_buffer, &mesh->vertex_stride, &vertex_offset);
-    assert_hr(result);
+    d3d_context->IASetVertexBuffers(0, 1, &mesh->vertex_buffer, &mesh->vertex_stride, &mesh->vertex_offset);
 }
 
 static void
-d3d_create_index_buffer(){
+d3d_init_index_buffer(Mesh* mesh, u32* indicies){
+    HRESULT hr;
+
     D3D11_BUFFER_DESC buffer_desc = {0};
-    buffer_desc.StructureByteStride = index_stride;
-    buffer_desc.ByteWidth = index_stride * index_count;
-    buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
-    buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA index_resource  = {0};
-    index_resource.pSysMem                 = cube_indicies;
-    HRESULT result = d3d_device->CreateBuffer(&buffer_desc, &index_resource, &index_buffer);
-    assert_hr(result);
-}
-
-static void
-d3d_set_index_buffer(Mesh* mesh, u32* indicies, u32 count){
-    mesh->index_count = count;
-
-    u32 stride = sizeof(u32);
-    D3D11_BUFFER_DESC buffer_desc = {0};
-    buffer_desc.StructureByteStride = stride;
-    buffer_desc.ByteWidth = stride * mesh->index_count;
+    buffer_desc.StructureByteStride = mesh->index_stride;
+    buffer_desc.ByteWidth = mesh->index_stride * mesh->index_count;
     buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
     buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
     D3D11_SUBRESOURCE_DATA index_resource  = {0};
     index_resource.pSysMem                 = indicies;
-    HRESULT result = d3d_device->CreateBuffer(&buffer_desc, &index_resource, &mesh->index_buffer);
+    hr = d3d_device->CreateBuffer(&buffer_desc, &index_resource, &mesh->index_buffer);
+    assert_hr(hr);
+
     d3d_context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
-    assert_hr(result);
 }
 
-typedef struct ConstantBuffer{
+typedef struct Constants{
     XMMATRIX transform;
-} ConstantBuffer;
+} Constants;
 
 typedef struct ConstantBuffer2{
     struct{
@@ -363,8 +328,6 @@ typedef struct ConstantBuffer2{
     } face_colors[6];
 } ConstandBuffer2;
 
-static ConstantBuffer vs_cb = {};
-static ConstantBuffer vs_cb2 = {};
 static ConstantBuffer2 ps_cb = {
     {
         {1.0f, 0.0f, 1.0f, 1.0f},
@@ -375,53 +338,24 @@ static ConstantBuffer2 ps_cb = {
         {0.0f, 1.0f, 1.0f, 1.0f},
     }
 };
+
 static void
 d3d_create_constant_buffer(){
+    HRESULT hr;
+
     D3D11_BUFFER_DESC buffer_desc = {0};
-    buffer_desc.ByteWidth = sizeof(ConstantBuffer);
+    buffer_desc.ByteWidth = sizeof(Constants);
     buffer_desc.Usage     = D3D11_USAGE_DYNAMIC;
     buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-    D3D11_SUBRESOURCE_DATA constant_resource = {};
-    constant_resource.pSysMem = &vs_cb;
-    HRESULT result = d3d_device->CreateBuffer(&buffer_desc, &constant_resource, &vs_constant_buffer);
-    constant_resource.pSysMem = &vs_cb2;
-    result = d3d_device->CreateBuffer(&buffer_desc, &constant_resource, &vs_constant_buffer2);
-    assert_hr(result);
+    hr = d3d_device->CreateBuffer(&buffer_desc, 0, &constant_buffer);
+    assert_hr(hr);
 
+    D3D11_SUBRESOURCE_DATA constant_resource = {};
     buffer_desc.ByteWidth = sizeof(ConstantBuffer2);
     constant_resource.pSysMem = &ps_cb;
-    result = d3d_device->CreateBuffer(&buffer_desc, &constant_resource, &ps_constant_buffer);
-    assert_hr(result);
-}
-
-static void
-d3d_set_constant_buffer(ConstantBuffer* cb){
-    D3D11_BUFFER_DESC buffer_desc = {0};
-    buffer_desc.ByteWidth = sizeof(ConstantBuffer);
-    buffer_desc.Usage     = D3D11_USAGE_DYNAMIC;
-    buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-    D3D11_SUBRESOURCE_DATA constant_resource = {};
-    constant_resource.pSysMem = &cb;
-    HRESULT result = d3d_device->CreateBuffer(&buffer_desc, &constant_resource, &vs_constant_buffer);
-    assert_hr(result);
-    d3d_context->VSSetConstantBuffers(0, 1, &vs_constant_buffer);
-}
-
-static void
-d3d_init_constant_buffer(ConstantBuffer* cb, ID3D11Buffer* buffer){
-    D3D11_BUFFER_DESC buffer_desc = {0};
-    buffer_desc.ByteWidth = sizeof(ConstantBuffer);
-    buffer_desc.Usage     = D3D11_USAGE_DYNAMIC;
-    buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-
-    D3D11_SUBRESOURCE_DATA constant_resource = {};
-    constant_resource.pSysMem = &cb;
-    HRESULT result = d3d_device->CreateBuffer(&buffer_desc, &constant_resource, &buffer);
-    assert_hr(result);
+    hr = d3d_device->CreateBuffer(&buffer_desc, &constant_resource, &ps_constant_buffer);
+    assert_hr(hr);
 }
 

@@ -303,18 +303,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     d3d_load_vertex_shader(path_shaders);
     d3d_load_pixel_shader(path_shaders);
 
-    d3d_create_vertex_buffer();
-    d3d_create_index_buffer();
-    //d3d_set_vertex_buffer(cube, array_count(cube));
-    //d3d_set_index_buffer(indicies, array_count(indicies));
     d3d_create_constant_buffer();
-
 
     d3d_context->VSSetShader(vertex_shader, 0, 0);
     d3d_context->PSSetShader(pixel_shader, 0, 0);
     d3d_context->PSSetConstantBuffers(0, 1, &ps_constant_buffer);
-    d3d_context->IASetVertexBuffers(0, 1, &vertex_buffer, &vertex_stride, &vertex_offset);
-    d3d_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
 
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
@@ -362,8 +355,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
         //f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
 
-        d3d_create_constant_buffer();
-
         f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
         d3d_context->ClearRenderTargetView(d3d_framebuffer_view, background_color);
         d3d_context->ClearDepthStencilView(d3d_depthbuffer_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
@@ -373,82 +364,59 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
             switch(e->type){
                 case EntityType_Cube:{
-                    print("index: %i\n", e->index);
                     e->angle += (f32)clock.dt;
 
                     Mesh mesh = pm->meshes[EntityType_Cube];
-                    d3d_context->IASetVertexBuffers(0, 1, &mesh.vertex_buffer, &vertex_stride, &vertex_offset);
+                    d3d_context->IASetVertexBuffers(0, 1, &mesh.vertex_buffer, &mesh.vertex_stride, &mesh.vertex_offset);
                     d3d_context->IASetIndexBuffer(mesh.index_buffer, DXGI_FORMAT_R32_UINT, 0);
-                    print("z mouse: %f\n", (f32)controller.mouse_pos.y/SCREEN_HEIGHT * 10);
-                    print("x: %f - y: %f - z: %f\n", e->pos.x, e->pos.y, e->pos.y);
 
-                    if(e->index == 120){
-                        vs_cb.transform = XMMatrixTranspose(
-                            XMMatrixRotationZ(e->angle) *
-                            XMMatrixRotationY(e->angle) *
-                            XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
-                            XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
-                            XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
-                        );
-                        d3d_context->VSSetConstantBuffers(0, 1, &vs_constant_buffer);
-                    }
-                    if(e->index == 121){
-                        vs_cb2.transform = XMMatrixTranspose(
-                            XMMatrixRotationZ(e->angle) *
-                            XMMatrixRotationX(e->angle) *
-                            XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
-                            XMMatrixTranslation(e->pos.x, e->pos.y, (f32)controller.mouse_pos.y/SCREEN_HEIGHT * 10) *
-                            XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
-                        );
-                        d3d_context->VSSetConstantBuffers(0, 1, &vs_constant_buffer2);
-                    }
 
-                    d3d_context->DrawIndexed(index_count, 0, 0);
+                    D3D11_MAPPED_SUBRESOURCE mapped_subresource;
+                    d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+
+                    Constants* constants = (Constants*)mapped_subresource.pData;
+
+                    constants->transform = XMMatrixTranspose(
+                        XMMatrixRotationZ(e->angle) *
+                        XMMatrixRotationY(e->angle) *
+                        XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
+                        XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
+                        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
+                    );
+                    d3d_context->Unmap(constant_buffer, 0);
+                    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+
+                    d3d_context->DrawIndexed(mesh.index_count, 0, 0);
+                } break;
+                case EntityType_Player:{
+                    e->angle += (f32)clock.dt;
+
+                    Mesh mesh = pm->meshes[EntityType_Cube];
+                    d3d_context->IASetVertexBuffers(0, 1, &mesh.vertex_buffer, &mesh.vertex_stride, &mesh.vertex_offset);
+                    d3d_context->IASetIndexBuffer(mesh.index_buffer, DXGI_FORMAT_R32_UINT, 0);
+
+
+                    D3D11_MAPPED_SUBRESOURCE mapped_subresource;
+                    d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+
+                    Constants* constants = (Constants*)mapped_subresource.pData;
+
+                    constants->transform = XMMatrixTranspose(
+                        XMMatrixRotationZ(e->angle) *
+                        XMMatrixRotationX(e->angle) *
+                        XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
+                        XMMatrixTranslation(e->pos.x, e->pos.y, (f32)controller.mouse_pos.y/SCREEN_HEIGHT * 10) *
+                        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
+                    );
+                    d3d_context->Unmap(constant_buffer, 0);
+                    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+
+                    d3d_context->DrawIndexed(mesh.index_count, 0, 0);
                 } break;
             }
         }
         }
         d3d_swapchain->Present(1, 0);
-
-        //POINT p = {controller.mouse_pos.x, controller.mouse_pos.y};
-        //ScreenToClient(window.handle, &p);
-        //vs_cb.transform = XMMatrixTranspose(
-        //        XMMatrixRotationZ(angle) *
-        //        XMMatrixRotationX(angle) *
-        //        XMMatrixTranslation(0.0f, 0.0f, (f32)controller.mouse_pos.y/SCREEN_HEIGHT * 10) *
-        //        //XMMatrixTranslation(0.0f, 0.0f, 8.0f) *
-        //        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
-        //);
-        //vs_cb2.transform = XMMatrixTranspose(
-        //        XMMatrixRotationZ(angle) *
-        //        XMMatrixRotationY(angle) *
-        //        XMMatrixScaling(0.5f, 0.5f, 0.5f) *
-        //        //XMMatrixTranslation((f32)p.x/SCREEN_WIDTH, (f32)p.y/SCREEN_HEIGHT, 10.0f) *
-        //        XMMatrixTranslation(0.0f, 0.0f, 4.0f) *
-        //        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
-        //);
-        //print("%i - %i\n", controller.mouse_pos.x, controller.mouse_pos.y);
-        //print("n:%f - n:%f\n", (f32)controller.mouse_pos.x/SCREEN_WIDTH * 3, (f32)controller.mouse_pos.y/SCREEN_HEIGHT * 3);
-        ////print("%i - %i\n", p.x, p.y);
-
-
-        //// NOTE: Clear screen to color
-        //f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
-        //d3d_context->ClearRenderTargetView(d3d_framebuffer, background_color);
-        //d3d_context->ClearDepthStencilView(d3d_depth_stencil_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
-
-
-        // QUESTION: Does this stuff have to happen every time? I feel like no
-
-        //d3d_context->VSSetConstantBuffers(0, 1, &vs_constant_buffer);
-        //d3d_context->DrawIndexed(index_count, 0, 0);
-
-        //d3d_context->IASetVertexBuffers(0, 1, &vertex_buffer2, &vertex_stride, &vertex_offset);
-        //d3d_context->IASetIndexBuffer(index_buffer2, DXGI_FORMAT_R32_UINT, 0);
-        //d3d_context->VSSetConstantBuffers(0, 1, &vs_constant_buffer2);
-        //d3d_context->DrawIndexed(index_count, 0, 0);
-        //d3d_context->Draw(array_count(verticies), 0);
-
 
         //frame_count++;
 		//simulations = 0;
