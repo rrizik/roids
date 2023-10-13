@@ -18,6 +18,8 @@ global Mouse mouse;
 
 typedef struct Controller{
     Mouse mouse;
+    Button q;
+    Button e;
     Button up;
     Button down;
     Button left;
@@ -33,6 +35,8 @@ global Controller controller;
 
 static void
 clear_controller_pressed(Controller* controller){
+    controller->q.pressed = false;
+    controller->e.pressed = false;
     controller->left.pressed = false;
     controller->up.pressed = false;
     controller->down.pressed = false;

@@ -12,7 +12,6 @@ typedef struct Entity{
 
     u32 flags;
     Rect rect;
-    v3 scale;
     v2 origin;
     v2 x_axis;
     v2 y_axis;
@@ -22,12 +21,13 @@ typedef struct Entity{
     s32 z;
     f32 start_position;
     v3 pos;
+    v3 angle;
+    v3 scale;
 
 
     String8 name;
     v2 direction;
     f32 rad;
-    f32 angle;
 
     f32 speed;
 
@@ -41,6 +41,7 @@ typedef struct Entity{
     bool draw;
     bool fill;
 
+    // QUESTION: Should this be a pointer
     Bitmap texture;
     Bitmap glyph;
     bool render;

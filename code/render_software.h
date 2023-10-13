@@ -157,7 +157,6 @@ push_clear_color_region(Arena *arena, Rect rect, RGBA color){
     command->ch.arena_used = arena->used;
 }
 
-
 static void
 push_pixel(Arena *arena, Rect rect, RGBA color){
     PixelCommand* command = push_struct(arena, PixelCommand);

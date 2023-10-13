@@ -7,23 +7,36 @@
 
 #include "base_inc.h"
 #include "win32_base_inc.h"
-#include "directx.h"
+#include "math.h"
+#include "rect.h"
+#include "bitmap.h"
+#include "font.h"
+#include "entity.h"
+#include "d3d11_init.h"
+#include "d3d11_render.h"
 
 global v2s32 resolution = {
     .x = SCREEN_WIDTH,
     .y = SCREEN_HEIGHT
 };
 
+struct Window{
+    u32 width;
+    u32 height;
+    f32 aspect_ratio;
+    HWND handle;
+};
+
 typedef s64 GetTicks(void);
 typedef f64 GetSecondsElapsed(s64 start, s64 end);
-typedef f64 GetMsElapsed(s64 start, s64 end);
+typedef f64 GetMSElapsed(s64 start, s64 end);
 
 typedef struct Clock{
     f64 dt;
     s64 frequency;
     GetTicks* get_ticks;
     GetSecondsElapsed* get_seconds_elapsed;
-    GetMsElapsed* get_ms_elapsed;
+    GetMSElapsed* get_ms_elapsed;
 } Clock;
 
 typedef struct Memory{
@@ -39,10 +52,11 @@ typedef struct Memory{
 } Memory;
 
 
-global Arena* global_arena = os_make_arena(MB(1));
+global Arena* global_arena = os_make_arena(MB(100));
 global bool should_quit;
 global Memory memory;
 global Clock clock;
+global Window window;
 #include "input.h"
 global Events events;
 
@@ -212,12 +226,6 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
     return(result);
 }
 
-struct Window{
-    u32 width;
-    u32 height;
-    HWND handle;
-};
-
 static bool
 win32_init(){
     WNDCLASSW window_class = {
@@ -241,7 +249,8 @@ win32_window_create(wchar* window_name, u32 width, u32 height){
     Window result = {0};
     result.width = width;
     result.height = height;
-    result.handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, result.width, result.height, 0, 0, GetModuleHandle(0), 0);
+    result.aspect_ratio = (f32)height / (f32)width;
+    result.handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, (s32)result.width, (s32)result.height, 0, 0, GetModuleHandle(0), 0);
     assert(IsWindow(result.handle));
 
     return(result);
@@ -289,30 +298,30 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
     // D3D11 stuff
     HRESULT result;
-    d3d_create_device_and_context();
-    d3d_create_swapchain(window.handle);
+    d3d_init_device_and_context();
+#if DEBUG
+    d3d_init_debug_stuff();
+#endif
+    d3d_init_swapchain(window.handle);
 
-    d3d_create_framebuffer();
-    d3d_create_depthbuffer();
-    d3d_create_depthstencil();
-
-    d3d_create_rasterizer_state();
-    d3d_create_sampler_state();
-    d3d_set_viewport();
+    d3d_init_framebuffer();
+    d3d_init_depthbuffer();
+    d3d_init_depthstencil();
 
     d3d_load_vertex_shader(path_shaders);
     d3d_load_pixel_shader(path_shaders);
 
-    d3d_create_constant_buffer();
+    //d3d_init_constant_buffer();
+    d3d_init_rasterizer_state();
+    d3d_init_sampler_state();
+    d3d_init_blend_state();
+    //d3d_set_viewport();
 
     d3d_context->VSSetShader(vertex_shader, 0, 0);
     d3d_context->PSSetShader(pixel_shader, 0, 0);
-    d3d_context->PSSetConstantBuffers(0, 1, &ps_constant_buffer);
 
-    d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
-    d3d_context->OMSetBlendState(0, 0, 0xffffffff);
-
+    //d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    //d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
 
     init_memory(&memory);
     init_clock(&clock);
@@ -326,7 +335,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     clock.dt =  1.0/240.0;
     f64 accumulator = 0.0;
     s64 last_ticks = clock.get_ticks();
-    s64 second_marker = clock.get_ticks();
+    //s64 second_marker = clock.get_ticks();
 
 	u32 simulations = 0;
     f64 time_elapsed = 0;
@@ -350,76 +359,16 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             accumulator -= clock.dt;
             time_elapsed += clock.dt;
             simulations++;
+            clear_controller_pressed(&controller);
         }
+		simulations = 0;
 
-        f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
+        //f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
         //f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
 
-        f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
-        d3d_context->ClearRenderTargetView(d3d_framebuffer_view, background_color);
-        d3d_context->ClearDepthStencilView(d3d_depthbuffer_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
-        if(memory.initialized){
-        for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
-            Entity *e = pm->entities + pm->free_entities[entity_index];
-
-            switch(e->type){
-                case EntityType_Cube:{
-                    e->angle += (f32)clock.dt;
-
-                    Mesh mesh = pm->meshes[EntityType_Cube];
-                    d3d_context->IASetVertexBuffers(0, 1, &mesh.vertex_buffer, &mesh.vertex_stride, &mesh.vertex_offset);
-                    d3d_context->IASetIndexBuffer(mesh.index_buffer, DXGI_FORMAT_R32_UINT, 0);
-
-
-                    D3D11_MAPPED_SUBRESOURCE mapped_subresource;
-                    d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
-
-                    Constants* constants = (Constants*)mapped_subresource.pData;
-
-                    constants->transform = XMMatrixTranspose(
-                        XMMatrixRotationZ(e->angle) *
-                        XMMatrixRotationY(e->angle) *
-                        XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
-                        XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
-                        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
-                    );
-                    d3d_context->Unmap(constant_buffer, 0);
-                    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
-
-                    d3d_context->DrawIndexed(mesh.index_count, 0, 0);
-                } break;
-                case EntityType_Player:{
-                    e->angle += (f32)clock.dt;
-
-                    Mesh mesh = pm->meshes[EntityType_Cube];
-                    d3d_context->IASetVertexBuffers(0, 1, &mesh.vertex_buffer, &mesh.vertex_stride, &mesh.vertex_offset);
-                    d3d_context->IASetIndexBuffer(mesh.index_buffer, DXGI_FORMAT_R32_UINT, 0);
-
-
-                    D3D11_MAPPED_SUBRESOURCE mapped_subresource;
-                    d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
-
-                    Constants* constants = (Constants*)mapped_subresource.pData;
-
-                    constants->transform = XMMatrixTranspose(
-                        XMMatrixRotationZ(e->angle) *
-                        XMMatrixRotationX(e->angle) *
-                        XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
-                        XMMatrixTranslation(e->pos.x, e->pos.y, (f32)controller.mouse_pos.y/SCREEN_HEIGHT * 10) *
-                        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 0.5f, 20.0f)
-                    );
-                    d3d_context->Unmap(constant_buffer, 0);
-                    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
-
-                    d3d_context->DrawIndexed(mesh.index_count, 0, 0);
-                } break;
-            }
-        }
-        }
-        d3d_swapchain->Present(1, 0);
+        d3d_present();
 
         //frame_count++;
-		//simulations = 0;
         //f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), second_marker);
         //if(second_elapsed > 1){
         //    FPS = ((f64)frame_count / second_elapsed);

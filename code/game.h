@@ -1,13 +1,6 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include "math.h"
-#include "rect.h"
-#include "bitmap.h"
-#include "font.h"
-//#include "renderer.h"
-
-#include "entity.h"
 
 static Font global_font = {0};
 
@@ -24,6 +17,7 @@ static RGBA LIGHT_GRAY =   {0.8f, 0.8f, 0.8f,  1.0f};
 static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
 static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
 static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
+static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
 #define ENTITIES_MAX 100
 typedef struct PermanentMemory{
@@ -45,7 +39,7 @@ typedef struct PermanentMemory{
     Bitmap tree;
     bool ship_loaded;
 
-} PermanentMemory;
+} PermanentMemory, State;
 global PermanentMemory* pm;
 
 typedef struct TransientMemory{
@@ -60,13 +54,13 @@ init_meshes(Mesh* meshes){
     // CUBE
     Mesh* cube_mesh = (Mesh*)(meshes + EntityType_Cube);
     cube_mesh->vertex_offset = 0;
-    cube_mesh->vertex_stride = sizeof(v3);
+    cube_mesh->vertex_stride = sizeof(Vertex);
     cube_mesh->vertex_count = array_count(cube);
-    d3d_init_vertex_buffer(cube_mesh, cube);
+    //d3d_init_vertex_buffers(cube_mesh, cube);
 
     cube_mesh->index_stride = sizeof(u32);
     cube_mesh->index_count = array_count(cube_indicies);
-    d3d_init_index_buffer(cube_mesh, cube_indicies);
+    //d3d_init_index_buffer(cube_mesh, cube_indicies);
     ////////////////////////////////
 }
 
@@ -206,22 +200,24 @@ add_bullet(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture,
 }
 
 static Entity*
-add_cube(PermanentMemory* pm, v3 pos, f32 angle, v3 scale, u32 index){
+add_cube(PermanentMemory* pm, Bitmap texture, v3 pos, v3 angle, v3 scale, u32 index){
     Entity* e = add_entity(pm, EntityType_Cube);
     e->index = index;
     e->pos = pos;
     e->angle = angle;
     e->scale = scale;
+    e->texture = texture;
     return(e);
 }
 
 static Entity*
-add_player(PermanentMemory* pm, v3 pos, f32 angle, v3 scale, u32 index){
+add_player(PermanentMemory* pm, Bitmap texture, v3 pos, v3 angle, v3 scale, u32 index){
     Entity* e = add_entity(pm, EntityType_Player);
     e->index = index;
     e->pos = pos;
     e->angle = angle;
     e->scale = scale;
+    e->texture = texture;
     return(e);
 }
 
@@ -368,6 +364,20 @@ handle_controller_events(Event event){
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
+            if(event.keycode == Q_UPPER){
+                if(!event.repeat){
+                    controller.q.pressed = true;
+                }
+                controller.q.held = true;
+                return(true);
+            }
+            if(event.keycode == E_UPPER){
+                if(!event.repeat){
+                    controller.e.pressed = true;
+                }
+                controller.e.held = true;
+                return(true);
+            }
             if(event.keycode == A_UPPER){
                 if(!event.repeat){
                     controller.left.pressed = true;
@@ -398,16 +408,24 @@ handle_controller_events(Event event){
             }
         }
         else{
+            if(event.keycode == Q_UPPER){
+                controller.q.held = false;
+                return(true);
+            }
+            if(event.keycode == E_UPPER){
+                controller.e.held = false;
+                return(true);
+            }
+            if(event.keycode == W_UPPER){
+                controller.up.held = false;
+                return(true);
+            }
             if(event.keycode == A_UPPER){
                 controller.left.held = false;
                 return(true);
             }
             if(event.keycode == D_UPPER){
                 controller.right.held = false;
-                return(true);
-            }
-            if(event.keycode == W_UPPER){
-                controller.up.held = false;
                 return(true);
             }
             if(event.keycode == S_UPPER){
@@ -464,6 +482,8 @@ update_game(Memory* memory, Events* events, Clock* clock){
         Bitmap tree_image = load_bitmap(&pm->arena, path_sprites, tree_str);
         Bitmap circle_image = load_bitmap(&tm->arena, path_sprites, circle_str);
         Bitmap bullet_image = load_bitmap(&tm->arena, path_sprites, bullet_str);
+        //d3d_init_texture(ship_image);
+
 
         //Bitmap ship_image = load_bitmap(&pm->arena, pm->sprites_dir, ship_str);
         //Bitmap aa = stb_load_image(pm->sprites_dir, circle_str);
@@ -488,8 +508,8 @@ update_game(Memory* memory, Events* events, Clock* clock){
         //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .5f, .8, .6), resolution), MAGENTA, -20000, TEAL);
 
-        first = add_cube(pm, make_v3(0.0f, 0.0f, 4.0f), 0.0f, make_v3(0.2f, 0.2f, 0.2f), 120);
-        second = add_player(pm, make_v3(0.0f, 0.0f, 4.0f), 0.0f, make_v3(1.0f, 1.0f, 1.0f), 121);
+        first = add_cube(pm, ship_image, make_v3(10.0f, 0.0f, 60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 120);
+        second = add_player(pm, ship_image, make_v3(-10.0f, 0.0f, 60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
         //Inconsolata-Regular
         Bitmap inconsolate[128];
 
@@ -534,159 +554,77 @@ update_game(Memory* memory, Events* events, Clock* clock){
     }
 
     if(controller.right.held){
-        second->pos.x += 4 * (f32)clock->dt;
+        second->pos.x += 40 * (f32)clock->dt;
     }
     if(controller.left.held){
-        second->pos.x -= 4 * (f32)clock->dt;
+        second->pos.x -= 40 * (f32)clock->dt;
     }
     if(controller.up.held){
-        second->pos.y += 4 * (f32)clock->dt;
+        second->pos.y += 40 * (f32)clock->dt;
     }
     if(controller.down.held){
-        second->pos.y -= 4 * (f32)clock->dt;
+        second->pos.y -= 40 * (f32)clock->dt;
+    }
+    if(controller.e.held){
+        second->pos.z += 40 * (f32)clock->dt;
+    }
+    if(controller.q.held){
+        second->pos.z -= 40 * (f32)clock->dt;
     }
 
-    print("second: (%f, %f, %f)\n", second->pos.x, second->pos.y, second->pos.z);
-    if(pm->ship_loaded){
-        Entity* ship = pm->ship;
-        // rotate ship
-        if(controller.right.held){
-            ship->rad -= 2 * (f32)clock->dt;
-            second->pos.x += 1 * (f32)clock->dt;
-        }
-        if(controller.left.held){
-            ship->rad += 2 * (f32)clock->dt;
-            second->pos.x -= 1 * (f32)clock->dt;
-        }
-
-        // increase ship velocity
-        if(controller.up.held){
-            ship->velocity += (f32)clock->dt;
-        }
-        if(controller.down.held){
-            ship->velocity -= (f32)clock->dt;
-        }
-        clamp_f32(0, 1, &ship->velocity);
-
-        // move ship
-        ship->direction = rad_to_dir(ship->rad);
-        ship->origin.x += (ship->direction.x * ship->velocity * ship->speed) * (f32)clock->dt;
-        ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * (f32)clock->dt;
-        //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
-    }
-
-    update_console();
-    //for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
-    //    Entity *e = pm->entities + pm->free_entities[entity_index];
-
-    //    switch(e->type){
-    //        case EntityType_Glyph:{
-    //        }break;
-    //        case EntityType_Pixel:{
-    //            push_pixel(render_command_arena, e->rect, e->color);
-    //        }break;
-    //        case EntityType_Segment:{
-    //            push_segment(render_command_arena, e->p0, e->p1, e->color);
-    //        }break;
-    //        case EntityType_Line:{
-    //            push_line(render_command_arena, e->rect, e->direction, e->color);
-    //        }break;
-    //        case EntityType_Ray:{
-    //            push_ray(render_command_arena, e->rect, e->direction, e->color);
-    //        }break;
-    //        case EntityType_Rect:{
-    //            Rect border;
-    //            Rect rect = e->rect;
-    //            if(e->border_size > 0){
-    //                border = rect_calc_border(e->rect, e->border_size);
-    //            }
-    //            if(e->border_size < 0){
-    //                border = e->rect;
-    //                rect = rect_calc_border(e->rect, e->border_size);
-    //            }
-    //            push_rect(render_command_arena, border, e->border_color);
-    //            push_rect(render_command_arena, rect, e->color);
-    //        }break;
-    //        case EntityType_Bullet:
-    //        case EntityType_Ship:{
-    //            e->rad = angle;
-    //            f32 deg = rad_to_deg(e->rad);
-    //            deg -= 90;
-    //            f32 rad = deg_to_rad(deg);
-    //            //e->x_axis = e->scale * make_v2(cos_f32(rad), sin_f32(rad));
-    //            //e->y_axis = perp(e->x_axis);
-    //            //e->x_axis = make_v2((f32)e->texture.width, 0);
-    //            //e->y_axis = make_v2(0, (f32)e->texture.height);
-
-    //            e->x_axis = e->scale * make_v2((f32)e->texture.width * cos_f32(e->rad), (f32)e->texture.height * sin_f32(e->rad));
-    //            e->y_axis = e->scale * make_v2((f32)e->texture.width * -sin_f32(e->rad), (f32)e->texture.height * cos_f32(e->rad));
-    //            //e->y_axis = perp(e->x_axis);
-    //            print("scale: %f - w: %i - h: %i - rad: %f\n", e->scale, e->texture.width, e->texture.height, e->rad);
-    //            print("x - xx: %f - xy: %f\n", e->x_axis.x, e->x_axis.y);
-    //            print("y - yx: %f - yy: %f\n", e->y_axis.x, e->y_axis.y);
-
-    //            //e->x_axis = e->scale * make_v2((f32)e->texture.width * cos_f32(rad), 0);
-    //            //e->y_axis = e->scale * make_v2((f32)e->texture.width * cos_f32(rad), 0);
-    //            v2 center_org = e->origin - 0.5*e->x_axis - 0.5*e->y_axis;
-
-    //            push_basis(render_command_arena, center_org, e->x_axis, e->y_axis, e->texture);
-    //        }break;
-    //        case EntityType_Bases:{
-	//			v2 dim = {5, 5};
-	//			v2 min = e->origin;
-    //            //RGBA color = {1, 1, 0, 1};
-    //            //f32 disp = 50.0f * cos_f32(angle);
-    //            //e->origin = make_v2((f32)resolution.x/2, (f32)resolution.y/2);
-    //            f32 deg = rad_to_deg(e->rad);
-    //            deg -= 90;
-    //            f32 rad = deg_to_rad(deg);
-    //            e->x_axis = e->scale * make_v2(cos_f32(rad), sin_f32(rad));
-    //            e->y_axis = perp(e->x_axis);
-    //            //
-    //            //e->x_axis = (50.0f + 50.0f * cos_f32(angle*2)) * make_v2(cos_f32(angle*2), sin_f32(angle*2));
-    //            //e->y_axis = (50.0f + 50.0f * cos_f32(angle*2)) * make_v2(cos_f32((angle*2) + 1.0f), sin_f32((angle*2) + 1.0f));
-    //            //
-    //            //e->y_axis = make_v2(-e->x_axis.y, e->x_axis.x);
-    //            //e->x_axis = {300, 0};
-    //            //e->y_axis = make_v2(-e->x_axis.y, e->x_axis.x);
-    //            //e->y_axis = {0, 400};
-
-    //            push_basis(render_command_arena, e->origin - 0.5*e->x_axis - 0.5*e->y_axis, e->x_axis, e->y_axis, e->texture);
-
-    //            //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
-
-	//			min = e->origin + e->x_axis;
-    //            //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
-
-	//			min = e->origin + e->y_axis;
-    //            //push_rect(render_command_arena, make_rect(min - dim, min + dim), color);
-
-    //            v2 max = e->origin + e->x_axis + e->y_axis;
-    //            //push_rect(render_command_arena, make_rect(max - dim, max + dim), color);
-
-    //        }break;
-    //        case EntityType_Box:{
-    //            push_box(render_command_arena, e->rect, e->color);
-    //        }break;
-    //        case EntityType_Quad:{
-    //            push_quad(render_command_arena, e->p0, e->p1, e->p2, e->p3, e->color, e->fill);
-    //        }break;
-    //        case EntityType_Triangle:{
-    //            push_triangle(render_command_arena, e->p0, e->p1, e->p2, e->color, e->fill);
-    //        }break;
-    //        case EntityType_Circle:{
-    //            push_circle(render_command_arena, e->rect, e->rad, e->color, e->fill);
-    //        }break;
-    //        case EntityType_Bitmap:{
-    //            push_bitmap(render_command_arena, e->rect, e->texture);
-    //        }break;
-    //        case EntityType_None:{
-    //        }break;
-    //        case EntityType_Object:{
-    //        }break;
-    //        invalid_default_case;
+    //if(pm->ship_loaded){
+    //    Entity* ship = pm->ship;
+    //    // rotate ship
+    //    if(controller.right.held){
+    //        ship->rad -= 2 * (f32)clock->dt;
+    //        second->pos.x += 1 * (f32)clock->dt;
     //    }
+    //    if(controller.left.held){
+    //        ship->rad += 2 * (f32)clock->dt;
+    //        second->pos.x -= 1 * (f32)clock->dt;
+    //    }
+
+    //    // increase ship velocity
+    //    if(controller.up.held){
+    //        ship->velocity += (f32)clock->dt;
+    //    }
+    //    if(controller.down.held){
+    //        ship->velocity -= (f32)clock->dt;
+    //    }
+    //    clamp_f32(0, 1, &ship->velocity);
+
+    //    // move ship
+    //    ship->direction = rad_to_dir(ship->rad);
+    //    ship->origin.x += (ship->direction.x * ship->velocity * ship->speed) * (f32)clock->dt;
+    //    ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * (f32)clock->dt;
+    //    //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
     //}
+    update_console();
+
+    //f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
+    d3d_clear_color(BACKGROUND_COLOR);
+
+    for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
+        Entity *e = pm->entities + pm->free_entities[entity_index];
+
+        switch(e->type){
+            case EntityType_Cube:{
+                e->angle.z += (f32)clock->dt;
+                e->angle.y += (f32)clock->dt;
+
+                Mesh mesh = pm->meshes[EntityType_Cube];
+                d3d_draw_cube(&mesh, e->texture, e->pos, e->angle, e->scale);
+            } break;
+            case EntityType_Player:{
+                e->angle.z += (f32)clock->dt;
+                e->angle.x += (f32)clock->dt;
+
+                Mesh mesh = pm->meshes[EntityType_Cube];
+                d3d_draw_cube(&mesh, e->texture, e->pos, e->angle, e->scale);
+            } break;
+        }
+    }
+
 
     //if(console_is_visible()){
     //    push_console(render_command_arena);
