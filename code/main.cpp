@@ -315,13 +315,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     d3d_init_rasterizer_state();
     d3d_init_sampler_state();
     d3d_init_blend_state();
-    d3d_set_viewport();
+    //d3d_set_viewport();
 
     d3d_context->VSSetShader(vertex_shader, 0, 0);
     d3d_context->PSSetShader(pixel_shader, 0, 0);
 
-    d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
+    //d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    //d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
 
     init_memory(&memory);
     init_clock(&clock);

@@ -502,7 +502,7 @@ update_game(Memory* memory, Events* events, Clock* clock){
         //add_basis(pm, origin, x_axis, y_axis, circle_image, {0, 0, 0, 0});
         //add_basis(pm, origin, x_axis, y_axis, test_image0, {0, 0, 0, 0});
         //pm->ship = add_ship(pm, make_v2(100, 100), x_axis, y_axis, ship_image, {0, 0, 0, 0});
-        Entity* bullet = add_bullet(pm, origin, x_axis, y_axis, bullet_image, {0, 0, 0, 0});
+        //Entity* bullet = add_bullet(pm, origin, x_axis, y_axis, bullet_image, {0, 0, 0, 0});
         //add_rect(pm, rect_screen_to_pixel(make_rect(.1, .5f, .2, .6), resolution), MAGENTA);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.3, .5f, .4, .6), resolution), MAGENTA, 4, GREEN);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
@@ -604,9 +604,34 @@ update_game(Memory* memory, Events* events, Clock* clock){
     //f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
     d3d_clear_color(BACKGROUND_COLOR);
 
-    for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
+    u32 c = array_count(pm->entities);
+    u32 a = 0;
+    for(u32 entity_index = pm->free_entities_at + 1; entity_index < c; ++entity_index){
+        a++;
         Entity *e = pm->entities + pm->free_entities[entity_index];
 
+        InstanceData* instance = instances + ((c - 1) - entity_index);
+        f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
+        instance->transform = XMMatrixTranspose(
+            XMMatrixRotationX(e->angle.x) *
+            XMMatrixRotationY(e->angle.y) *
+            XMMatrixRotationZ(e->angle.z) *
+            XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
+            XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
+            XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
+        );
+
+        //for(s32 i=0; i < count; ++i){
+        //    InstanceData* instance = instances + i;
+        //    instance->transform = XMMatrixTranspose(
+        //        XMMatrixRotationX(angle.x) *
+        //        XMMatrixRotationY(angle.y) *
+        //        XMMatrixRotationZ(angle.z) *
+        //        XMMatrixScaling(scale.x, scale.y, scale.z) *
+        //        XMMatrixTranslation(pos.x, pos.y, pos.z) *
+        //        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
+        //    );
+        //}
         switch(e->type){
             case EntityType_Cube:{
                 e->angle.z += (f32)clock->dt;
@@ -619,11 +644,15 @@ update_game(Memory* memory, Events* events, Clock* clock){
                 e->angle.z += (f32)clock->dt;
                 e->angle.x += (f32)clock->dt;
 
+                print("x: %f - y: %f - z: %f\n", e->pos.x, e->pos.y, e->pos.z);
                 Mesh mesh = pm->meshes[EntityType_Cube];
                 d3d_draw_cube(&mesh, e->texture, e->pos, e->angle, e->scale);
             } break;
         }
     }
+    Entity *e = pm->entities + pm->free_entities[pm->free_entities_at + 1];
+    Mesh mesh = pm->meshes[EntityType_Cube];
+    //d3d_draw_cube_instanced(&mesh, e->texture);
 
 
     //if(console_is_visible()){

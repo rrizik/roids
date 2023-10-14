@@ -203,15 +203,15 @@ d3d_init_blend_state(){
 }
 
 static void
-d3d_set_viewport(){
+d3d_set_viewport(f32 top_left_x, f32 top_left_y, f32 width, f32 height, f32 min_depth, f32 max_depth){
     // NOTE: can be used to create split screens for 2+ players
     d3d_viewport = {
-        .TopLeftX = 0.0f,
-        .TopLeftY = 0.0f,
-        .Width = SCREEN_WIDTH,
-        .Height = SCREEN_HEIGHT,
-        .MinDepth = 0.0f,
-        .MaxDepth = 1.0f
+        .TopLeftX = top_left_x,
+        .TopLeftY = top_left_y,
+        .Width = width,
+        .Height = height,
+        .MinDepth = min_depth,
+        .MaxDepth = max_depth
     };
     d3d_context->RSSetViewports(1, &d3d_viewport);
 }
@@ -240,12 +240,13 @@ d3d_load_vertex_shader(String8 path_shader){
     }
 
     D3D11_INPUT_ELEMENT_DESC input_element_desc[] = {
-      {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-      {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-      //{"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-      //{"COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(v2), D3D11_INPUT_PER_VERTEX_DATA, 0},
-      //{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-      //{"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(v3), D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        { "WORLD",   0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1 },
+        //{"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        //{"COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(v2), D3D11_INPUT_PER_VERTEX_DATA, 0},
+        //{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        //{"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(v3), D3D11_INPUT_PER_VERTEX_DATA, 0},
     };
     hr = d3d_device->CreateInputLayout(input_element_desc, array_count(input_element_desc), vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), &d3d_input_layout);
     assert_hr(hr);
@@ -533,14 +534,16 @@ d3d_set_texture(Bitmap image){
 
 
 static void
-d3d_init_instance_buffer(InstanceData* instances){
+d3d_set_instance_buffer(InstanceData* instances){
     D3D11_BUFFER_DESC instance_buffer_desc = {0};
     instance_buffer_desc.Usage = D3D11_USAGE_IMMUTABLE;
     instance_buffer_desc.ByteWidth = sizeof(InstanceData) * instance_count;
     instance_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-    d3d_device->CreateBuffer(&instance_buffer_desc, 0, &d3d_instance_buffer);
+    D3D11_SUBRESOURCE_DATA instance_data = {};
+    instance_data.pSysMem = { instances };
 
+    d3d_device->CreateBuffer(&instance_buffer_desc, &instance_data, &d3d_instance_buffer);
     //d3d_context->UpdateSubresource(d3d_instance_buffer, 0, 0, instances, 0, 0);
 }
 
