@@ -375,6 +375,14 @@ d3d_init_vertex_buffers(Mesh* mesh, Vertex* verticies){
     assert_hr(hr);
 }
 
+typedef struct InstanceData {
+    XMMATRIX transform;
+} InstanceData;
+global u32 instance_count = 2;
+global InstanceData instances[2];
+//global ID3D11Buffer* buffers[] = { vertex_buffer, d3d_instance_buffer };
+//global u32 buffers_stride[] = { sizeof(Vertex), sizeof(InstanceData) };
+//global u32 buffers_offset[] = { 0, 0 };
 
 static void
 d3d_set_vertex_buffer(Mesh* mesh, Vertex* verticies){
@@ -522,16 +530,6 @@ d3d_set_texture(Bitmap image){
     ///d3d_context->GenerateMips(texture_view);
     d3d_context->PSSetShaderResources(0, 1, &d3d_shader_resource);
 }
-
-
-typedef struct InstanceData {
-    XMMATRIX transform;
-} InstanceData;
-global u32 instance_count = 2;
-global InstanceData instances[2];
-//global ID3D11Buffer* buffers[] = { vertex_buffer, d3d_instance_buffer };
-//global u32 buffers_stride[] = { sizeof(Vertex), sizeof(InstanceData) };
-//global u32 buffers_offset[] = { 0, 0 };
 
 
 static void
