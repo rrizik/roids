@@ -9,10 +9,10 @@ d3d_clear_color(RGBA color){
 static void
 d3d_draw_cube(Mesh* mesh, Bitmap texture, v3 pos, v3 angle, v3 scale){
 
+    d3d_set_instance_buffer(instances); // TODO: Fix where instances is coming from
     d3d_set_vertex_buffer(mesh, cube);
     d3d_set_index_buffer(mesh, cube_indicies);
     d3d_set_constant_buffer(pos, angle, scale);
-    d3d_set_instance_buffer(instances); // TODO: Fix where instances is coming from
     d3d_set_texture(texture);
 
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -36,9 +36,14 @@ d3d_draw_cube_instanced(Mesh* mesh, Bitmap texture){
 
     d3d_set_vertex_buffer(mesh, cube);
     d3d_set_index_buffer(mesh, cube_indicies);
-    //d3d_set_constant_buffer(pos, angle, scale);
-    d3d_set_instance_buffer(instances); // TODO: Fix where instances is coming from
+    //d3d_set_constant_buffer(pos, angle, scale); // this information needs to change as it shouldnt be entity position anymore
+    d3d_set_instance_buffer(instances);
     d3d_set_texture(texture);
+
+    ID3D11Buffer* buffers[] = {mesh->vertex_buffer, d3d_instance_buffer};
+    u32 strides[] = {sizeof(Vertex), sizeof(InstanceData)};
+    u32 offset[] = {0, 0};
+    d3d_context->IASetVertexBuffers(0, 2, buffers, strides, offset);
 
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
@@ -53,5 +58,5 @@ d3d_draw_cube_instanced(Mesh* mesh, Bitmap texture){
     d3d_context->RSSetState(d3d_rasterizer_state);
 
     //d3d_context->DrawIndexed(mesh->index_count, 0, 0);
-    d3d_context->DrawIndexedInstanced(mesh->index_count, 0, 0, 0, 0);
+    //d3d_context->DrawIndexedInstanced(mesh->index_count, 0, 0, 0, 0);
 }
