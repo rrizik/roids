@@ -360,21 +360,21 @@ static u32 cube_indicies[] = {
     22, 21, 23,
 };
 
-//static void
-//d3d_init_vertex_buffers(Mesh* mesh, Vertex* verticies){
-//    HRESULT hr;
-//
-//    D3D11_BUFFER_DESC buffer_desc = {0};
-//    buffer_desc.StructureByteStride = mesh->vertex_stride;
-//    buffer_desc.ByteWidth = mesh->vertex_stride * mesh->vertex_count;
-//    buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
-//    buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-//
-//    D3D11_SUBRESOURCE_DATA vertex_resource = {0};
-//    vertex_resource.pSysMem = verticies;
-//    hr = d3d_device->CreateBuffer(&buffer_desc, &vertex_resource, &mesh->vertex_buffer);
-//    assert_hr(hr);
-//}
+static void
+d3d_init_vertex_buffers(Mesh* mesh, Vertex* verticies){
+    HRESULT hr;
+
+    D3D11_BUFFER_DESC buffer_desc = {0};
+    buffer_desc.StructureByteStride = mesh->vertex_stride;
+    buffer_desc.ByteWidth = mesh->vertex_stride * mesh->vertex_count;
+    buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
+    buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA vertex_resource = {0};
+    vertex_resource.pSysMem = verticies;
+    hr = d3d_device->CreateBuffer(&buffer_desc, &vertex_resource, &mesh->vertex_buffer);
+    assert_hr(hr);
+}
 
 typedef struct InstanceData {
     XMMATRIX transform;
@@ -400,28 +400,28 @@ d3d_set_vertex_buffer(Mesh* mesh, Vertex* verticies){
     hr = d3d_device->CreateBuffer(&buffer_desc, &vertex_resource, &mesh->vertex_buffer);
     assert_hr(hr);
 
-    //ID3D11Buffer* buffers[] = {mesh->vertex_buffer, d3d_instance_buffer};
-    //u32 strides[] = {sizeof(Vertex), sizeof(InstanceData)};
-    //u32 offset[] = {0, 0};
+    ID3D11Buffer* buffers[] = {mesh->vertex_buffer, d3d_instance_buffer};
+    u32 strides[] = {sizeof(Vertex), sizeof(InstanceData)};
+    u32 offset[] = {0, 0};
 
-    //d3d_context->IASetVertexBuffers(0, 2, buffers, strides, offset);
+    d3d_context->IASetVertexBuffers(0, 2, buffers, strides, offset);
 }
 
-//static void
-//d3d_init_index_buffer(Mesh* mesh, u32* indicies){
-//    HRESULT hr;
-//
-//    D3D11_BUFFER_DESC buffer_desc = {0};
-//    buffer_desc.StructureByteStride = mesh->index_stride;
-//    buffer_desc.ByteWidth = mesh->index_stride * mesh->index_count;
-//    buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
-//    buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-//
-//    D3D11_SUBRESOURCE_DATA index_resource  = {0};
-//    index_resource.pSysMem                 = indicies;
-//    hr = d3d_device->CreateBuffer(&buffer_desc, &index_resource, &mesh->index_buffer);
-//    assert_hr(hr);
-//}
+static void
+d3d_init_index_buffer(Mesh* mesh, u32* indicies){
+    HRESULT hr;
+
+    D3D11_BUFFER_DESC buffer_desc = {0};
+    buffer_desc.StructureByteStride = mesh->index_stride;
+    buffer_desc.ByteWidth = mesh->index_stride * mesh->index_count;
+    buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
+    buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+
+    D3D11_SUBRESOURCE_DATA index_resource  = {0};
+    index_resource.pSysMem                 = indicies;
+    hr = d3d_device->CreateBuffer(&buffer_desc, &index_resource, &mesh->index_buffer);
+    assert_hr(hr);
+}
 
 static void
 d3d_set_index_buffer(Mesh* mesh, u32* indicies){

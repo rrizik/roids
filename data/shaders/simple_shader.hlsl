@@ -1,6 +1,6 @@
-//cbuffer ConstantBuffer{
-//    float4x4 transform;
-//}
+cbuffer ConstantBuffer{
+    float4x4 transform;
+}
 
 Texture2D my_texture;
 SamplerState my_sampler;
@@ -19,8 +19,9 @@ struct VS_Output{
 VS_Output vs_main(VS_Input input){
     VS_Output output;
 
-    output.pos = mul(float4(input.pos, 1.0f), input.transform);
-    //output.pos = mul(float4(input.pos, 1.0f), (transform * input.projection);
+    output.pos = mul(float4(input.pos, 1.0f), transform);
+    //output.pos = mul(float4(input.pos, 1.0f), input.transform);
+    //output.pos = mul(float4(input.pos, 1.0f), (transform * input.projection); // this is for later
     //output.color    = float4(input.color * light, 1.0f);
     output.tex = input.tex;
     return output;
