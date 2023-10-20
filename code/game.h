@@ -56,10 +56,9 @@ init_meshes(Mesh* meshes){
     cube_mesh->vertex_offset = 0;
     cube_mesh->vertex_stride = sizeof(Vertex);
     cube_mesh->vertex_count = array_count(cube);
-    //d3d_init_vertex_buffers(cube_mesh, cube);
-
     cube_mesh->index_stride = sizeof(u32);
     cube_mesh->index_count = array_count(cube_indicies);
+    //d3d_init_vertex_buffers(cube_mesh, cube);
     //d3d_init_index_buffer(cube_mesh, cube_indicies);
     ////////////////////////////////
 }
@@ -508,8 +507,8 @@ update_game(Memory* memory, Events* events, Clock* clock){
         //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .5f, .8, .6), resolution), MAGENTA, -20000, TEAL);
 
-        first = add_cube(pm, ship_image, make_v3(10.0f, 0.0f, 60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 120);
-        second = add_player(pm, ship_image, make_v3(-10.0f, 0.0f, 60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
+        first = add_cube(pm, ship_image, make_v3(10.0f, 0.0f, -60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 120);
+        second = add_player(pm, ship_image, make_v3(-10.0f, 0.0f, -60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
         //Inconsolata-Regular
         Bitmap inconsolate[128];
 
@@ -530,6 +529,26 @@ update_game(Memory* memory, Events* events, Clock* clock){
 
         init_console(pm);
         init_commands();
+
+        //f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
+        //InstanceData* instance = instances + 0;
+        //instance->transform = XMMatrixTranspose(
+        //    XMMatrixRotationX(90) *
+        //    XMMatrixRotationY(90) *
+        //    XMMatrixRotationZ(90) *
+        //    XMMatrixScaling(0.2f, 0.2f, 0.2f) *
+        //    XMMatrixTranslation(-10.0f, 0.0f, -60.0f) *
+        //    XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
+        //);
+        //instance = instances + 1;
+        //instance->transform = XMMatrixTranspose(
+        //    XMMatrixRotationX(90) *
+        //    XMMatrixRotationY(90) *
+        //    XMMatrixRotationZ(90) *
+        //    XMMatrixScaling(0.2f, 0.2f, 0.2f) *
+        //    XMMatrixTranslation(10.0f, 0.0f, 60.0f) *
+        //    XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
+        //);
 
         memory->initialized = true;
     }
@@ -604,34 +623,15 @@ update_game(Memory* memory, Events* events, Clock* clock){
     //f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
     d3d_clear_color(BACKGROUND_COLOR);
 
+
+
     u32 c = array_count(pm->entities);
     u32 a = 0;
     for(u32 entity_index = pm->free_entities_at + 1; entity_index < c; ++entity_index){
         a++;
         Entity *e = pm->entities + pm->free_entities[entity_index];
 
-        InstanceData* instance = instances + ((c - 1) - entity_index);
-        f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
-        instance->transform = XMMatrixTranspose(
-            XMMatrixRotationX(e->angle.x) *
-            XMMatrixRotationY(e->angle.y) *
-            XMMatrixRotationZ(e->angle.z) *
-            XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
-            XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
-            XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
-        );
 
-        //for(s32 i=0; i < count; ++i){
-        //    InstanceData* instance = instances + i;
-        //    instance->transform = XMMatrixTranspose(
-        //        XMMatrixRotationX(angle.x) *
-        //        XMMatrixRotationY(angle.y) *
-        //        XMMatrixRotationZ(angle.z) *
-        //        XMMatrixScaling(scale.x, scale.y, scale.z) *
-        //        XMMatrixTranslation(pos.x, pos.y, pos.z) *
-        //        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
-        //    );
-        //}
         switch(e->type){
             case EntityType_Cube:{
                 e->angle.z += (f32)clock->dt;
@@ -649,6 +649,17 @@ update_game(Memory* memory, Events* events, Clock* clock){
                 d3d_draw_cube(&mesh, e->texture, e->pos, e->angle, e->scale);
             } break;
         }
+
+        InstanceData* instance = instances + ((c - 1) - entity_index);
+        f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
+        instance->transform = XMMatrixTranspose(
+            XMMatrixRotationX(e->angle.x) *
+            XMMatrixRotationY(e->angle.y) *
+            XMMatrixRotationZ(e->angle.z) *
+            XMMatrixScaling(0.2f, 0.2f, 0.2f) *
+            XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
+            XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
+        );
     }
     Entity *e = pm->entities + pm->free_entities[pm->free_entities_at + 1];
     Mesh mesh = pm->meshes[EntityType_Cube];

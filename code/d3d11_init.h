@@ -30,9 +30,10 @@ global ID3D11BlendState*        d3d_blend_state; // note: maybe use BlendState1 
 
 global ID3D11Texture2D* d3d_texture;
 
+// TODO: not sure I'm still using these
 global ID3D11Buffer* d3d_vertex_buffer;
 global ID3D11Buffer* d3d_index_buffer;
-global ID3D11Buffer* constant_buffer;
+global ID3D11Buffer* d3d_constant_buffer;
 global ID3D11Buffer* d3d_instance_buffer;
 
 global ID3D11VertexShader* vertex_shader;
@@ -242,11 +243,10 @@ d3d_load_vertex_shader(String8 path_shader){
     D3D11_INPUT_ELEMENT_DESC input_element_desc[] = {
         {"POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        //{"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        //{"COLOR",    0, DXGI_FORMAT_R8G8B8A8_UNORM, 0, sizeof(v2), D3D11_INPUT_PER_VERTEX_DATA, 0},
-        //{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        //{"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, sizeof(v3), D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,                            D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        {"TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
     };
     hr = d3d_device->CreateInputLayout(input_element_desc, array_count(input_element_desc), vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), &d3d_input_layout);
     assert_hr(hr);
@@ -360,21 +360,21 @@ static u32 cube_indicies[] = {
     22, 21, 23,
 };
 
-static void
-d3d_init_vertex_buffers(Mesh* mesh, Vertex* verticies){
-    HRESULT hr;
-
-    D3D11_BUFFER_DESC buffer_desc = {0};
-    buffer_desc.StructureByteStride = mesh->vertex_stride;
-    buffer_desc.ByteWidth = mesh->vertex_stride * mesh->vertex_count;
-    buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
-    buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA vertex_resource = {0};
-    vertex_resource.pSysMem = verticies;
-    hr = d3d_device->CreateBuffer(&buffer_desc, &vertex_resource, &mesh->vertex_buffer);
-    assert_hr(hr);
-}
+//static void
+//d3d_init_vertex_buffers(Mesh* mesh, Vertex* verticies){
+//    HRESULT hr;
+//
+//    D3D11_BUFFER_DESC buffer_desc = {0};
+//    buffer_desc.StructureByteStride = mesh->vertex_stride;
+//    buffer_desc.ByteWidth = mesh->vertex_stride * mesh->vertex_count;
+//    buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
+//    buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+//
+//    D3D11_SUBRESOURCE_DATA vertex_resource = {0};
+//    vertex_resource.pSysMem = verticies;
+//    hr = d3d_device->CreateBuffer(&buffer_desc, &vertex_resource, &mesh->vertex_buffer);
+//    assert_hr(hr);
+//}
 
 typedef struct InstanceData {
     XMMATRIX transform;
@@ -400,28 +400,28 @@ d3d_set_vertex_buffer(Mesh* mesh, Vertex* verticies){
     hr = d3d_device->CreateBuffer(&buffer_desc, &vertex_resource, &mesh->vertex_buffer);
     assert_hr(hr);
 
-    ID3D11Buffer* buffers[] = {mesh->vertex_buffer, d3d_instance_buffer};
-    u32 strides[] = {sizeof(Vertex), sizeof(InstanceData)};
-    u32 offset[] = {0, 0};
+    //ID3D11Buffer* buffers[] = {mesh->vertex_buffer, d3d_instance_buffer};
+    //u32 strides[] = {sizeof(Vertex), sizeof(InstanceData)};
+    //u32 offset[] = {0, 0};
 
-    d3d_context->IASetVertexBuffers(0, 2, buffers, strides, offset);
+    //d3d_context->IASetVertexBuffers(0, 2, buffers, strides, offset);
 }
 
-static void
-d3d_init_index_buffer(Mesh* mesh, u32* indicies){
-    HRESULT hr;
-
-    D3D11_BUFFER_DESC buffer_desc = {0};
-    buffer_desc.StructureByteStride = mesh->index_stride;
-    buffer_desc.ByteWidth = mesh->index_stride * mesh->index_count;
-    buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
-    buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-
-    D3D11_SUBRESOURCE_DATA index_resource  = {0};
-    index_resource.pSysMem                 = indicies;
-    hr = d3d_device->CreateBuffer(&buffer_desc, &index_resource, &mesh->index_buffer);
-    assert_hr(hr);
-}
+//static void
+//d3d_init_index_buffer(Mesh* mesh, u32* indicies){
+//    HRESULT hr;
+//
+//    D3D11_BUFFER_DESC buffer_desc = {0};
+//    buffer_desc.StructureByteStride = mesh->index_stride;
+//    buffer_desc.ByteWidth = mesh->index_stride * mesh->index_count;
+//    buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
+//    buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+//
+//    D3D11_SUBRESOURCE_DATA index_resource  = {0};
+//    index_resource.pSysMem                 = indicies;
+//    hr = d3d_device->CreateBuffer(&buffer_desc, &index_resource, &mesh->index_buffer);
+//    assert_hr(hr);
+//}
 
 static void
 d3d_set_index_buffer(Mesh* mesh, u32* indicies){
@@ -475,7 +475,7 @@ d3d_init_constant_buffer(){
     buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-    hr = d3d_device->CreateBuffer(&buffer_desc, 0, &constant_buffer);
+    hr = d3d_device->CreateBuffer(&buffer_desc, 0, &d3d_constant_buffer);
     assert_hr(hr);
 
     //D3D11_SUBRESOURCE_DATA constant_resource = {};
@@ -486,7 +486,7 @@ static void
 d3d_set_constant_buffer(v3 pos, v3 angle, v3 scale){
     f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
     D3D11_MAPPED_SUBRESOURCE mapped_subresource;
-    d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+    d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
 
     Constants* constants = (Constants*)mapped_subresource.pData;
     constants->transform = XMMatrixTranspose(
@@ -497,9 +497,9 @@ d3d_set_constant_buffer(v3 pos, v3 angle, v3 scale){
         XMMatrixTranslation(pos.x, pos.y, pos.z) *
         XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
     );
-    d3d_context->Unmap(constant_buffer, 0);
+    d3d_context->Unmap(d3d_constant_buffer, 0);
 
-    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+    d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
 }
 
 static void

@@ -1,15 +1,33 @@
-cbuffer ConstantBuffer{
-    float4x4 transform;
-}
+//cbuffer ConstantBuffer{
+//    float4x4 transform;
+//}
 
-float4 vs_main(float3 pos : POSITION) : SV_POSITION {
-    return mul(float4(pos, 1.0f), transform);
-}
+Texture2D my_texture;
+SamplerState my_sampler;
 
-cbuffer PSConstantBuffer{
-    float4 face_colors[6];
+struct VS_Input{
+    float3 pos: POSITION;
+    float2 tex: TEXCOORD;
+    float4x4 transform: TRANSFORM;
 };
 
-float4 ps_main(uint tid : SV_PRIMITIVEID) : SV_TARGET {
-    return face_colors[tid / 2];
+struct VS_Output{
+    float4 pos: SV_POSITION;
+    float2 tex: TEXCOORD;
+};
+
+VS_Output vs_main(VS_Input input){
+    VS_Output output;
+
+    output.pos = mul(float4(input.pos, 1.0f), input.transform);
+    //output.pos = mul(float4(input.pos, 1.0f), (transform * input.projection);
+    //output.color    = float4(input.color * light, 1.0f);
+    output.tex = input.tex;
+    return output;
 }
+
+float4 ps_main(VS_Output output) : SV_TARGET{
+    return my_texture.Sample(my_sampler, output.tex);
+}
+
+
