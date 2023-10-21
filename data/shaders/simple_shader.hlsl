@@ -8,6 +8,7 @@ SamplerState my_sampler;
 struct VS_Input{
     float3 pos: POSITION;
     float2 tex: TEXCOORD;
+    float4x4 transform: TRANSFORM;
 };
 
 struct VS_Output{
@@ -18,6 +19,7 @@ struct VS_Output{
 VS_Output vs_main(VS_Input input){
     VS_Output output;
 
+    //output.pos = mul(float4(input.pos, 1.0f), input.transform);
     output.pos = mul(float4(input.pos, 1.0f), transform);
     output.tex = input.tex;
     return output;
@@ -26,5 +28,3 @@ VS_Output vs_main(VS_Input input){
 float4 ps_main(VS_Output output) : SV_TARGET{
     return my_texture.Sample(my_sampler, output.tex);
 }
-
-
