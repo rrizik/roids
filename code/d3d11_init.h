@@ -541,9 +541,8 @@ d3d_init_instance_buffer(InstanceData* instances){
 
     D3D11_SUBRESOURCE_DATA instance_data = {};
     instance_data.pSysMem = {instances};
-    d3d_device->CreateBuffer(&instance_buffer_desc, &instance_data, &d3d_instance_buffer);
 
-    //d3d_context->UpdateSubresource(d3d_instance_buffer, 0, 0, instances, 0, 0);
+    d3d_device->CreateBuffer(&instance_buffer_desc, &instance_data, &d3d_instance_buffer);
 }
 
 static void
