@@ -613,14 +613,14 @@ update_game(Memory* memory, Events* events, Clock* clock){
                 e->angle.y += (f32)clock->dt;
 
                 Mesh mesh = pm->meshes[EntityType_Cube];
-                d3d_draw_cube(&mesh, e->texture, e->pos, e->angle, e->scale);
+                d3d_draw_cube_indexed(&mesh, e->texture, e->pos, e->angle, e->scale);
             } break;
             case EntityType_Player:{
                 e->angle.z += (f32)clock->dt;
                 e->angle.x += (f32)clock->dt;
 
                 Mesh mesh = pm->meshes[EntityType_Cube];
-                d3d_draw_cube(&mesh, e->texture, e->pos, e->angle, e->scale);
+                d3d_draw_cube_indexed(&mesh, e->texture, e->pos, e->angle, e->scale);
             } break;
         }
     }

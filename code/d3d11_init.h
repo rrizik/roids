@@ -539,7 +539,9 @@ d3d_init_instance_buffer(InstanceData* instances){
     instance_buffer_desc.ByteWidth = sizeof(InstanceData) * instance_count;
     instance_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-    d3d_device->CreateBuffer(&instance_buffer_desc, 0, &d3d_instance_buffer);
+    D3D11_SUBRESOURCE_DATA instance_data = {};
+    instance_data.pSysMem = {instances};
+    d3d_device->CreateBuffer(&instance_buffer_desc, &instance_data, &d3d_instance_buffer);
 
     //d3d_context->UpdateSubresource(d3d_instance_buffer, 0, 0, instances, 0, 0);
 }

@@ -7,8 +7,7 @@ d3d_clear_color(RGBA color){
 }
 
 static void
-d3d_draw_cube(Mesh* mesh, Bitmap texture, v3 pos, v3 angle, v3 scale){
-
+d3d_draw_cube_indexed(Mesh* mesh, Bitmap texture, v3 pos, v3 angle, v3 scale){
     d3d_set_vertex_buffer(mesh, cube);
     d3d_set_index_buffer(mesh, cube_indicies);
     d3d_set_constant_buffer(pos, angle, scale);
