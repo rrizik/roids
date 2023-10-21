@@ -604,6 +604,7 @@ update_game(Memory* memory, Events* events, Clock* clock){
     //f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
     d3d_clear_color(BACKGROUND_COLOR);
 
+    u32 c = array_count(pm->entities) - 1;
     for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
         Entity *e = pm->entities + pm->free_entities[entity_index];
 
@@ -613,17 +614,40 @@ update_game(Memory* memory, Events* events, Clock* clock){
                 e->angle.y += (f32)clock->dt;
 
                 Mesh mesh = pm->meshes[EntityType_Cube];
-                d3d_draw_cube_indexed(&mesh, e->texture, e->pos, e->angle, e->scale);
+                InstanceData* instance = instances + ((c - 1) - entity_index);
+                f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
+                instance->transform = XMMatrixTranspose(
+                    XMMatrixRotationX(e->angle.x) *
+                    XMMatrixRotationY(e->angle.y) *
+                    XMMatrixRotationZ(e->angle.z) *
+                    XMMatrixScaling(0.2f, 0.2f, 0.2f) *
+                    XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
+                    XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
+                );
+                //d3d_draw_cube_indexed(&mesh, e->texture, e->pos, e->angle, e->scale);
             } break;
             case EntityType_Player:{
                 e->angle.z += (f32)clock->dt;
                 e->angle.x += (f32)clock->dt;
 
                 Mesh mesh = pm->meshes[EntityType_Cube];
-                d3d_draw_cube_indexed(&mesh, e->texture, e->pos, e->angle, e->scale);
+
+                InstanceData* instance = instances + ((c - 1) - entity_index);
+                f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
+                instance->transform = XMMatrixTranspose(
+                    XMMatrixRotationX(e->angle.x) *
+                    XMMatrixRotationY(e->angle.y) *
+                    XMMatrixRotationZ(e->angle.z) *
+                    XMMatrixScaling(0.2f, 0.2f, 0.2f) *
+                    XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
+                    XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
+                );
+                //d3d_draw_cube_indexed(&mesh, e->texture, e->pos, e->angle, e->scale);
             } break;
         }
     }
+    Mesh mesh = pm->meshes[EntityType_Cube];
+    d3d_draw_cube_instanced(&mesh, second->texture);
 
 
     //if(console_is_visible()){
