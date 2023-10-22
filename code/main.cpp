@@ -7,6 +7,7 @@
 
 #include "base_inc.h"
 #include "win32_base_inc.h"
+#include "camera.h"
 #include "math.h"
 #include "rect.h"
 #include "bitmap.h"
@@ -120,10 +121,26 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
 
             event.mouse_dx = event.mouse_pos.x - last_mouse_x;
             event.mouse_dy = event.mouse_pos.y - last_mouse_y;
-            //print("x: %i, y: %i, dx: %i, dy: %i\n", event.mouse_pos.x, event.mouse_pos.y, event.mouse_dx, event.mouse_dy);
+
+            camera.yaw += (f32)event.mouse_dx * camera.rotation_speed;
+            camera.pitch += (f32)event.mouse_dy * camera.rotation_speed;
+
+            // clamp campera at top and bottom so you do the spin rotation thing
+            if(camera.pitch > 89.0f){ camera.pitch = 89.0f; }
+            if(camera.pitch < -89.0f){ camera.pitch = -89.0f; }
+
+            // get the None Normalized forward direction
+            v3 direction;
+            direction.x = -cos_f32(deg_to_rad(camera.pitch)) * cos_f32(deg_to_rad(camera.yaw));
+            direction.y = sin_f32(deg_to_rad(camera.pitch));
+            direction.z = cos_f32(deg_to_rad(camera.pitch)) * sin_f32(deg_to_rad(camera.yaw));
+
+            // set camera normalized forward direction
+            camera.forward = normalized_v3(direction);
 
             last_mouse_x = event.mouse_pos.x;
             last_mouse_y = event.mouse_pos.y;
+
             events_add(&events, event);
         } break;
 
@@ -315,13 +332,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     d3d_init_rasterizer_state();
     d3d_init_sampler_state();
     d3d_init_blend_state();
-    d3d_set_viewport();
-
-    d3d_context->VSSetShader(vertex_shader, 0, 0);
-    d3d_context->PSSetShader(pixel_shader, 0, 0);
-
-    d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
+    d3d_set_viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1.0f);
 
     init_memory(&memory);
     init_clock(&clock);

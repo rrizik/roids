@@ -19,9 +19,16 @@ static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
 static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
+
+enum GameMode{
+    GameMode_FirstPerson = (1 << 0),
+    GameMode_Editor = (1 << 1),
+    GameMode_Game = (1 << 2),
+};
 #define ENTITIES_MAX 100
 typedef struct PermanentMemory{
     Arena arena;
+    u32 game_mode;
 
     u32 generation[ENTITIES_MAX];
     u32 free_entities[ENTITIES_MAX];
@@ -56,10 +63,12 @@ init_meshes(Mesh* meshes){
     cube_mesh->vertex_offset = 0;
     cube_mesh->vertex_stride = sizeof(Vertex);
     cube_mesh->vertex_count = array_count(cube);
+    cube_mesh->verticies = cube;
     //d3d_init_vertex_buffers(cube_mesh, cube);
 
     cube_mesh->index_stride = sizeof(u32);
     cube_mesh->index_count = array_count(cube_indicies);
+    cube_mesh->indicies = cube_indicies;
     //d3d_init_index_buffer(cube_mesh, cube_indicies);
     ////////////////////////////////
 }
@@ -351,6 +360,17 @@ handle_global_event(Event event){
                 }
                 return(true);
             }
+            if(event.keycode == ONE){
+                if(event.shift_pressed){
+                    pm->game_mode = GameMode_FirstPerson | GameMode_Editor;
+                }
+                else{
+                    pm->game_mode = GameMode_Editor;
+                }
+            }
+            if(event.keycode == TWO){
+                pm->game_mode = GameMode_Game;
+            }
         }
     }
     return(false);
@@ -453,7 +473,8 @@ update_game(Memory* memory, Events* events, Clock* clock){
     //push_clear_color(render_buffer->render_command_arena, BLACK);
     //Arena* render_command_arena = render_buffer->render_command_arena;
     if(!memory->initialized){
-        Button a = controller.up;
+        pm->game_mode = GameMode_Game;
+        init_camera();
 
         init_arena(&pm->arena, (u8*)memory->permanent_base + sizeof(PermanentMemory), memory->permanent_size - sizeof(PermanentMemory));
         init_arena(&tm->arena, (u8*)memory->transient_base + sizeof(TransientMemory), memory->transient_size - sizeof(TransientMemory));
@@ -538,6 +559,8 @@ update_game(Memory* memory, Events* events, Clock* clock){
 
 
     // NOTE: process events.
+    v3 camera_pos_vector = {0};
+    v3 camera_forward_vector = {0};
     while(!events_empty(events)){
         Event event = events_next(events);
 
@@ -549,27 +572,57 @@ update_game(Memory* memory, Events* events, Clock* clock){
         }
         else{
             handled = handle_controller_events(event);
-
         }
     }
 
-    if(controller.right.held){
-        second->pos.x += 40 * (f32)clock->dt;
+    if(pm->game_mode == GameMode_Game){
+        if(controller.right.held){
+            second->pos.x += 40 * (f32)clock->dt;
+        }
+        if(controller.left.held){
+            second->pos.x -= 40 * (f32)clock->dt;
+        }
+        if(controller.up.held){
+            second->pos.y += 40 * (f32)clock->dt;
+        }
+        if(controller.down.held){
+            second->pos.y -= 40 * (f32)clock->dt;
+        }
+        if(controller.e.held){
+            second->pos.z += 40 * (f32)clock->dt;
+        }
+        if(controller.q.held){
+            second->pos.z -= 40 * (f32)clock->dt;
+        }
     }
-    if(controller.left.held){
-        second->pos.x -= 40 * (f32)clock->dt;
-    }
-    if(controller.up.held){
-        second->pos.y += 40 * (f32)clock->dt;
-    }
-    if(controller.down.held){
-        second->pos.y -= 40 * (f32)clock->dt;
-    }
-    if(controller.e.held){
-        second->pos.z += 40 * (f32)clock->dt;
-    }
-    if(controller.q.held){
-        second->pos.z -= 40 * (f32)clock->dt;
+    if(has_flags(pm->game_mode, GameMode_FirstPerson | GameMode_Editor)){
+        // up down
+        if(controller.e.held){
+            f32 dy = (f32)(camera.move_speed * clock->dt);
+            camera.position.y += dy;
+        }
+        if(controller.q.held){
+            f32 dy = (f32)(camera.move_speed * clock->dt);
+            camera.position.y -= dy;
+        }
+
+        // wasd
+        if(controller.up.held){
+            v3 result = (camera.forward  * camera.move_speed * (f32)clock->dt);
+            camera.position = camera.position + result;
+        }
+        if(controller.down.held){
+            v3 result = (camera.forward  * camera.move_speed * (f32)clock->dt);
+            camera.position = camera.position - result;
+        }
+        if(controller.left.held){
+            v3 result = (normalized_v3(cross_product_v3(camera.forward, (v3){0, 1, 0})) * camera.move_speed * (f32)clock->dt);
+            camera.position = camera.position + result;
+        }
+        if(controller.right.held){
+            v3 result = (normalized_v3(cross_product_v3(camera.forward, (v3){0, 1, 0})) * camera.move_speed * (f32)clock->dt);
+            camera.position = camera.position - result;
+        }
     }
 
     //if(pm->ship_loaded){
@@ -600,6 +653,15 @@ update_game(Memory* memory, Events* events, Clock* clock){
     //    //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
     //}
     update_console();
+
+
+    XMVECTOR camera_position = (XMVECTOR){camera.position.x, camera.position.y, camera.position.z};
+    XMVECTOR camera_forward = (XMVECTOR){camera.forward.x, camera.forward.y, camera.forward.z};
+    XMVECTOR camera_up = (XMVECTOR){camera.up.x, camera.up.y, camera.up.z};
+    XMMATRIX view_matrix = XMMatrixLookAtLH(camera_position, camera_position + camera_forward, camera_up);
+    XMMATRIX perspective_matrix = XMMatrixPerspectiveFovLH(PI_f32*0.25f, (f32)((f32)SCREEN_WIDTH/(f32)SCREEN_HEIGHT), 1.0f, 1000.0f);
+    constants.transform = view_matrix * perspective_matrix;
+
 
     //f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
     d3d_clear_color(BACKGROUND_COLOR);
@@ -647,7 +709,7 @@ update_game(Memory* memory, Events* events, Clock* clock){
         }
     }
     Mesh mesh = pm->meshes[EntityType_Cube];
-    d3d_draw_cube_instanced(&mesh, second->texture);
+    d3d_draw_cube_instanced(&mesh, &second->texture);
 
 
     //if(console_is_visible()){
@@ -692,6 +754,7 @@ update_game(Memory* memory, Events* events, Clock* clock){
     //draw_string(render_buffer, make_v2(500, 300), s, 0xF8DB5E);
     //draw_bitmap(render_buffer, make_v2(100, 100), &pm->tree);
 
+    camera_update(make_v3(0.0, 0.0, 0.0));
     clear_controller_pressed(&controller);
     arena_free(&tm->arena);
 }

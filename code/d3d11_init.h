@@ -35,8 +35,8 @@ global ID3D11Buffer* d3d_index_buffer;
 global ID3D11Buffer* constant_buffer;
 global ID3D11Buffer* d3d_instance_buffer;
 
-global ID3D11VertexShader* vertex_shader;
-global ID3D11PixelShader*  pixel_shader;
+global ID3D11VertexShader* d3d_vertex_shader;
+global ID3D11PixelShader*  d3d_pixel_shader;
 global ID3D11InputLayout*  d3d_input_layout;
 global D3D11_VIEWPORT d3d_viewport;
 
@@ -203,15 +203,15 @@ d3d_init_blend_state(){
 }
 
 static void
-d3d_set_viewport(){
+d3d_set_viewport(f32 top_left_x, f32 top_left_y, f32 width, f32 height, f32 min_depth, f32 max_depth){
     // NOTE: can be used to create split screens for 2+ players
     d3d_viewport = {
-        .TopLeftX = 0.0f,
-        .TopLeftY = 0.0f,
-        .Width = SCREEN_WIDTH,
-        .Height = SCREEN_HEIGHT,
-        .MinDepth = 0.0f,
-        .MaxDepth = 1.0f
+        .TopLeftX = top_left_x,
+        .TopLeftY = top_left_y,
+        .Width = width,
+        .Height = height,
+        .MinDepth = min_depth,
+        .MaxDepth = max_depth
     };
     d3d_context->RSSetViewports(1, &d3d_viewport);
 }
@@ -253,7 +253,7 @@ d3d_load_vertex_shader(String8 path_shader){
     d3d_context->IASetInputLayout(d3d_input_layout);
     end_scratch(scratch);
 
-    hr = d3d_device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &vertex_shader);
+    hr = d3d_device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &d3d_vertex_shader);
     assert_hr(hr);
 }
 
@@ -281,7 +281,7 @@ d3d_load_pixel_shader(String8 path){
     }
     end_scratch(scratch);
 
-    hr = d3d_device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, &pixel_shader);
+    hr = d3d_device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, &d3d_pixel_shader);
     assert_hr(hr);
 }
 
@@ -293,6 +293,8 @@ typedef struct Vertex{
 typedef struct Mesh{
     ID3D11Buffer* vertex_buffer;
     ID3D11Buffer* index_buffer;
+    Vertex* verticies;
+    u32* indicies;
     u32 vertex_offset;
     u32 vertex_stride;
     u32 vertex_count;
@@ -443,26 +445,7 @@ d3d_set_index_buffer(Mesh* mesh, u32* indicies){
 typedef struct Constants{
     XMMATRIX transform;
 } Constants;
-
-//typedef struct ConstantBuffer2{
-//    struct{
-//        float r;
-//        float g;
-//        float b;
-//        float a;
-//    } face_colors[6];
-//} ConstandBuffer2;
-//
-//static ConstantBuffer2 ps_cb = {
-//    {
-//        {1.0f, 0.0f, 1.0f, 1.0f},
-//        {1.0f, 0.0f, 0.0f, 1.0f},
-//        {0.0f, 1.0f, 0.0f, 1.0f},
-//        {0.0f, 0.0f, 1.0f, 1.0f},
-//        {1.0f, 1.0f, 0.0f, 1.0f},
-//        {0.0f, 1.0f, 1.0f, 1.0f},
-//    }
-//};
+static Constants constants;
 
 static void
 d3d_init_constant_buffer(){
