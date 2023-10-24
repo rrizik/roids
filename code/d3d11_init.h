@@ -240,9 +240,11 @@ d3d_load_vertex_shader(String8 path_shader){
     }
 
     D3D11_INPUT_ELEMENT_DESC input_element_desc[] = {
+        // vertex data
         {"POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,                            D3D11_INPUT_PER_INSTANCE_DATA, 1},
+        // instance data
         {"TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
@@ -445,7 +447,7 @@ d3d_set_index_buffer(Mesh* mesh, u32* indicies){
 typedef struct Constants{
     XMMATRIX transform;
 } Constants;
-static Constants constants;
+//static Constants constants;
 
 static void
 d3d_init_constant_buffer(){

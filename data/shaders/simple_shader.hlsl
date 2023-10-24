@@ -19,7 +19,7 @@ struct VS_Output{
 VS_Output vs_main(VS_Input input){
     VS_Output output;
 
-    output.pos = mul(float4(input.pos, 1.0f), input.transform);
+    output.pos = mul(float4(input.pos, 1.0f), mul(input.transform, transform));
     //output.pos = mul(float4(input.pos, 1.0f), input.transform);
     //output.pos = mul(float4(input.pos, 1.0f), transform);
     output.tex = input.tex;

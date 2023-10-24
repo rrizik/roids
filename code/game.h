@@ -21,9 +21,9 @@ static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
 
 enum GameMode{
-    GameMode_FirstPerson = (1 << 0),
-    GameMode_Editor = (1 << 1),
-    GameMode_Game = (1 << 2),
+    GameMode_FirstPerson,
+    GameMode_Editor,
+    GameMode_Game
 };
 #define ENTITIES_MAX 100
 typedef struct PermanentMemory{
@@ -363,13 +363,16 @@ handle_global_event(Event event){
             if(event.keycode == ONE){
                 if(event.shift_pressed){
                     pm->game_mode = GameMode_FirstPerson | GameMode_Editor;
+                    print("FP EDITOR\n");
                 }
                 else{
                     pm->game_mode = GameMode_Editor;
+                    print("EDITOR\n");
                 }
             }
             if(event.keycode == TWO){
                 pm->game_mode = GameMode_Game;
+                print("GAME MODE\n");
             }
         }
     }
@@ -595,7 +598,7 @@ update_game(Memory* memory, Events* events, Clock* clock){
             second->pos.z -= 40 * (f32)clock->dt;
         }
     }
-    if(has_flags(pm->game_mode, GameMode_FirstPerson | GameMode_Editor)){
+    if(has_flags(pm->game_mode, GameMode_Editor)){
         // up down
         if(controller.e.held){
             f32 dy = (f32)(camera.move_speed * clock->dt);
@@ -660,7 +663,16 @@ update_game(Memory* memory, Events* events, Clock* clock){
     XMVECTOR camera_up = (XMVECTOR){camera.up.x, camera.up.y, camera.up.z};
     XMMATRIX view_matrix = XMMatrixLookAtLH(camera_position, camera_position + camera_forward, camera_up);
     XMMATRIX perspective_matrix = XMMatrixPerspectiveFovLH(PI_f32*0.25f, (f32)((f32)SCREEN_WIDTH/(f32)SCREEN_HEIGHT), 1.0f, 1000.0f);
-    constants.transform = view_matrix * perspective_matrix;
+
+    f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
+    D3D11_MAPPED_SUBRESOURCE mapped_subresource;
+    d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+
+    Constants* constants = (Constants*)mapped_subresource.pData;
+    constants->transform =  view_matrix * perspective_matrix;
+    d3d_context->Unmap(constant_buffer, 0);
+
+    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
 
 
     //f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
