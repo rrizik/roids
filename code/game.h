@@ -22,6 +22,7 @@ static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
 // nocheckin:
 // nocheckin:
+// nocheckin:
 enum GameMode{
     GameMode_FirstPerson,
     GameMode_Editor,
