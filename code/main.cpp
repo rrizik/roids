@@ -89,6 +89,8 @@ init_clock(Clock* c){
     c->get_ms_elapsed = get_ms_elapsed;
 }
 
+// nocheckin:
+// nocheckin:
 static void
 init_memory(Memory* m){
     m->permanent_size = MB(500);
