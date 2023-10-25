@@ -2,7 +2,6 @@
 #define GAME_H
 
 
-static Font b = {0};
 static Font global_font = {0};
 
 static RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
@@ -21,6 +20,7 @@ static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
 
+// nocheckin:
 // nocheckin:
 enum GameMode{
     GameMode_FirstPerson,
