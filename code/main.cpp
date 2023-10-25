@@ -91,6 +91,8 @@ init_clock(Clock* c){
 
 // nocheckin:
 // nocheckin:
+// nocheckin:
+// nocheckin:
 static void
 init_memory(Memory* m){
     m->permanent_size = MB(500);
