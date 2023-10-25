@@ -20,10 +20,11 @@ static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
 
+// nocheckin:
 enum GameMode{
     GameMode_FirstPerson,
     GameMode_Editor,
-    GameMode_Game
+    GameMode_Game,
 };
 #define ENTITIES_MAX 100
 typedef struct PermanentMemory{
