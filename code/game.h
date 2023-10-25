@@ -2,6 +2,7 @@
 #define GAME_H
 
 
+static Font b = {0};
 static Font global_font = {0};
 
 static RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
