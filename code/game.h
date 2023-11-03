@@ -506,6 +506,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         Bitmap tree_image = load_bitmap(&pm->arena, path_sprites, tree_str);
         Bitmap circle_image = load_bitmap(&tm->arena, path_sprites, circle_str);
         Bitmap bullet_image = load_bitmap(&tm->arena, path_sprites, bullet_str);
+        Bitmap test_image = load_bitmap(&tm->arena, path_sprites, test_str);
         //d3d_init_texture(ship_image);
 
 
@@ -532,7 +533,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .5f, .8, .6), resolution), MAGENTA, -20000, TEAL);
 
-        first = add_cube(pm, ship_image, make_v3(10.0f, 0.0f, 60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 120);
+        first = add_cube(pm, test_image, make_v3(10.0f, 0.0f, 60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.5f, 0.5f, 0.5f), 120);
         second = add_player(pm, ship_image, make_v3(-10.0f, 0.0f, 60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
         //Inconsolata-Regular
         Bitmap inconsolate[128];
@@ -689,6 +690,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
 
         switch(e->type){
             case EntityType_Cube:{
+                print("CUBE\n");
                 e->angle.z += (f32)clock->dt;
                 e->angle.y += (f32)clock->dt;
 
@@ -699,13 +701,14 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
                     XMMatrixRotationX(e->angle.x) *
                     XMMatrixRotationY(e->angle.y) *
                     XMMatrixRotationZ(e->angle.z) *
-                    XMMatrixScaling(0.2f, 0.2f, 0.2f) *
+                    XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
                     XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
                     XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
                 );
                 //d3d_draw_cube_indexed(&mesh, e->texture, e->pos, e->angle, e->scale);
             } break;
             case EntityType_Player:{
+                print("PLAYER\n");
                 e->angle.z += (f32)clock->dt;
                 e->angle.x += (f32)clock->dt;
 
@@ -717,10 +720,11 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
                     XMMatrixRotationX(e->angle.x) *
                     XMMatrixRotationY(e->angle.y) *
                     XMMatrixRotationZ(e->angle.z) *
-                    XMMatrixScaling(0.2f, 0.2f, 0.2f) *
+                    XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
                     XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
                     XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
                 );
+                instance->texture = e->texture;
                 //d3d_draw_cube_indexed(&mesh, e->texture, e->pos, e->angle, e->scale);
             } break;
         }
@@ -774,6 +778,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     camera_update(make_v3(0.0, 0.0, 0.0));
     clear_controller_pressed(&controller);
     arena_free(&tm->arena);
+
     if(GameMode_Editor){
         POINT half_width_height = {(SCREEN_WIDTH/2), (SCREEN_HEIGHT/2)};
         ClientToScreen(window->handle, &half_width_height);

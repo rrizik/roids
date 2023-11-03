@@ -381,6 +381,7 @@ d3d_init_vertex_buffers(Mesh* mesh, Vertex* verticies){
 
 typedef struct InstanceData {
     XMMATRIX transform;
+    Bitmap texture;
 } InstanceData;
 global u32 instance_count = 2;
 global InstanceData instances[2];
