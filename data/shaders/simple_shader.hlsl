@@ -20,14 +20,10 @@ struct VS_Output{
 VS_Output vs_main(InputLayout input){
     VS_Output output;
 
+    // camera multiplication
     float4 world_position = mul(float4(input.pos, 1), input.transform);
     float4 view_position = mul(view, world_position);
     output.pos = mul(projection, view_position);
-
-    //float4 view_position = mul(view, input.pos);
-    //output.pos = mul(projection, view_position);
-    //float4x4 final_matrix = mul(view, projection);
-    //output.pos = mul(float4(input.pos, 1), final_matrix);
 
     //output.pos = mul(mul(float4(input.pos, 1.0f), input.transform), transform);
     //output.pos = mul(float4(input.pos, 1.0f), mul(input.transform, transform));

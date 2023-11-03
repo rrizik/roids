@@ -116,11 +116,18 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         case WM_MOUSEMOVE:{
             Event event;
             event.type = MOUSE; // TODO: maybe have this be a KEYBOARD event
-            event.mouse_pos.x = (l_param & 0xFFFF); //- render_buffer.padding;
+            event.mouse_pos.x = (s32)(l_param & 0xFFFF); //- render_buffer.padding;
             event.mouse_pos.y = (SCREEN_HEIGHT - (s32)(l_param >> 16)); //+ render_buffer.padding; // (0, 0) bottom left
 
-            event.mouse_dx = event.mouse_pos.x - last_mouse_x;
-            event.mouse_dy = event.mouse_pos.y - last_mouse_y;
+            event.mouse_dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
+            event.mouse_dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);
+            //event.mouse_dx = event.mouse_pos.x - last_mouse_x;
+            //event.mouse_dy = event.mouse_pos.y - last_mouse_y;
+            if((event.mouse_dx != 0) || (event.mouse_dy != 0)){
+                print("dxy: (%i, %i)\n", event.mouse_dx, event.mouse_dy);
+            }
+
+            // TODO: MOVE ALL THIS CAMERA STUFF OUTA HERE
 
             camera.yaw += (f32)event.mouse_dx * camera.rotation_speed;
             camera.pitch += (f32)event.mouse_dy * camera.rotation_speed;
@@ -136,7 +143,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             direction.z = cos_f32(deg_to_rad(camera.pitch)) * sin_f32(deg_to_rad(camera.yaw));
 
             // set camera normalized forward direction
-            //camera.forward = normalized_v3(direction);
+            camera.forward = normalized_v3(direction);
 
             last_mouse_x = event.mouse_pos.x;
             last_mouse_y = event.mouse_pos.y;
@@ -366,7 +373,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         accumulator += frame_time;
         while(accumulator >= clock.dt){
-            update_game(&memory, &events, &clock);
+            update_game(&window, &memory, &events, &clock);
             accumulator -= clock.dt;
             time_elapsed += clock.dt;
             simulations++;

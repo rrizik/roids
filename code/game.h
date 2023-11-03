@@ -465,7 +465,7 @@ static Entity* first;
 static Entity* second;
 static void
 //update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* clock){
-update_game(Memory* memory, Events* events, Clock* clock){
+update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     assert(sizeof(PermanentMemory) < memory->permanent_size);
     assert(sizeof(TransientMemory) < memory->transient_size);
     pm = (PermanentMemory*)memory->permanent_base;
@@ -581,21 +581,21 @@ update_game(Memory* memory, Events* events, Clock* clock){
     f32 move_speed = 20;
     if(pm->game_mode == GameMode_Game){
         if(controller.right.held){
-            second->pos.x += move_speed * (f32)clock->dt;
-        }
-        if(controller.left.held){
             second->pos.x -= move_speed * (f32)clock->dt;
         }
-        if(controller.up.held){
-            second->pos.y -= move_speed * (f32)clock->dt;
-        }
-        if(controller.down.held){
-            second->pos.y += move_speed * (f32)clock->dt;
+        if(controller.left.held){
+            second->pos.x += move_speed * (f32)clock->dt;
         }
         if(controller.e.held){
-            second->pos.z += move_speed * (f32)clock->dt;
+            second->pos.y += move_speed * (f32)clock->dt;
         }
         if(controller.q.held){
+            second->pos.y -= move_speed * (f32)clock->dt;
+        }
+        if(controller.up.held){
+            second->pos.z += move_speed * (f32)clock->dt;
+        }
+        if(controller.down.held){
             second->pos.z -= move_speed * (f32)clock->dt;
         }
     }
@@ -603,11 +603,11 @@ update_game(Memory* memory, Events* events, Clock* clock){
         // up down
         if(controller.e.held){
             f32 dy = (f32)(camera.move_speed * clock->dt);
-            camera.position.y -= dy;
+            camera.position.y += dy;
         }
         if(controller.q.held){
             f32 dy = (f32)(camera.move_speed * clock->dt);
-            camera.position.y += dy;
+            camera.position.y -= dy;
         }
 
         // wasd
@@ -662,11 +662,9 @@ update_game(Memory* memory, Events* events, Clock* clock){
     XMVECTOR camera_position = (XMVECTOR){camera.position.x, camera.position.y, camera.position.z};
     XMVECTOR camera_forward = (XMVECTOR){camera.forward.x, camera.forward.y, camera.forward.z};
     XMVECTOR camera_up = (XMVECTOR){camera.up.x, camera.up.y, camera.up.z};
-    print("position: (%f, %f, %f) - forward: (%f, %f, %f) - up: (%f, %f, %f)\n",
-            XMVectorGetX(camera_position), XMVectorGetY(camera_position), XMVectorGetZ(camera_position),
-            XMVectorGetX(camera_forward), XMVectorGetY(camera_forward), XMVectorGetZ(camera_forward),
-            XMVectorGetX(camera_up), XMVectorGetY(camera_up), XMVectorGetZ(camera_up)
-    );
+    //print("sxyz: (%f, %f, %f)\n", second->pos.x, second->pos.y, second->pos.z);
+    //print("pos: (%f, %f, %f)\n", XMVectorGetX(camera_position), XMVectorGetY(camera_position), XMVectorGetZ(camera_position));
+    //print("for: (%f, %f, %f)\n", XMVectorGetX(camera_forward), XMVectorGetY(camera_forward), XMVectorGetZ(camera_forward));
     XMMATRIX view_matrix = XMMatrixLookAtLH(camera_position, camera_position + camera_forward, camera_up);
     XMMATRIX perspective_matrix = XMMatrixPerspectiveFovLH(PI_f32*0.25f, (f32)((f32)SCREEN_WIDTH/(f32)SCREEN_HEIGHT), 1.0f, 1000.0f);
 
@@ -776,6 +774,12 @@ update_game(Memory* memory, Events* events, Clock* clock){
     camera_update(make_v3(0.0, 0.0, 0.0));
     clear_controller_pressed(&controller);
     arena_free(&tm->arena);
+    if(GameMode_Editor){
+        POINT half_width_height = {(SCREEN_WIDTH/2), (SCREEN_HEIGHT/2)};
+        ClientToScreen(window->handle, &half_width_height);
+        SetCursorPos(half_width_height.x, half_width_height.y);
+    }
+
 }
 
 #endif
