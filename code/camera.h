@@ -16,16 +16,15 @@ struct Camera{
 };
 static Camera camera;
 
-// nocheckin:
 static void
 init_camera(){
     camera.up = make_v3(0.0f, 1.0f, 0.0f);
-    camera.forward = make_v3(0.0f, 0.0f, 1.0f); // note: left handed forward
-    camera.position = make_v3(0.0f, 1.0f, -100.0f);
+    camera.forward = make_v3(0.0f, 0.0f, -1.0f); // note: left handed forward
+    camera.position = make_v3(0.0f, 0.0f, 0.0f);
 
     camera.fov = 90.0f;
     camera.rotation_speed = 0.10f;
-    camera.move_speed = 40.0f;
+    camera.move_speed = 10.0f;
 }
 
 static void

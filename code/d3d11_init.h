@@ -243,8 +243,8 @@ d3d_load_vertex_shader(String8 path_shader){
         // vertex data
         {"POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,                            D3D11_INPUT_PER_INSTANCE_DATA, 1},
         // instance data
+        {"TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,                            D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
@@ -444,17 +444,18 @@ d3d_set_index_buffer(Mesh* mesh, u32* indicies){
     d3d_context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
 }
 
-typedef struct Constants{
-    XMMATRIX transform;
-} Constants;
-//static Constants constants;
+struct ConstantBuffer{
+    XMMATRIX view;
+    XMMATRIX projection;
+};
+//static ConstantBuffer constants;
 
 static void
 d3d_init_constant_buffer(){
     HRESULT hr;
 
     D3D11_BUFFER_DESC buffer_desc = {0};
-    buffer_desc.ByteWidth = sizeof(Constants);
+    buffer_desc.ByteWidth = sizeof(ConstantBuffer);
     buffer_desc.Usage     = D3D11_USAGE_DYNAMIC;
     buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
@@ -472,15 +473,15 @@ d3d_set_constant_buffer(v3 pos, v3 angle, v3 scale){
     D3D11_MAPPED_SUBRESOURCE mapped_subresource;
     d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
 
-    Constants* constants = (Constants*)mapped_subresource.pData;
-    constants->transform = XMMatrixTranspose(
-        XMMatrixRotationX(angle.x) *
-        XMMatrixRotationY(angle.y) *
-        XMMatrixRotationZ(angle.z) *
-        XMMatrixScaling(scale.x, scale.y, scale.z) *
-        XMMatrixTranslation(pos.x, pos.y, pos.z) *
-        XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
-    );
+    ConstantBuffer* constants = (ConstantBuffer*)mapped_subresource.pData;
+    //constants->transform = XMMatrixTranspose(
+    //    XMMatrixRotationX(angle.x) *
+    //    XMMatrixRotationY(angle.y) *
+    //    XMMatrixRotationZ(angle.z) *
+    //    XMMatrixScaling(scale.x, scale.y, scale.z) *
+    //    XMMatrixTranslation(pos.x, pos.y, pos.z) *
+    //    XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
+    //);
     d3d_context->Unmap(constant_buffer, 0);
 
     d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);

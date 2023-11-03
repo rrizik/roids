@@ -89,7 +89,6 @@ init_clock(Clock* c){
     c->get_ms_elapsed = get_ms_elapsed;
 }
 
-// nocheckin:
 static void
 init_memory(Memory* m){
     m->permanent_size = MB(500);
@@ -137,7 +136,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             direction.z = cos_f32(deg_to_rad(camera.pitch)) * sin_f32(deg_to_rad(camera.yaw));
 
             // set camera normalized forward direction
-            camera.forward = normalized_v3(direction);
+            //camera.forward = normalized_v3(direction);
 
             last_mouse_x = event.mouse_pos.x;
             last_mouse_y = event.mouse_pos.y;

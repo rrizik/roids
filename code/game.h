@@ -20,8 +20,6 @@ static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
 
-// nocheckin:
-// nocheckin:
 enum GameMode{
     GameMode_FirstPerson,
     GameMode_Editor,
@@ -478,7 +476,7 @@ update_game(Memory* memory, Events* events, Clock* clock){
     //push_clear_color(render_buffer->render_command_arena, BLACK);
     //Arena* render_command_arena = render_buffer->render_command_arena;
     if(!memory->initialized){
-        pm->game_mode = GameMode_Game;
+        pm->game_mode = GameMode_Editor;
         init_camera();
 
         init_arena(&pm->arena, (u8*)memory->permanent_base + sizeof(PermanentMemory), memory->permanent_size - sizeof(PermanentMemory));
@@ -580,35 +578,36 @@ update_game(Memory* memory, Events* events, Clock* clock){
         }
     }
 
+    f32 move_speed = 20;
     if(pm->game_mode == GameMode_Game){
         if(controller.right.held){
-            second->pos.x += 40 * (f32)clock->dt;
+            second->pos.x += move_speed * (f32)clock->dt;
         }
         if(controller.left.held){
-            second->pos.x -= 40 * (f32)clock->dt;
+            second->pos.x -= move_speed * (f32)clock->dt;
         }
         if(controller.up.held){
-            second->pos.y += 40 * (f32)clock->dt;
+            second->pos.y -= move_speed * (f32)clock->dt;
         }
         if(controller.down.held){
-            second->pos.y -= 40 * (f32)clock->dt;
+            second->pos.y += move_speed * (f32)clock->dt;
         }
         if(controller.e.held){
-            second->pos.z += 40 * (f32)clock->dt;
+            second->pos.z += move_speed * (f32)clock->dt;
         }
         if(controller.q.held){
-            second->pos.z -= 40 * (f32)clock->dt;
+            second->pos.z -= move_speed * (f32)clock->dt;
         }
     }
     if(has_flags(pm->game_mode, GameMode_Editor)){
         // up down
         if(controller.e.held){
             f32 dy = (f32)(camera.move_speed * clock->dt);
-            camera.position.y += dy;
+            camera.position.y -= dy;
         }
         if(controller.q.held){
             f32 dy = (f32)(camera.move_speed * clock->dt);
-            camera.position.y -= dy;
+            camera.position.y += dy;
         }
 
         // wasd
@@ -663,6 +662,11 @@ update_game(Memory* memory, Events* events, Clock* clock){
     XMVECTOR camera_position = (XMVECTOR){camera.position.x, camera.position.y, camera.position.z};
     XMVECTOR camera_forward = (XMVECTOR){camera.forward.x, camera.forward.y, camera.forward.z};
     XMVECTOR camera_up = (XMVECTOR){camera.up.x, camera.up.y, camera.up.z};
+    print("position: (%f, %f, %f) - forward: (%f, %f, %f) - up: (%f, %f, %f)\n",
+            XMVectorGetX(camera_position), XMVectorGetY(camera_position), XMVectorGetZ(camera_position),
+            XMVectorGetX(camera_forward), XMVectorGetY(camera_forward), XMVectorGetZ(camera_forward),
+            XMVectorGetX(camera_up), XMVectorGetY(camera_up), XMVectorGetZ(camera_up)
+    );
     XMMATRIX view_matrix = XMMatrixLookAtLH(camera_position, camera_position + camera_forward, camera_up);
     XMMATRIX perspective_matrix = XMMatrixPerspectiveFovLH(PI_f32*0.25f, (f32)((f32)SCREEN_WIDTH/(f32)SCREEN_HEIGHT), 1.0f, 1000.0f);
 
@@ -670,8 +674,9 @@ update_game(Memory* memory, Events* events, Clock* clock){
     D3D11_MAPPED_SUBRESOURCE mapped_subresource;
     d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
 
-    Constants* constants = (Constants*)mapped_subresource.pData;
-    constants->transform =  view_matrix * perspective_matrix;
+    ConstantBuffer* constants = (ConstantBuffer*)mapped_subresource.pData;
+    constants->view = view_matrix;
+    constants->projection = perspective_matrix;
     d3d_context->Unmap(constant_buffer, 0);
 
     d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
