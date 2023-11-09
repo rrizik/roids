@@ -30,6 +30,10 @@ typedef struct Controller{
     Button m_right;
     Button m_middle;
     v2s32 mouse_pos;
+    s32 centered_mouse_dx;
+    s32 centered_mouse_dy;
+    s32 mouse_dx;
+    s32 mouse_dy;
 } Controller;
 global Controller controller;
 
@@ -210,6 +214,8 @@ typedef struct Event{
     v2s32 mouse_pos;
     s32 mouse_dx;
     s32 mouse_dy;
+    s32 centered_mouse_dx;
+    s32 centered_mouse_dy;
 } Event;
 
 // NOTE: Must be a size that is a power of 2

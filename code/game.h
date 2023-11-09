@@ -22,7 +22,6 @@ static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
 enum GameMode{
     GameMode_FirstPerson,
-    GameMode_Editor,
     GameMode_Game,
 };
 #define ENTITIES_MAX 100
@@ -333,13 +332,11 @@ deserialize_data(PermanentMemory* pm, String8 filename){
 static bool
 handle_global_event(Event event){
     if(event.type == QUIT){
-        print("quiting\n");
         should_quit = true;
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == ESCAPE){
-                print("quiting\n");
                 should_quit = true;
             }
             if(event.keycode == TILDE && !event.repeat){
@@ -361,18 +358,14 @@ handle_global_event(Event event){
                 return(true);
             }
             if(event.keycode == ONE){
-                if(event.shift_pressed){
-                    pm->game_mode = GameMode_FirstPerson | GameMode_Editor;
-                    print("FP EDITOR\n");
-                }
-                else{
-                    pm->game_mode = GameMode_Editor;
-                    print("EDITOR\n");
-                }
+                pm->game_mode = GameMode_FirstPerson;
+                print("OFF\n"); // TODO: Why is this behaving stupidly?
+                ShowCursor(0);
             }
             if(event.keycode == TWO){
                 pm->game_mode = GameMode_Game;
-                print("GAME MODE\n");
+                print("ON\n");
+                ShowCursor(1);
             }
         }
     }
@@ -384,6 +377,10 @@ static bool
 handle_controller_events(Event event){
     if(event.type == MOUSE){
         controller.mouse_pos = event.mouse_pos;
+        controller.centered_mouse_dx = event.centered_mouse_dx;
+        controller.centered_mouse_dy = event.centered_mouse_dy;
+        controller.mouse_dx = event.mouse_dx;
+        controller.mouse_dy = event.mouse_dy;
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
@@ -461,8 +458,6 @@ handle_controller_events(Event event){
 }
 
 static f32 angle = 0;
-static Entity* first;
-static Entity* second;
 static void
 //update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* clock){
 update_game(Window* window, Memory* memory, Events* events, Clock* clock){
@@ -476,7 +471,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     //push_clear_color(render_buffer->render_command_arena, BLACK);
     //Arena* render_command_arena = render_buffer->render_command_arena;
     if(!memory->initialized){
-        pm->game_mode = GameMode_Editor;
+        pm->game_mode = GameMode_FirstPerson;
         init_camera();
 
         init_arena(&pm->arena, (u8*)memory->permanent_base + sizeof(PermanentMemory), memory->permanent_size - sizeof(PermanentMemory));
@@ -533,8 +528,8 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .5f, .8, .6), resolution), MAGENTA, -20000, TEAL);
 
-        first = add_cube(pm, test_image, make_v3(10.0f, 0.0f, 60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.5f, 0.5f, 0.5f), 120);
-        second = add_player(pm, ship_image, make_v3(-10.0f, 0.0f, 60.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
+        first = add_cube(pm, test_image, make_v3(20.0f, 0.0f, 0.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.5f, 0.5f, 0.5f), 120);
+        second = add_player(pm, ship_image, make_v3(0.0f, 0.0f, 0.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
         //Inconsolata-Regular
         Bitmap inconsolate[128];
 
@@ -579,7 +574,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         }
     }
 
-    f32 move_speed = 20;
+    f32 move_speed = 40;
     if(pm->game_mode == GameMode_Game){
         if(controller.right.held){
             second->pos.x -= move_speed * (f32)clock->dt;
@@ -600,7 +595,12 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
             second->pos.z -= move_speed * (f32)clock->dt;
         }
     }
-    if(has_flags(pm->game_mode, GameMode_Editor)){
+    if(pm->game_mode == GameMode_FirstPerson){
+
+        POINT center = {(SCREEN_WIDTH/2), (SCREEN_HEIGHT/2)};
+        ClientToScreen(window->handle, &center);
+        SetCursorPos(center.x, center.y);
+
         // up down
         if(controller.e.held){
             f32 dy = (f32)(camera.move_speed * clock->dt);
@@ -628,6 +628,8 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
             v3 result = (normalized_v3(cross_product_v3(camera.forward, (v3){0, 1, 0})) * camera.move_speed * (f32)clock->dt);
             camera.position = camera.position - result;
         }
+
+        update_camera(controller.centered_mouse_dx, controller.centered_mouse_dy, (f32)clock->dt);
     }
 
     //if(pm->ship_loaded){
@@ -663,74 +665,64 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     XMVECTOR camera_position = (XMVECTOR){camera.position.x, camera.position.y, camera.position.z};
     XMVECTOR camera_forward = (XMVECTOR){camera.forward.x, camera.forward.y, camera.forward.z};
     XMVECTOR camera_up = (XMVECTOR){camera.up.x, camera.up.y, camera.up.z};
-    //print("sxyz: (%f, %f, %f)\n", second->pos.x, second->pos.y, second->pos.z);
-    //print("pos: (%f, %f, %f)\n", XMVectorGetX(camera_position), XMVectorGetY(camera_position), XMVectorGetZ(camera_position));
-    //print("for: (%f, %f, %f)\n", XMVectorGetX(camera_forward), XMVectorGetY(camera_forward), XMVectorGetZ(camera_forward));
+    //print("pos: (%f, %f, %f) - forward: (%f, %f, %f) - up: (%f, %f, %f)\n", XMVectorGetX(camera_position), XMVectorGetY(camera_position), XMVectorGetZ(camera_position), XMVectorGetX(camera_forward), XMVectorGetY(camera_forward), XMVectorGetZ(camera_forward), XMVectorGetX(camera_up), XMVectorGetY(camera_up), XMVectorGetZ(camera_up));
     XMMATRIX view_matrix = XMMatrixLookAtLH(camera_position, camera_position + camera_forward, camera_up);
     XMMATRIX perspective_matrix = XMMatrixPerspectiveFovLH(PI_f32*0.25f, (f32)((f32)SCREEN_WIDTH/(f32)SCREEN_HEIGHT), 1.0f, 1000.0f);
 
-    f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
     D3D11_MAPPED_SUBRESOURCE mapped_subresource;
-    d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+    d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
 
     ConstantBuffer* constants = (ConstantBuffer*)mapped_subresource.pData;
     constants->view = view_matrix;
     constants->projection = perspective_matrix;
-    d3d_context->Unmap(constant_buffer, 0);
+    d3d_context->Unmap(d3d_constant_buffer, 0);
 
-    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+    d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
 
 
-    //f32 background_color[4] = {0.2f, 0.29f, 0.29f, 1.0f};
     d3d_clear_color(BACKGROUND_COLOR);
 
+    f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
     u32 c = array_count(pm->entities) - 1;
     for(u32 entity_index = (u32)pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
         Entity *e = pm->entities + pm->free_entities[entity_index];
 
         switch(e->type){
             case EntityType_Cube:{
-                print("CUBE\n");
                 e->angle.z += (f32)clock->dt;
                 e->angle.y += (f32)clock->dt;
 
                 Mesh mesh = pm->meshes[EntityType_Cube];
-                InstanceData* instance = instances + ((c - 1) - entity_index);
-                f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
-                instance->transform = XMMatrixTranspose(
+                InstanceData* instance = cube_instances + ((c - 1) - entity_index);
+                instance->transform =
                     XMMatrixRotationX(e->angle.x) *
                     XMMatrixRotationY(e->angle.y) *
                     XMMatrixRotationZ(e->angle.z) *
                     XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
-                    XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
-                    XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
-                );
-                //d3d_draw_cube_indexed(&mesh, e->texture, e->pos, e->angle, e->scale);
+                    XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z);
+
+                //instance->texture = e->texture;
             } break;
             case EntityType_Player:{
-                print("PLAYER\n");
                 e->angle.z += (f32)clock->dt;
                 e->angle.x += (f32)clock->dt;
 
                 Mesh mesh = pm->meshes[EntityType_Cube];
 
-                InstanceData* instance = instances + ((c - 1) - entity_index);
-                f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
-                instance->transform = XMMatrixTranspose(
+                InstanceData* instance = cube_instances + ((c - 1) - entity_index);
+                instance->transform =
                     XMMatrixRotationX(e->angle.x) *
                     XMMatrixRotationY(e->angle.y) *
                     XMMatrixRotationZ(e->angle.z) *
                     XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
-                    XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z) *
-                    XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
-                );
-                instance->texture = e->texture;
-                //d3d_draw_cube_indexed(&mesh, e->texture, e->pos, e->angle, e->scale);
+                    XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z);
+                //instance->texture = e->texture;
             } break;
         }
     }
-    Mesh mesh = pm->meshes[EntityType_Cube];
-    d3d_draw_cube_instanced(&mesh, &second->texture);
+    //d3d_draw_cube_indexed(&mesh, second->texture, make_v3(-40, 20, -300), make_v3(0, 0, 0), make_v3(.2f, .2f, .2f));
+    // mesh represents all the information for 1 instance
+    // draw_everything();
 
 
     //if(console_is_visible()){
@@ -775,15 +767,8 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     //draw_string(render_buffer, make_v2(500, 300), s, 0xF8DB5E);
     //draw_bitmap(render_buffer, make_v2(100, 100), &pm->tree);
 
-    camera_update(make_v3(0.0, 0.0, 0.0));
     clear_controller_pressed(&controller);
     arena_free(&tm->arena);
-
-    if(GameMode_Editor){
-        POINT half_width_height = {(SCREEN_WIDTH/2), (SCREEN_HEIGHT/2)};
-        ClientToScreen(window->handle, &half_width_height);
-        SetCursorPos(half_width_height.x, half_width_height.y);
-    }
 
 }
 

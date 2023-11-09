@@ -5,27 +5,58 @@
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 
+
 #include "base_inc.h"
 #include "win32_base_inc.h"
+struct Window{ // todo: maybe this should be in win32
+    s32 width;
+    s32 height;
+    f32 aspect_ratio;
+    HWND handle;
+};
+global Window window;
+
+global HRESULT hr; //todo: add this in win32_base_inc?
 #include "camera.h"
 #include "math.h"
 #include "rect.h"
 #include "bitmap.h"
 #include "font.h"
 #include "entity.h"
+global Arena* global_arena = os_make_arena(MB(100));
+
+static String8 path_exe;
+static String8 path_cwd;
+static String8 path_data;
+static String8 path_sprites;
+static String8 path_fonts;
+static String8 path_saves;
+static String8 path_shaders;
+static void
+init_paths(Arena* arena){
+    path_exe = os_get_exe_path(global_arena);
+
+    ScratchArena scratch = begin_scratch(0);
+    String8Node split_exe_path = str8_split(scratch.arena, path_exe, '\\');
+    dll_pop_back(&split_exe_path);
+    dll_pop_back(&split_exe_path);
+    String8Join opts = { .mid = str8_literal("\\"), };
+    path_cwd = str8_join(global_arena, &split_exe_path, opts);
+    end_scratch(scratch);
+
+    path_data    = str8_path_append(arena, path_cwd, str8_literal("data"));
+    path_sprites = str8_path_append(arena, path_data, str8_literal("sprites"));
+    path_fonts   = str8_path_append(arena, path_data, str8_literal("fonts"));
+    path_saves   = str8_path_append(arena, path_data, str8_literal("saves"));
+    path_shaders = str8_path_append(arena, path_data, str8_literal("shaders"));
+}
+
 #include "d3d11_init.h"
 #include "d3d11_render.h"
 
 global v2s32 resolution = {
     .x = SCREEN_WIDTH,
     .y = SCREEN_HEIGHT
-};
-
-struct Window{
-    u32 width;
-    u32 height;
-    f32 aspect_ratio;
-    HWND handle;
 };
 
 typedef s64 GetTicks(void);
@@ -39,6 +70,7 @@ typedef struct Clock{
     GetSecondsElapsed* get_seconds_elapsed;
     GetMSElapsed* get_ms_elapsed;
 } Clock;
+global Clock clock;
 
 typedef struct Memory{
     void* base;
@@ -51,13 +83,10 @@ typedef struct Memory{
 
     bool initialized;
 } Memory;
-
-
-global Arena* global_arena = os_make_arena(MB(100));
-global bool should_quit;
 global Memory memory;
-global Clock clock;
-global Window window;
+
+
+global bool should_quit;
 #include "input.h"
 global Events events;
 
@@ -116,35 +145,13 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         case WM_MOUSEMOVE:{
             Event event;
             event.type = MOUSE; // TODO: maybe have this be a KEYBOARD event
-            event.mouse_pos.x = (s32)(l_param & 0xFFFF); //- render_buffer.padding;
-            event.mouse_pos.y = (SCREEN_HEIGHT - (s32)(l_param >> 16)); //+ render_buffer.padding; // (0, 0) bottom left
+            event.mouse_pos.x = (s32)(l_param & 0xFFFF);
+            event.mouse_pos.y = (SCREEN_HEIGHT - (s32)(l_param >> 16));
 
-            event.mouse_dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
-            event.mouse_dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);
-            //event.mouse_dx = event.mouse_pos.x - last_mouse_x;
-            //event.mouse_dy = event.mouse_pos.y - last_mouse_y;
-            if((event.mouse_dx != 0) || (event.mouse_dy != 0)){
-                print("dxy: (%i, %i)\n", event.mouse_dx, event.mouse_dy);
-            }
-
-            // TODO: MOVE ALL THIS CAMERA STUFF OUTA HERE
-
-            camera.yaw += (f32)event.mouse_dx * camera.rotation_speed;
-            camera.pitch += (f32)event.mouse_dy * camera.rotation_speed;
-
-            // clamp campera at top and bottom so you do the spin rotation thing
-            if(camera.pitch > 89.0f){ camera.pitch = 89.0f; }
-            if(camera.pitch < -89.0f){ camera.pitch = -89.0f; }
-
-            // get the None Normalized forward direction
-            v3 direction;
-            direction.x = -cos_f32(deg_to_rad(camera.pitch)) * cos_f32(deg_to_rad(camera.yaw));
-            direction.y = sin_f32(deg_to_rad(camera.pitch));
-            direction.z = cos_f32(deg_to_rad(camera.pitch)) * sin_f32(deg_to_rad(camera.yaw));
-
-            // set camera normalized forward direction
-            camera.forward = normalized_v3(direction);
-
+            event.centered_mouse_dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
+            event.centered_mouse_dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);
+            event.mouse_dx = event.mouse_pos.x - last_mouse_x;
+            event.mouse_dy = event.mouse_pos.y - last_mouse_y;
             last_mouse_x = event.mouse_pos.x;
             last_mouse_y = event.mouse_pos.y;
 
@@ -269,7 +276,7 @@ win32_init(){
 }
 
 static Window
-win32_window_create(wchar* window_name, u32 width, u32 height){
+win32_window_create(wchar* window_name, s32 width, s32 height){
     Window result = {0};
     result.width = width;
     result.height = height;
@@ -280,32 +287,8 @@ win32_window_create(wchar* window_name, u32 width, u32 height){
     return(result);
 }
 
-static String8 path_exe;
-static String8 path_cwd;
-static String8 path_data;
-static String8 path_sprites;
-static String8 path_fonts;
-static String8 path_saves;
-static String8 path_shaders;
-static void
-init_paths(Arena* arena){
-    path_exe = os_get_exe_path(global_arena);
-
-    ScratchArena scratch = begin_scratch(0);
-    String8Node split_exe_path = str8_split(scratch.arena, path_exe, '\\');
-    dll_pop_back(&split_exe_path);
-    dll_pop_back(&split_exe_path);
-    String8Join opts = { .mid = str8_literal("\\"), };
-    path_cwd = str8_join(global_arena, &split_exe_path, opts);
-    end_scratch(scratch);
-
-    path_data    = str8_path_append(arena, path_cwd, str8_literal("data"));
-    path_sprites = str8_path_append(arena, path_data, str8_literal("sprites"));
-    path_fonts   = str8_path_append(arena, path_data, str8_literal("fonts"));
-    path_saves   = str8_path_append(arena, path_data, str8_literal("saves"));
-    path_shaders = str8_path_append(arena, path_data, str8_literal("shaders"));
-}
-
+static Entity* first;
+static Entity* second;
 #include "game.h"
 static f32 cangle = 0;
 static HRESULT hresult;
@@ -321,30 +304,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     Window window = win32_window_create(L"Roids", SCREEN_WIDTH, SCREEN_HEIGHT);
 
     // D3D11 stuff
-    HRESULT result;
-    d3d_init_device_and_context();
+    d3d_init(window);
 #if DEBUG
     d3d_init_debug_stuff();
 #endif
-    d3d_init_swapchain(window.handle);
-
-    d3d_init_framebuffer();
-    d3d_init_depthbuffer();
-    d3d_init_depthstencil();
-
-    d3d_load_vertex_shader(path_shaders);
-    d3d_load_pixel_shader(path_shaders);
-
-    d3d_init_constant_buffer();
-    d3d_init_rasterizer_state();
-    d3d_init_sampler_state();
-    d3d_init_blend_state();
-    d3d_set_viewport(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 1.0f);
 
     init_memory(&memory);
     init_clock(&clock);
     init_events(&events);
-
 
     //f64 FPS = 0;
     //f64 MSPF = 0;
@@ -379,10 +346,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             simulations++;
             clear_controller_pressed(&controller);
         }
-		simulations = 0;
+        if(simulations){
+            Mesh mesh = pm->meshes[EntityType_Cube];
+            d3d_draw_cube_instanced(&mesh, &second->texture);
 
-        //f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
-        //f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
+            simulations = 0;
+        }
 
         d3d_present();
 
