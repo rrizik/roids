@@ -361,18 +361,17 @@ handle_global_event(Event event){
             }
             if(event.keycode == ONE){
                 pm->game_mode = GameMode_FirstPerson;
-                print("OFF\n"); // TODO: Why is this behaving stupidly?
-                ShowCursor(0);
-                POINT center = {(window.width/2), (window.height/2)};
-                ClientToScreen(window.handle, &center);
-                SetCursorPos(center.x, center.y);
+
                 controller.mouse.dx = 0;
                 controller.mouse.dy = 0;
+
+                POINT center = {(window.width/2), (window.height/2)};
+                ClientToScreen(window.handle, &center);
+                show_cursor(false);
             }
             if(event.keycode == TWO){
                 pm->game_mode = GameMode_Editor;
-                print("ON\n");
-                ShowCursor(1);
+                show_cursor(true);
             }
         }
     }

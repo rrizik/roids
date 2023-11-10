@@ -285,6 +285,15 @@ win32_window_create(wchar* window_name, s32 width, s32 height){
     return(result);
 }
 
+static void show_cursor(bool show){
+    if(show){
+        while(ShowCursor(1) < 0);
+    }
+    else{
+        while(ShowCursor(0) >= 0);
+    }
+}
+
 static Entity* first;
 static Entity* second;
 #include "game.h"
