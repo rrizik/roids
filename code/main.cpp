@@ -148,12 +148,10 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             event.mouse_pos.x = (s32)(l_param & 0xFFFF);
             event.mouse_pos.y = (SCREEN_HEIGHT - (s32)(l_param >> 16));
 
-            event.centered_mouse_dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
-            event.centered_mouse_dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);
-            event.mouse_dx = event.mouse_pos.x - last_mouse_x;
-            event.mouse_dy = event.mouse_pos.y - last_mouse_y;
-            last_mouse_x = event.mouse_pos.x;
-            last_mouse_y = event.mouse_pos.y;
+            s32 dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
+            s32 dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);
+            event.mouse_dx = (f32)dx / (f32)(SCREEN_WIDTH/2);
+            event.mouse_dy = (f32)dy / (f32)(SCREEN_HEIGHT/2);
 
             events_add(&events, event);
         } break;

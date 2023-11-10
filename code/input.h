@@ -7,10 +7,9 @@ typedef struct Button{
 } Button;
 
 typedef struct Mouse{
-    v2 pos;
-    v2 last_pos;
-    s32 dx;
-    s32 dy;
+    v2s32 pos;
+    f32 dx;
+    f32 dy;
     f32 wheel_direction;
     bool tracking_leave;
 } Mouse;
@@ -29,11 +28,6 @@ typedef struct Controller{
     Button m_left;
     Button m_right;
     Button m_middle;
-    v2s32 mouse_pos;
-    s32 centered_mouse_dx;
-    s32 centered_mouse_dy;
-    s32 mouse_dx;
-    s32 mouse_dy;
 } Controller;
 global Controller controller;
 
@@ -190,8 +184,6 @@ typedef enum KeyCode{
 global bool alt_pressed;
 global bool shift_pressed;
 global bool ctrl_pressed;
-global s32 last_mouse_x;
-global s32 last_mouse_y;
 
 typedef enum EventType{
     QUIT,
@@ -212,10 +204,8 @@ typedef struct Event{
 
     s32 mouse_wheel_dir;
     v2s32 mouse_pos;
-    s32 mouse_dx;
-    s32 mouse_dy;
-    s32 centered_mouse_dx;
-    s32 centered_mouse_dy;
+    f32 mouse_dx;
+    f32 mouse_dy;
 } Event;
 
 // NOTE: Must be a size that is a power of 2

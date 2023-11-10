@@ -22,8 +22,10 @@ static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
 enum GameMode{
     GameMode_FirstPerson,
+    GameMode_Editor,
     GameMode_Game,
 };
+
 #define ENTITIES_MAX 100
 typedef struct PermanentMemory{
     Arena arena;
@@ -361,9 +363,14 @@ handle_global_event(Event event){
                 pm->game_mode = GameMode_FirstPerson;
                 print("OFF\n"); // TODO: Why is this behaving stupidly?
                 ShowCursor(0);
+                POINT center = {(window.width/2), (window.height/2)};
+                ClientToScreen(window.handle, &center);
+                SetCursorPos(center.x, center.y);
+                controller.mouse.dx = 0;
+                controller.mouse.dy = 0;
             }
             if(event.keycode == TWO){
-                pm->game_mode = GameMode_Game;
+                pm->game_mode = GameMode_Editor;
                 print("ON\n");
                 ShowCursor(1);
             }
@@ -376,11 +383,9 @@ handle_global_event(Event event){
 static bool
 handle_controller_events(Event event){
     if(event.type == MOUSE){
-        controller.mouse_pos = event.mouse_pos;
-        controller.centered_mouse_dx = event.centered_mouse_dx;
-        controller.centered_mouse_dy = event.centered_mouse_dy;
-        controller.mouse_dx = event.mouse_dx;
-        controller.mouse_dy = event.mouse_dy;
+        controller.mouse.pos = event.mouse_pos;
+        controller.mouse.dx = event.mouse_dx;
+        controller.mouse.dy = event.mouse_dy;
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
@@ -471,7 +476,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     //push_clear_color(render_buffer->render_command_arena, BLACK);
     //Arena* render_command_arena = render_buffer->render_command_arena;
     if(!memory->initialized){
-        pm->game_mode = GameMode_FirstPerson;
+        pm->game_mode = GameMode_Editor;
         init_camera();
 
         init_arena(&pm->arena, (u8*)memory->permanent_base + sizeof(PermanentMemory), memory->permanent_size - sizeof(PermanentMemory));
@@ -575,7 +580,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     }
 
     f32 move_speed = 40;
-    if(pm->game_mode == GameMode_Game){
+    if(pm->game_mode == GameMode_Editor){
         if(controller.right.held){
             second->pos.x -= move_speed * (f32)clock->dt;
         }
@@ -597,39 +602,38 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     }
     if(pm->game_mode == GameMode_FirstPerson){
 
-        POINT center = {(SCREEN_WIDTH/2), (SCREEN_HEIGHT/2)};
-        ClientToScreen(window->handle, &center);
-        SetCursorPos(center.x, center.y);
-
         // up down
         if(controller.e.held){
             f32 dy = (f32)(camera.move_speed * clock->dt);
-            camera.position.y += dy;
+            camera.pos.y += dy;
         }
         if(controller.q.held){
             f32 dy = (f32)(camera.move_speed * clock->dt);
-            camera.position.y -= dy;
+            camera.pos.y -= dy;
         }
 
         // wasd
         if(controller.up.held){
             v3 result = (camera.forward  * camera.move_speed * (f32)clock->dt);
-            camera.position = camera.position + result;
+            camera.pos = camera.pos + result;
         }
         if(controller.down.held){
             v3 result = (camera.forward  * camera.move_speed * (f32)clock->dt);
-            camera.position = camera.position - result;
+            camera.pos = camera.pos - result;
         }
         if(controller.left.held){
             v3 result = (normalized_v3(cross_product_v3(camera.forward, (v3){0, 1, 0})) * camera.move_speed * (f32)clock->dt);
-            camera.position = camera.position + result;
+            camera.pos = camera.pos + result;
         }
         if(controller.right.held){
             v3 result = (normalized_v3(cross_product_v3(camera.forward, (v3){0, 1, 0})) * camera.move_speed * (f32)clock->dt);
-            camera.position = camera.position - result;
+            camera.pos = camera.pos - result;
         }
 
-        update_camera(controller.centered_mouse_dx, controller.centered_mouse_dy, (f32)clock->dt);
+        POINT center = {(SCREEN_WIDTH/2), (SCREEN_HEIGHT/2)};
+        ClientToScreen(window->handle, &center);
+        SetCursorPos(center.x, center.y);
+        update_camera(controller.mouse.dx, controller.mouse.dy, (f32)clock->dt);
     }
 
     //if(pm->ship_loaded){
@@ -661,12 +665,11 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     //}
     update_console();
 
-
-    XMVECTOR camera_position = (XMVECTOR){camera.position.x, camera.position.y, camera.position.z};
+    XMVECTOR camera_pos = (XMVECTOR){camera.pos.x, camera.pos.y, camera.pos.z};
     XMVECTOR camera_forward = (XMVECTOR){camera.forward.x, camera.forward.y, camera.forward.z};
     XMVECTOR camera_up = (XMVECTOR){camera.up.x, camera.up.y, camera.up.z};
-    //print("pos: (%f, %f, %f) - forward: (%f, %f, %f) - up: (%f, %f, %f)\n", XMVectorGetX(camera_position), XMVectorGetY(camera_position), XMVectorGetZ(camera_position), XMVectorGetX(camera_forward), XMVectorGetY(camera_forward), XMVectorGetZ(camera_forward), XMVectorGetX(camera_up), XMVectorGetY(camera_up), XMVectorGetZ(camera_up));
-    XMMATRIX view_matrix = XMMatrixLookAtLH(camera_position, camera_position + camera_forward, camera_up);
+    //print("pos: (%f, %f, %f) - forward: (%f, %f, %f) - up: (%f, %f, %f)\n", XMVectorGetX(camera_pos), XMVectorGetY(camera_pos), XMVectorGetZ(camera_pos), XMVectorGetX(camera_forward), XMVectorGetY(camera_forward), XMVectorGetZ(camera_forward), XMVectorGetX(camera_up), XMVectorGetY(camera_up), XMVectorGetZ(camera_up));
+    XMMATRIX view_matrix = XMMatrixLookAtLH(camera_pos, camera_pos + camera_forward, camera_up);
     XMMATRIX perspective_matrix = XMMatrixPerspectiveFovLH(PI_f32*0.25f, (f32)((f32)SCREEN_WIDTH/(f32)SCREEN_HEIGHT), 1.0f, 1000.0f);
 
     D3D11_MAPPED_SUBRESOURCE mapped_subresource;
@@ -733,7 +736,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     String8 strings[] = {
         str8_literal("Console:"),
         str8_literal("  - Cursor - left/right movement. up/down through history. home/end."),
-        str8_literal("  - Editing - start, middle, end of cursor position"),
+        str8_literal("  - Editing - start, middle, end of cursor pos"),
         str8_literal("  - Commands - console commands like (help, exit, add, save, load)"),
         str8_literal("                           - save/load will serialize/deserialize entity data"),
     };

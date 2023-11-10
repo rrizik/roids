@@ -20,7 +20,6 @@ struct VS_Output{
 VS_Output vs_main(InputLayout input){
     VS_Output output;
 
-
     // todo(rr): verify variable names are correct. What is result?
     float4 world_space = mul(float4(input.vertex_position, 1), input.model_transform);
     float4 camera_space = mul(world_space, view);
