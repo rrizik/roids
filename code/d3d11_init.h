@@ -59,8 +59,8 @@ struct ConstantBuffer{
 typedef struct InstanceData {
     XMMATRIX transform;
 } InstanceData;
-global u32 instance_count = 2;
-global InstanceData cube_instances[2];
+global u32 instance_count = 3;
+global InstanceData cube_instances[3];
 
 static void
 d3d_init_debug_stuff(){

@@ -285,7 +285,8 @@ win32_window_create(wchar* window_name, s32 width, s32 height){
     return(result);
 }
 
-static void show_cursor(bool show){
+static void
+show_cursor(bool show){
     if(show){
         while(ShowCursor(1) < 0);
     }
@@ -296,6 +297,7 @@ static void show_cursor(bool show){
 
 static Entity* first;
 static Entity* second;
+static Entity* third;
 #include "game.h"
 static f32 cangle = 0;
 static HRESULT hresult;
@@ -354,6 +356,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             clear_controller_pressed(&controller);
         }
         if(simulations){
+            d3d_clear_color(BACKGROUND_COLOR);
+
             Mesh mesh = pm->meshes[EntityType_Cube];
             d3d_draw_cube_instanced(&mesh, &second->texture);
 

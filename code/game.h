@@ -359,19 +359,30 @@ handle_global_event(Event event){
                 }
                 return(true);
             }
+            // TODO: log to screen these changes
             if(event.keycode == ONE){
-                pm->game_mode = GameMode_FirstPerson;
+                if(pm->game_mode != GameMode_FirstPerson){
+                    pm->game_mode = GameMode_FirstPerson;
 
-                controller.mouse.dx = 0;
-                controller.mouse.dy = 0;
+                    controller.mouse.dx = 0;
+                    controller.mouse.dy = 0;
 
-                POINT center = {(window.width/2), (window.height/2)};
-                ClientToScreen(window.handle, &center);
-                show_cursor(false);
+                    POINT center = {(window.width/2), (window.height/2)};
+                    ClientToScreen(window.handle, &center);
+                    ShowCursor(false);
+                }
             }
             if(event.keycode == TWO){
-                pm->game_mode = GameMode_Editor;
-                show_cursor(true);
+                if(pm->game_mode != GameMode_Editor){
+                    pm->game_mode = GameMode_Editor;
+                    ShowCursor(true);
+                }
+            }
+            if(event.keycode == THREE){
+                if(pm->game_mode != GameMode_Game){
+                    pm->game_mode = GameMode_Game;
+                    ShowCursor(false);
+                }
             }
         }
     }
@@ -476,6 +487,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     //Arena* render_command_arena = render_buffer->render_command_arena;
     if(!memory->initialized){
         pm->game_mode = GameMode_Editor;
+
         init_camera();
 
         init_arena(&pm->arena, (u8*)memory->permanent_base + sizeof(PermanentMemory), memory->permanent_size - sizeof(PermanentMemory));
@@ -532,8 +544,9 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .5f, .8, .6), resolution), MAGENTA, -20000, TEAL);
 
-        first = add_cube(pm, test_image, make_v3(20.0f, 0.0f, 0.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.5f, 0.5f, 0.5f), 120);
-        second = add_player(pm, ship_image, make_v3(0.0f, 0.0f, 0.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
+        first = add_cube(pm, test_image, make_v3(40.0f, 0.0f, 200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.5f, 0.5f, 0.5f), 120);
+        second = add_player(pm, ship_image, make_v3(-40.0f, 0.0f, 200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
+        third = add_player(pm, ship_image, make_v3(0.0f, 0.0f, -200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
         //Inconsolata-Regular
         Bitmap inconsolate[128];
 
@@ -581,10 +594,10 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     f32 move_speed = 40;
     if(pm->game_mode == GameMode_Editor){
         if(controller.right.held){
-            second->pos.x -= move_speed * (f32)clock->dt;
+            second->pos.x += move_speed * (f32)clock->dt;
         }
         if(controller.left.held){
-            second->pos.x += move_speed * (f32)clock->dt;
+            second->pos.x -= move_speed * (f32)clock->dt;
         }
         if(controller.e.held){
             second->pos.y += move_speed * (f32)clock->dt;
@@ -634,6 +647,13 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         SetCursorPos(center.x, center.y);
         update_camera(controller.mouse.dx, controller.mouse.dy, (f32)clock->dt);
     }
+    //camera.yaw += controller.mouse.dx * camera.rotation_speed;
+    //camera.pitch += controller.mouse.dy * camera.rotation_speed;
+
+    // clamp campera at top and bottom so you do the spin rotation thing
+    //if(camera.pitch > 89.0f){ camera.pitch = 89.0f; }
+    //if(camera.pitch < -89.0f){ camera.pitch = -89.0f; }
+    print("m(%f, %f) - f(%f, %f, %f) - yaw(%f) - pitch(%f)\n", controller.mouse.dx, controller.mouse.dy, camera.forward.x, camera.forward.y, camera.forward.z, camera.yaw, camera.pitch);
 
     //if(pm->ship_loaded){
     //    Entity* ship = pm->ship;
@@ -667,7 +687,6 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     XMVECTOR camera_pos = (XMVECTOR){camera.pos.x, camera.pos.y, camera.pos.z};
     XMVECTOR camera_forward = (XMVECTOR){camera.forward.x, camera.forward.y, camera.forward.z};
     XMVECTOR camera_up = (XMVECTOR){camera.up.x, camera.up.y, camera.up.z};
-    //print("pos: (%f, %f, %f) - forward: (%f, %f, %f) - up: (%f, %f, %f)\n", XMVectorGetX(camera_pos), XMVectorGetY(camera_pos), XMVectorGetZ(camera_pos), XMVectorGetX(camera_forward), XMVectorGetY(camera_forward), XMVectorGetZ(camera_forward), XMVectorGetX(camera_up), XMVectorGetY(camera_up), XMVectorGetZ(camera_up));
     XMMATRIX view_matrix = XMMatrixLookAtLH(camera_pos, camera_pos + camera_forward, camera_up);
     XMMATRIX perspective_matrix = XMMatrixPerspectiveFovLH(PI_f32*0.25f, (f32)((f32)SCREEN_WIDTH/(f32)SCREEN_HEIGHT), 1.0f, 1000.0f);
 
@@ -682,7 +701,6 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
 
 
-    d3d_clear_color(BACKGROUND_COLOR);
 
     f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
     u32 c = array_count(pm->entities) - 1;
