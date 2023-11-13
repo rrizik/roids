@@ -30,6 +30,7 @@ global ID3D11BlendState*        d3d_blend_state; // note: maybe use BlendState1 
 
 global ID3D11Texture2D* d3d_texture;
 
+
 global ID3D11Buffer* d3d_vertex_buffer;
 global ID3D11Buffer* d3d_index_buffer;
 global ID3D11Buffer* d3d_constant_buffer;
@@ -42,13 +43,20 @@ global D3D11_VIEWPORT d3d_viewport;
 
 global D3D11_INPUT_ELEMENT_DESC d3d_3d_input_layout[] = {
         // vertex data
-        {"POSITION",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEXCOORD",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEX",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         // instance data
         {"TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,                            D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
+};
+
+global D3D11_INPUT_ELEMENT_DESC d3d_2dui_color_input_layout[] = {
+        // vertex data
+        {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 };
 
 struct ConstantBuffer{
@@ -70,6 +78,50 @@ d3d_init_debug_stuff(){
     info->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, TRUE);
     info->Release();
 }
+
+static void
+d3d_load_shader(String8 shader_file, D3D11_INPUT_ELEMENT_DESC* input_layout, u32 layout_count){
+    // ---------------------------------------------------------------------------------
+    // Vertex/Pixel Shader
+    // ---------------------------------------------------------------------------------
+#if DEBUG
+    u32 shader_compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+    u32 shader_compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
+
+    ScratchArena scratch = begin_scratch(0);
+    String8 utf8_shader_path = str8_path_append(scratch.arena, path_shaders, shader_file);
+    String16 utf16_shader_path = os_utf8_utf16(scratch.arena, utf8_shader_path);
+
+    ID3DBlob* vs_blob, *ps_blob, *error;
+    hr = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "vs_main", "vs_5_0", shader_compile_flags, 0, &vs_blob, &error);
+    if(FAILED(hr)) {
+        print("Error: failed D3DCompileFromFile()\n");
+        print("\tMessage: %s\n", (char*)error->GetBufferPointer());
+        assert_hr(hr);
+    }
+    hr = d3d_device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &d3d_vertex_shader);
+    assert_hr(hr);
+
+    hr = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "ps_main", "ps_5_0", shader_compile_flags, 0, &ps_blob, &error);
+    if(FAILED(hr)) {
+        print("Error: failed D3DCompileFromFile()\n");
+        print("\tMessage: %s\n", (char*)error->GetBufferPointer());
+        assert_hr(hr);
+    }
+
+    hr = d3d_device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, &d3d_pixel_shader);
+    assert_hr(hr);
+
+    // ---------------------------------------------------------------------------------
+    // Input Layout
+    // ---------------------------------------------------------------------------------
+    hr = d3d_device->CreateInputLayout(input_layout, layout_count, vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), &d3d_input_layout);
+    assert_hr(hr);
+
+    end_scratch(scratch);
+};
 
 static void
 d3d_init(Window window){
@@ -217,48 +269,6 @@ d3d_init(Window window){
     };
 
     // ---------------------------------------------------------------------------------
-    // Vertex/Pixel Shader
-    // ---------------------------------------------------------------------------------
-#if DEBUG
-    u32 shader_compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-    u32 shader_compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
-#endif
-
-    ScratchArena scratch = begin_scratch(0);
-    String8 shader_file = str8_literal("simple_shader.hlsl");
-    String8 utf8_shader_path = str8_path_append(scratch.arena, path_shaders, shader_file);
-    String16 utf16_shader_path = os_utf8_utf16(scratch.arena, utf8_shader_path);
-
-    ID3DBlob* vs_blob, *ps_blob, *error;
-    hr = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "vs_main", "vs_5_0", shader_compile_flags, 0, &vs_blob, &error);
-    if(FAILED(hr)) {
-        print("Error: failed D3DCompileFromFile()\n");
-        print("\tMessage: %s\n", (char*)error->GetBufferPointer());
-        assert_hr(hr);
-    }
-    hr = d3d_device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &d3d_vertex_shader);
-    assert_hr(hr);
-
-    hr = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "ps_main", "ps_5_0", shader_compile_flags, 0, &ps_blob, &error);
-    if(FAILED(hr)) {
-        print("Error: failed D3DCompileFromFile()\n");
-        print("\tMessage: %s\n", (char*)error->GetBufferPointer());
-        assert_hr(hr);
-    }
-
-    hr = d3d_device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, &d3d_pixel_shader);
-    assert_hr(hr);
-
-    // ---------------------------------------------------------------------------------
-    // Input Layout
-    // ---------------------------------------------------------------------------------
-    hr = d3d_device->CreateInputLayout(d3d_3d_input_layout, array_count(d3d_3d_input_layout), vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), &d3d_input_layout);
-    assert_hr(hr);
-
-    end_scratch(scratch);
-
-    // ---------------------------------------------------------------------------------
     // Constant Buffer
     // ---------------------------------------------------------------------------------
     D3D11_BUFFER_DESC buffer_desc = {0};
@@ -271,74 +281,10 @@ d3d_init(Window window){
     assert_hr(hr);
 }
 
-typedef struct Vertex{
-    v3 position;
-    v2 uv;
-} Vertex;
 
-// TODO: Get rid of this
-typedef struct Mesh{
-    ID3D11Buffer* vertex_buffer;
-    ID3D11Buffer* index_buffer;
-    Vertex* verticies;
-    u32* indicies;
-    u32 vertex_offset;
-    u32 vertex_stride;
-    u32 vertex_count;
-    u32 index_stride;
-    u32 index_count;
-} Mesh;
-
-static Vertex cube[] = {
-    { make_v3(-20.0f, -20.0f,  20.0f), make_v2(0.0f, 0.0f)},
-    { make_v3( 20.0f, -20.0f,  20.0f), make_v2(0.0f, 1.0f)},
-    { make_v3(-20.0f,  20.0f,  20.0f), make_v2(1.0f, 0.0f)},
-    { make_v3( 20.0f,  20.0f,  20.0f), make_v2(1.0f, 1.0f)},
-
-    { make_v3(-20.0f, -20.0f, -20.0f), make_v2(0.0f, 0.0f)},
-    { make_v3(-20.0f,  20.0f, -20.0f), make_v2(0.0f, 1.0f)},
-    { make_v3( 20.0f, -20.0f, -20.0f), make_v2(1.0f, 0.0f)},
-    { make_v3( 20.0f,  20.0f, -20.0f), make_v2(1.0f, 1.0f)},
-
-    { make_v3(-20.0f,  20.0f, -20.0f), make_v2(0.0f, 0.0f)},
-    { make_v3(-20.0f,  20.0f,  20.0f), make_v2(0.0f, 1.0f)},
-    { make_v3( 20.0f,  20.0f, -20.0f), make_v2(1.0f, 0.0f)},
-    { make_v3( 20.0f,  20.0f,  20.0f), make_v2(1.0f, 1.0f)},
-
-    { make_v3(-20.0f, -20.0f, -20.0f), make_v2(0.0f, 0.0f)},
-    { make_v3( 20.0f, -20.0f, -20.0f), make_v2(0.0f, 1.0f)},
-    { make_v3(-20.0f, -20.0f,  20.0f), make_v2(1.0f, 0.0f)},
-    { make_v3( 20.0f, -20.0f,  20.0f), make_v2(1.0f, 1.0f)},
-
-    { make_v3( 20.0f, -20.0f, -20.0f), make_v2(0.0f, 0.0f)},
-    { make_v3( 20.0f,  20.0f, -20.0f), make_v2(0.0f, 1.0f)},
-    { make_v3( 20.0f, -20.0f,  20.0f), make_v2(1.0f, 0.0f)},
-    { make_v3( 20.0f,  20.0f,  20.0f), make_v2(1.0f, 1.0f)},
-
-    { make_v3(-20.0f, -20.0f, -20.0f), make_v2(0.0f, 0.0f)},
-    { make_v3(-20.0f, -20.0f,  20.0f), make_v2(0.0f, 1.0f)},
-    { make_v3(-20.0f,  20.0f, -20.0f), make_v2(1.0f, 0.0f)},
-    { make_v3(-20.0f,  20.0f,  20.0f), make_v2(1.0f, 1.0f)},
-};
-
-static u32 cube_indicies[] = {
-    0, 1, 2,    // side 1
-    2, 1, 3,
-    4, 5, 6,    // side 2
-    6, 5, 7,
-    8, 9, 10,    // side 3
-    10, 9, 11,
-    12, 13, 14,    // side 4
-    14, 13, 15,
-    16, 17, 18,    // side 5
-    18, 17, 19,
-    20, 21, 22,    // side 6
-    22, 21, 23,
-};
-
-// todo: figure out how to draw indexed when the constant buffer is the camera
+// todo: Get rid of this I think.
 //d3d_set_constant_buffer(v3 pos, v3 angle, v3 scale){
-//    f32 aspect_ratio = (f32)SCREEN_HEIGHT / (f32)SCREEN_WIDTH;
+//    f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
 //    D3D11_MAPPED_SUBRESOURCE mapped_subresource;
 //    d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
 //
@@ -356,7 +302,24 @@ static u32 cube_indicies[] = {
 //    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
 //}
 
-static void
-d3d_present(){
-    d3d_swapchain->Present(1, 0);
-}
+static RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
+static RGBA GREEN =   {0.0f, 1.0f, 0.0f,  1.0f};
+static RGBA BLUE =    {0.0f, 0.0f, 1.0f,  1.0f};
+static RGBA MAGENTA = {1.0f, 0.0f, 1.0f,  1.0f};
+static RGBA TEAL =    {0.0f, 1.0f, 1.0f,  1.0f};
+static RGBA PINK =    {0.92f, 0.62f, 0.96f, 1.0f};
+static RGBA YELLOW =  {0.9f, 0.9f, 0.0f,  1.0f};
+static RGBA ORANGE =  {1.0f, 0.5f, 0.15f,  1.0f};
+static RGBA DARK_GRAY =   {0.5f, 0.5f, 0.5f,  1.0f};
+static RGBA LIGHT_GRAY =   {0.8f, 0.8f, 0.8f,  1.0f};
+static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
+static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
+static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
+static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
+
+typedef struct Vertex{
+    v3 position;
+    RGBA color;
+    v2 uv;
+} Vertex;
+

@@ -228,40 +228,47 @@ console_store_command(String8 str){
     }
 }
 
-//static void
-//push_console(Arena* command_arena){
-//    if(console_is_visible()){
-//        // push console rects
-//        push_rect(command_arena, console.output_rect, console.output_background_color);
-//        push_rect(command_arena, console.input_rect, console.input_background_color);
-//        push_rect(command_arena, console.cursor_rect, console.cursor_color);
-//
-//        // push input string
-//        if(console.input_char_count > 0){
-//            String8 input_str = str8(console.input, console.input_char_count);
-//            push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
-//            //if(console.command_history_at > 0){
-//            //    String8 input_str = str8(console.input, console.input_char_count);
-//            //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.command_history_font, input_str);
-//            //}
-//            //else{
-//            //    String8 input_str = str8(console.input, console.input_char_count);
-//            //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
-//            //}
-//        }
-//
-//        // push history in reverse order, but only if its on screen
-//        f32 unscaled_y_offset = 0.0f;
-//        for(u32 i=console.output_history_count-1; i < console.output_history_count; --i){
-//            if(console.history_pos.y + (unscaled_y_offset * console.output_font.scale) < (f32)resolution.h){
-//                String8 next_string = console.output_history[i];
-//                v2 new_pos = make_v2(console.history_pos.x, console.history_pos.y + (unscaled_y_offset * console.output_font.scale));
-//                push_text(command_arena, new_pos, &console.output_font, next_string);
-//                unscaled_y_offset += (f32)console.output_font.vertical_offset;
-//            }
-//        }
-//    }
-//}
+static void
+draw_console(){
+    Rect output = rect_pixel_to_screen(console.output_rect, resolution);
+    Rect input = rect_pixel_to_screen(console.input_rect, resolution);
+    Rect cursor = rect_pixel_to_screen(console.cursor_rect, resolution);
+    d3d_draw_quad(output.x0, output.y0, output.x1, output.y1, console.output_background_color);
+    d3d_draw_quad(input.x0, input.y0, input.x1, input.y1, console.input_background_color);
+    d3d_draw_quad(cursor.x0, cursor.y0, cursor.x1, cursor.y1, console.cursor_color);
+};
+static void
+push_console(Arena* command_arena){
+    // push console rects
+    //push_rect(command_arena, console.output_rect, console.output_background_color);
+    //push_rect(command_arena, console.input_rect, console.input_background_color);
+    //push_rect(command_arena, console.cursor_rect, console.cursor_color);
+
+    //// push input string
+    //if(console.input_char_count > 0){
+    //    String8 input_str = str8(console.input, console.input_char_count);
+    //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
+    //    //if(console.command_history_at > 0){
+    //    //    String8 input_str = str8(console.input, console.input_char_count);
+    //    //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.command_history_font, input_str);
+    //    //}
+    //    //else{
+    //    //    String8 input_str = str8(console.input, console.input_char_count);
+    //    //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
+    //    //}
+    //}
+
+    //// push history in reverse order, but only if its on screen
+    //f32 unscaled_y_offset = 0.0f;
+    //for(u32 i=console.output_history_count-1; i < console.output_history_count; --i){
+    //    if(console.history_pos.y + (unscaled_y_offset * console.output_font.scale) < (f32)resolution.h){
+    //        String8 next_string = console.output_history[i];
+    //        v2 new_pos = make_v2(console.history_pos.x, console.history_pos.y + (unscaled_y_offset * console.output_font.scale));
+    //        push_text(command_arena, new_pos, &console.output_font, next_string);
+    //        unscaled_y_offset += (f32)console.output_font.vertical_offset;
+    //    }
+    //}
+}
 
 static void
 update_console(){

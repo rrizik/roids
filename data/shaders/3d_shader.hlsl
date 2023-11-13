@@ -6,30 +6,31 @@ cbuffer ConstantBuffer{
 Texture2D my_texture;
 SamplerState my_sampler;
 
-struct InputLayout{
-    float3 vertex_position: POSITION;
-    float2 tex: TEXCOORD;
+struct VertexIn{
+    float3 pos: POS;
+    float4 col: COL;
+    float2 tex: TEX;
     row_major float4x4 model_transform: TRANSFORM;
 };
 
-struct VS_Output{
+struct VertexOut{
     float4 pos: SV_POSITION;
     float2 tex: TEXCOORD;
 };
 
-VS_Output vs_main(InputLayout input){
-    VS_Output output;
+VertexOut vs_main(VertexIn vertex){
+    VertexOut output;
 
     // todo(rr): verify variable names are correct. What is result?
-    float4 world_space = mul(float4(input.vertex_position, 1), input.model_transform);
+    float4 world_space = mul(float4(vertex.pos, 1), vertex.model_transform);
     float4 camera_space = mul(world_space, view);
     float4 result = mul(camera_space, projection);
     output.pos = result;
 
-    output.tex = input.tex;
+    output.tex = vertex.tex;
     return output;
 }
 
-float4 ps_main(VS_Output output) : SV_TARGET{
+float4 ps_main(VertexOut output) : SV_TARGET{
     return my_texture.Sample(my_sampler, output.tex);
 }

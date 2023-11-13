@@ -4,20 +4,6 @@
 
 static Font global_font = {0};
 
-static RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
-static RGBA GREEN =   {0.0f, 1.0f, 0.0f,  1.0f};
-static RGBA BLUE =    {0.0f, 0.0f, 1.0f,  1.0f};
-static RGBA MAGENTA = {1.0f, 0.0f, 1.0f,  1.0f};
-static RGBA TEAL =    {0.0f, 1.0f, 1.0f,  1.0f};
-static RGBA PINK =    {0.92f, 0.62f, 0.96f, 1.0f};
-static RGBA YELLOW =  {0.9f, 0.9f, 0.0f,  1.0f};
-static RGBA ORANGE =  {1.0f, 0.5f, 0.15f,  1.0f};
-static RGBA DARK_GRAY =   {0.5f, 0.5f, 0.5f,  1.0f};
-static RGBA LIGHT_GRAY =   {0.8f, 0.8f, 0.8f,  1.0f};
-static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
-static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
-static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
-static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
 
 enum GameMode{
@@ -38,8 +24,6 @@ typedef struct PermanentMemory{
     Entity entities[ENTITIES_MAX];
     u32 entities_count;
 
-    Mesh meshes[100];
-
     Entity* texture;
     Entity* circle;
     Entity* basis;
@@ -56,23 +40,6 @@ typedef struct TransientMemory{
     Arena *render_command_arena;
 } TransientMemory;
 global TransientMemory* tm;
-
-static void
-init_meshes(Mesh* meshes){
-    // CUBE
-    Mesh* cube_mesh = (Mesh*)(meshes + EntityType_Cube);
-    cube_mesh->vertex_offset = 0;
-    cube_mesh->vertex_stride = sizeof(Vertex);
-    cube_mesh->vertex_count = array_count(cube);
-    cube_mesh->verticies = cube;
-    //d3d_init_vertex_buffers(cube_mesh, cube);
-
-    cube_mesh->index_stride = sizeof(u32);
-    cube_mesh->index_count = array_count(cube_indicies);
-    cube_mesh->indicies = cube_indicies;
-    //d3d_init_index_buffer(cube_mesh, cube_indicies);
-    ////////////////////////////////
-}
 
 static Entity*
 entity_from_handle(PermanentMemory* pm, EntityHandle handle){
@@ -369,19 +336,20 @@ handle_global_event(Event event){
 
                     POINT center = {(window.width/2), (window.height/2)};
                     ClientToScreen(window.handle, &center);
-                    ShowCursor(false);
+                    show_cursor(false);
                 }
             }
             if(event.keycode == TWO){
                 if(pm->game_mode != GameMode_Editor){
                     pm->game_mode = GameMode_Editor;
-                    ShowCursor(true);
+                    show_cursor(true);
                 }
             }
             if(event.keycode == THREE){
                 if(pm->game_mode != GameMode_Game){
                     pm->game_mode = GameMode_Game;
-                    ShowCursor(false);
+                    init_camera();
+                    show_cursor(false);
                 }
             }
         }
@@ -486,7 +454,8 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     //push_clear_color(render_buffer->render_command_arena, BLACK);
     //Arena* render_command_arena = render_buffer->render_command_arena;
     if(!memory->initialized){
-        pm->game_mode = GameMode_Editor;
+        pm->game_mode = GameMode_Game;
+        show_cursor(false);
 
         init_camera();
 
@@ -497,7 +466,6 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         tm->frame_arena = push_arena(&tm->arena, MB(100));
 
         // setup free entities array (max to 0)
-        init_meshes(pm->meshes);
         entities_clear(pm);
 
         //pm->sprites_dir = str8_path_append(&pm->arena, path_data, str8_literal("sprites"));
@@ -647,13 +615,6 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         SetCursorPos(center.x, center.y);
         update_camera(controller.mouse.dx, controller.mouse.dy, (f32)clock->dt);
     }
-    //camera.yaw += controller.mouse.dx * camera.rotation_speed;
-    //camera.pitch += controller.mouse.dy * camera.rotation_speed;
-
-    // clamp campera at top and bottom so you do the spin rotation thing
-    //if(camera.pitch > 89.0f){ camera.pitch = 89.0f; }
-    //if(camera.pitch < -89.0f){ camera.pitch = -89.0f; }
-    print("m(%f, %f) - f(%f, %f, %f) - yaw(%f) - pitch(%f)\n", controller.mouse.dx, controller.mouse.dy, camera.forward.x, camera.forward.y, camera.forward.z, camera.yaw, camera.pitch);
 
     //if(pm->ship_loaded){
     //    Entity* ship = pm->ship;
@@ -712,7 +673,6 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
                 e->angle.z += (f32)clock->dt;
                 e->angle.y += (f32)clock->dt;
 
-                Mesh mesh = pm->meshes[EntityType_Cube];
                 InstanceData* instance = cube_instances + ((c - 1) - entity_index);
                 instance->transform =
                     XMMatrixRotationX(e->angle.x) *
@@ -720,15 +680,11 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
                     XMMatrixRotationZ(e->angle.z) *
                     XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
                     XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z);
-
-                //instance->texture = e->texture;
             } break;
             case EntityType_Player:{
                 e->angle.z += (f32)clock->dt;
                 e->angle.x += (f32)clock->dt;
 
-                Mesh mesh = pm->meshes[EntityType_Cube];
-
                 InstanceData* instance = cube_instances + ((c - 1) - entity_index);
                 instance->transform =
                     XMMatrixRotationX(e->angle.x) *
@@ -736,18 +692,14 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
                     XMMatrixRotationZ(e->angle.z) *
                     XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
                     XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z);
-                //instance->texture = e->texture;
             } break;
         }
     }
-    //d3d_draw_cube_indexed(&mesh, second->texture, make_v3(-40, 20, -300), make_v3(0, 0, 0), make_v3(.2f, .2f, .2f));
-    // mesh represents all the information for 1 instance
-    // draw_everything();
 
-
-    //if(console_is_visible()){
-    //    push_console(render_command_arena);
-    //}
+    if(console_is_visible()){
+        //draw_console();
+        //push_console(tm->render_command_arena);
+    }
     String8 text = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
     //String8 text   = str8_literal("g");
     String8 strings[] = {
@@ -789,7 +741,6 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
 
     clear_controller_pressed(&controller);
     arena_free(&tm->arena);
-
 }
 
 #endif

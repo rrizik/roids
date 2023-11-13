@@ -278,7 +278,7 @@ win32_window_create(wchar* window_name, s32 width, s32 height){
     Window result = {0};
     result.width = width;
     result.height = height;
-    result.aspect_ratio = (f32)height / (f32)width;
+    result.aspect_ratio = (f32)width / (f32)height;
     result.handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, (s32)result.width, (s32)result.height, 0, 0, GetModuleHandle(0), 0);
     assert(IsWindow(result.handle));
 
@@ -355,11 +355,16 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             simulations++;
             clear_controller_pressed(&controller);
         }
-        if(simulations){
+        if(memory.initialized){
+            //draw_everything();
             d3d_clear_color(BACKGROUND_COLOR);
 
-            Mesh mesh = pm->meshes[EntityType_Cube];
-            d3d_draw_cube_instanced(&mesh, &second->texture);
+            d3d_draw_cube_textured_instanced(&second->texture);
+
+            d3d_draw_quad(-0.0f, -0.0f, 0.5f, 0.5f, BLUE);
+            if(console_is_visible()){
+                draw_console();
+            }
 
             simulations = 0;
         }

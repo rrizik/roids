@@ -39,10 +39,10 @@ make_rect(v2 min, v2 max){
 static Rect
 rect_screen_to_pixel(Rect r, v2s32 res){
     Rect result = {
-        r.x0 * res.w,
-        r.y0 * res.h,
-        r.x1 * res.w,
-        r.y1 * res.h,
+        ((r.x0  + 1.0f) / 2) * res.w,
+        ((r.y0  + 1.0f) / 2) * res.h,
+        ((r.x1  + 1.0f) / 2) * res.w,
+        ((r.y1  + 1.0f) / 2) * res.h,
     };
     return(result);
 }
@@ -50,10 +50,10 @@ rect_screen_to_pixel(Rect r, v2s32 res){
 static Rect
 rect_pixel_to_screen(Rect r, v2s32 res){
     Rect result = {
-        r.x0 / res.w,
-        r.y0 / res.h,
-        r.x1 / res.w,
-        r.y1 / res.h,
+        ((r.x0 / res.w) * 2.0f) - 1.0f,
+        ((r.y0 / res.h) * 2.0f) - 1.0f,
+        ((r.x1 / res.w) * 2.0f) - 1.0f,
+        ((r.y1 / res.h) * 2.0f) - 1.0f,
     };
     return(result);
 }
