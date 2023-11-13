@@ -71,7 +71,7 @@ stb_load_image(String8 dir, String8 file){
     int ok = stbi_info((char const*)full_path.str, &x, &y, &n);
     result.base = (u8*)stbi_load((char const*)full_path.str, &result.width, &result.width, &result.stride, 0);
 //    unsigned char *data = stbi_load(filename, &x, &y, &n, 0);
-    result.stride = result.width * result.stride;
+    result.stride = result.width * 4;
 
     end_scratch(scratch);
     return(result);

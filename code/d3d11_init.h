@@ -28,7 +28,6 @@ global ID3D11RasterizerState1*  d3d_rasterizer_state;
 global ID3D11SamplerState*      d3d_sampler_state;
 global ID3D11BlendState*        d3d_blend_state; // note: maybe use BlendState1 later
 
-global ID3D11Texture2D* d3d_texture;
 
 
 global ID3D11Buffer* d3d_vertex_buffer;
@@ -57,6 +56,13 @@ global D3D11_INPUT_ELEMENT_DESC d3d_2dui_color_input_layout[] = {
         // vertex data
         {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+};
+
+global D3D11_INPUT_ELEMENT_DESC d3d_2dui_texture_input_layout[] = {
+        // vertex data
+        {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEX",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 };
 
 struct ConstantBuffer{
@@ -316,6 +322,9 @@ static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
 static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
 static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
+static RGBA CONSOLE_BACKGROUND_COLOR = {1/255.0f, 57/255.0f, 90/255.0f, 1.0f};
+static RGBA CONSOLE_INPUT_COLOR = {0/255.0f, 44/255.0f, 47/255.0f, 1.0f};
+static RGBA CONSOLE_CURSOR_COLOR = {125/255.0f, 125/255.0f, 125/255.0f, 1.0f};
 
 typedef struct Vertex{
     v3 position;

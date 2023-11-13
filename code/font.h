@@ -128,7 +128,7 @@ load_font_ttf(Arena* arena, String8 dir, Font* font){
 
 // TODO: change this to load a baked bitmap, and use UV to access correct glyph
 static void
-load_font_glyphs(Arena* arena, Font* font){
+load_font_glyphs(Arena* arena, Font* font, RGBA color){
     stbtt_GetFontVMetrics(&font->info, &font->ascent, &font->descent, &font->line_gap);
     font->vertical_offset = font->ascent - font->descent + font->line_gap;
     font->scale = stbtt_ScaleForPixelHeight(&font->info, font->size);
@@ -140,6 +140,7 @@ load_font_glyphs(Arena* arena, Font* font){
 
         glyph->bitmap.width = glyph->w;
         glyph->bitmap.height = glyph->h;
+        glyph->bitmap.stride = glyph->w * 4;
         glyph->bitmap.base = push_array(arena, u8, (u32)(glyph->w*glyph->h*4));
 
         // get codepoint info
@@ -155,9 +156,9 @@ load_font_glyphs(Arena* arena, Font* font){
                 RGBA c = {font->color.r, font->color.g, font->color.b, (f32)alpha};
 
                 *dest++ = ((u32)((alpha) << 24) |
-                          ((u32)(c.r * 255.0f) << 16) |
-                          ((u32)(c.g * 255.0f) <<  8) |
-                          ((u32)(c.b * 255.0f) <<  0));
+                          ((u32)(color.r * 255.0f) << 16) |
+                          ((u32)(color.g * 255.0f) <<  8) |
+                          ((u32)(color.b * 255.0f) <<  0));
                 //*dest++ = (u32)((alpha << 24) | 0xFFFFFF);
 
             }

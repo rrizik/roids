@@ -300,6 +300,11 @@ deserialize_data(PermanentMemory* pm, String8 filename){
 
 static bool
 handle_global_event(Event event){
+    if(event.type == MOUSE){
+        controller.mouse.pos = event.mouse_pos;
+        controller.mouse.dx = event.mouse_dx;
+        controller.mouse.dy = event.mouse_dy;
+    }
     if(event.type == QUIT){
         should_quit = true;
     }
@@ -360,11 +365,6 @@ handle_global_event(Event event){
 
 static bool
 handle_controller_events(Event event){
-    if(event.type == MOUSE){
-        controller.mouse.pos = event.mouse_pos;
-        controller.mouse.dx = event.mouse_dx;
-        controller.mouse.dy = event.mouse_dy;
-    }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == Q_UPPER){
@@ -531,7 +531,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         global_font.color = WHITE;
         bool succeed = load_font_ttf(&pm->arena, path_fonts, &global_font);
         assert(succeed);
-        load_font_glyphs(&pm->arena, &global_font);
+        load_font_glyphs(&pm->arena, &global_font, RED);
 
         init_console(pm);
         init_commands();

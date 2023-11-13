@@ -359,12 +359,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             //draw_everything();
             d3d_clear_color(BACKGROUND_COLOR);
 
-            d3d_draw_cube_textured_instanced(&second->texture);
+            d3d_draw_cube_texture_instanced(&second->texture);
 
             d3d_draw_quad(-0.0f, -0.0f, 0.5f, 0.5f, BLUE);
             if(console_is_visible()){
                 draw_console();
             }
+            print("mp: (%i, %i)\n", controller.mouse.pos.x, controller.mouse.pos.y);
 
             simulations = 0;
         }

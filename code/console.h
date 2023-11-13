@@ -20,8 +20,10 @@ typedef struct Console{
     Rect cursor_rect;
     v2 history_pos;
 
-    RGBA output_background_color;
+    RGBA history_background_color;
+    RGBA history_color;
     RGBA input_background_color;
+    RGBA input_color;
     RGBA cursor_color;
     u32  cursor_index;
 
@@ -70,9 +72,11 @@ init_console(PermanentMemory* pm){
     console.history_pos = make_v2(x0 + 30, y0 + 40);
 
     // some colors
-    console.output_background_color = {1/255.0f, 57/255.0f, 90/255.0f, 1.0f};
-    console.input_background_color = {0/255.0f, 44/255.0f, 47/255.0f, 1.0f};
-    console.cursor_color = {125/255.0f, 125/255.0f, 125/255.0f, 1.0f};
+    console.history_background_color = CONSOLE_BACKGROUND_COLOR;
+    console.history_color = GREEN;
+    console.input_background_color = CONSOLE_INPUT_COLOR;
+    console.input_color = RED;
+    console.cursor_color = CONSOLE_CURSOR_COLOR;
 
     // init and load fonts
     console.input_font.name = str8_literal("\\GolosText-Regular.ttf");
@@ -90,15 +94,15 @@ init_console(PermanentMemory* pm){
     bool succeed;
     succeed = load_font_ttf(&pm->arena, path_fonts, &console.input_font);
     assert(succeed);
-    load_font_glyphs(&pm->arena, &console.input_font);
+    load_font_glyphs(&pm->arena, &console.input_font, BLUE);
 
     succeed = load_font_ttf(&pm->arena, path_fonts, &console.output_font);
     assert(succeed);
-    load_font_glyphs(&pm->arena, &console.output_font);
+    load_font_glyphs(&pm->arena, &console.output_font, GREEN);
 
     succeed = load_font_ttf(&pm->arena, path_fonts, &console.command_history_font);
     assert(succeed);
-    load_font_glyphs(&pm->arena, &console.command_history_font);
+    load_font_glyphs(&pm->arena, &console.command_history_font, YELLOW);
 }
 
 static bool
@@ -229,19 +233,93 @@ console_store_command(String8 str){
 }
 
 static void
+draw_text(v2 pos, Font* font, RGBA color, String8 string){
+    u8* c;
+    s32 kern;
+    v2s32 unscaled_offset = {0, 0};
+
+    for(u32 i=0; i < string.size; ++i){
+        c = string.str + i;
+        if(*c != '\n'){
+            Glyph glyph = font->glyphs[*c];
+
+            // setup rect
+            Rect rect = {
+                pos.x + (s32)round_f32_s32((unscaled_offset.x + glyph.lsb) * font->scale),
+                pos.y + (s32)(round_f32_s32(unscaled_offset.y * font->scale) - glyph.y1),
+                0, 0 // no x1, y1 needed for bitmap
+            };
+            rect.x1 = rect.x0 + (f32)glyph.w;
+            rect.y1 = rect.y0 + (f32)glyph.h;
+
+            // advance x + kern
+            unscaled_offset.x += glyph.advance_width;
+            if(string.str[i + 1]){
+                kern = stbtt_GetCodepointKernAdvance(&font->info, *c, string.str[i+1]);
+                unscaled_offset.x += kern;
+            }
+            Rect screen_rect = rect_pixel_to_screen(rect, resolution);
+
+            print("------------------------------------------\nps: min(%f, %f) max(%f, %f)\nss: min(%f, %f), max(%f, %f)\n",
+                    rect.min.x,
+                    rect.min.y,
+                    rect.max.x,
+                    rect.max.y,
+                    screen_rect.min.x,
+                    screen_rect.min.y,
+                    screen_rect.max.x,
+                    screen_rect.max.y);
+            d3d_draw_quad_texture(screen_rect.x1, screen_rect.y1, screen_rect.x0, screen_rect.y0, &glyph.bitmap);
+            //push_bitmap(command_arena, rect, glyph.bitmap);
+        }
+        else{
+            // advance to next line
+            unscaled_offset.y -= font->vertical_offset;
+            unscaled_offset.x = 0;
+        }
+    }
+}
+
+static void
 draw_console(){
+    // push input string
+    if(console.input_char_count > 0){
+        String8 input_str = str8(console.input, console.input_char_count);
+        draw_text(make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, console.input_color, input_str);
+        //push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
+        //if(console.command_history_at > 0){
+        //    String8 input_str = str8(console.input, console.input_char_count);
+        //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.command_history_font, input_str);
+        //}
+        //else{
+        //    String8 input_str = str8(console.input, console.input_char_count);
+        //    push_text(command_arena, make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, input_str);
+        //}
+    }
+
+    //// push history in reverse order, but only if its on screen
+    //f32 unscaled_y_offset = 0.0f;
+    //for(u32 i=console.output_history_count-1; i < console.output_history_count; --i){
+    //    if(console.history_pos.y + (unscaled_y_offset * console.output_font.scale) < (f32)resolution.h){
+    //        String8 next_string = console.output_history[i];
+    //        v2 new_pos = make_v2(console.history_pos.x, console.history_pos.y + (unscaled_y_offset * console.output_font.scale));
+    //        push_text(command_arena, new_pos, &console.output_font, next_string);
+    //        unscaled_y_offset += (f32)console.output_font.vertical_offset;
+    //    }
+    //}
     Rect output = rect_pixel_to_screen(console.output_rect, resolution);
     Rect input = rect_pixel_to_screen(console.input_rect, resolution);
     Rect cursor = rect_pixel_to_screen(console.cursor_rect, resolution);
-    d3d_draw_quad(output.x0, output.y0, output.x1, output.y1, console.output_background_color);
-    d3d_draw_quad(input.x0, input.y0, input.x1, input.y1, console.input_background_color);
     d3d_draw_quad(cursor.x0, cursor.y0, cursor.x1, cursor.y1, console.cursor_color);
+    d3d_draw_quad(input.x0, input.y0, input.x1, input.y1, console.input_background_color);
+    d3d_draw_quad(output.x0, output.y0, output.x1, output.y1, console.history_background_color);
+
 };
 static void
 push_console(Arena* command_arena){
     // push console rects
-    //push_rect(command_arena, console.output_rect, console.output_background_color);
-    //push_rect(command_arena, console.input_rect, console.input_background_color);
+    //push_rect(command_arena, console.output_rect, console.background_color);
+    //push_rect(command_arena, console.input_rect, console.input_color);
     //push_rect(command_arena, console.cursor_rect, console.cursor_color);
 
     //// push input string
