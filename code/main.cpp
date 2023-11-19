@@ -365,7 +365,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             if(console_is_visible()){
                 draw_console();
             }
-            print("mp: (%i, %i)\n", controller.mouse.pos.x, controller.mouse.pos.y);
 
             simulations = 0;
         }
