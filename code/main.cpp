@@ -342,6 +342,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             DispatchMessage(&message);
         }
 
+
         s64 now_ticks = clock.get_ticks();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
         //MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
@@ -355,6 +356,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             simulations++;
             clear_controller_pressed(&controller);
         }
+
+        // draw everything
         if(memory.initialized){
             //draw_everything();
             d3d_clear_color(BACKGROUND_COLOR);
@@ -366,6 +369,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 draw_console();
             }
 
+            String8 ship_str   = str8_literal("ship_simple.bmp");
+            Bitmap ship_image = load_bitmap(&tm->arena, path_sprites, ship_str);
+            d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, &ship_image);
             simulations = 0;
         }
 

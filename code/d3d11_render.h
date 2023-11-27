@@ -11,10 +11,10 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
     d3d_load_shader(str8_literal("2d_shader.hlsl"), d3d_2dui_color_input_layout, 2);
 
     Vertex vertices[] = {
-        { make_v3(x0, y0,  0.0f), color, make_v2(0.0f, 0.0f) },
-        { make_v3(x1, y0,  0.0f), color, make_v2(0.0f, 0.0f) },
-        { make_v3(x0, y1,  0.0f), color, make_v2(0.0f, 0.0f) },
-        { make_v3(x1, y1,  0.0f), color, make_v2(0.0f, 0.0f) },
+        { make_v3(x0, y0,  0.0f), color },
+        { make_v3(x1, y0,  0.0f), color },
+        { make_v3(x0, y1,  0.0f), color },
+        { make_v3(x1, y1,  0.0f), color },
     };
 
     s32 indices[] = {
@@ -42,7 +42,6 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
     //-------------------------------------------------------------------
 
     D3D11_BUFFER_DESC index_buffer_desc = {0};
-
     index_buffer_desc.StructureByteStride = sizeof(u32);
     index_buffer_desc.ByteWidth = sizeof(u32) * array_count(indices);
     index_buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
@@ -75,14 +74,14 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
     d3d_context->DrawIndexed(array_count(indices), 0, 0);
 }
 
-static void
-d3d_draw_quad_texture(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* texture){
+static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* texture){
     d3d_load_shader(str8_literal("2d_texture_shader.hlsl"), d3d_2dui_texture_input_layout, 3);
 
+    // now
     Vertex vertices[] = {
         { make_v3(x0, y0, 0.0f), WHITE, make_v2(0.0f, 0.0f)},
-        { make_v3(x1, y0, 0.0f), WHITE, make_v2(0.0f, 1.0f)},
-        { make_v3(x0, y1, 0.0f), WHITE, make_v2(1.0f, 0.0f)},
+        { make_v3(x1, y0, 0.0f), WHITE, make_v2(1.0f, 0.0f)},
+        { make_v3(x0, y1, 0.0f), WHITE, make_v2(0.0f, 1.0f)},
         { make_v3(x1, y1, 0.0f), WHITE, make_v2(1.0f, 1.0f)},
     };
 
