@@ -24,7 +24,7 @@ VertexOutput vs_main(VertexInput vertex){
 
 float4 ps_main(VertexOutput vertex) : SV_TARGET{
     float4 tex_color = my_texture.Sample(my_sampler, vertex.tex);
-    float4 result = tex_color * vertex.col;
+    //float4 result = tex_color * vertex.col;
+    //float4 result = lerp(tex_color, vertex.col, 0.5);
     return tex_color;
-    //return result;
 }
