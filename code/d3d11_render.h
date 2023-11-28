@@ -10,10 +10,6 @@ d3d_clear_color(RGBA color){
 static void
 d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
     begin_timed_function();
-    {
-        begin_timed_scope("draw_quad_shader_loading");
-        d3d_load_shader(str8_literal("2d_shader.hlsl"), d3d_2dui_color_input_layout, 2);
-    }
 
     Vertex vertices[] = {
         { make_v3(x0, y0,  0.0f), color },
@@ -35,11 +31,10 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
 
     D3D11_SUBRESOURCE_DATA vertex_resource = {0};
     vertex_resource.pSysMem = vertices;
-    ID3D11Buffer* vertex_buffer;
-    hr = d3d_device->CreateBuffer(&vertex_buffer_desc, &vertex_resource, &vertex_buffer);
+    hr = d3d_device->CreateBuffer(&vertex_buffer_desc, &vertex_resource, &d3d_vertex_buffer);
     assert_hr(hr);
 
-    ID3D11Buffer* buffers[] = {vertex_buffer};
+    ID3D11Buffer* buffers[] = {d3d_vertex_buffer};
     u32 strides[] = {sizeof(Vertex)};
     u32 offset[] = {0};
 
@@ -54,11 +49,10 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
 
     D3D11_SUBRESOURCE_DATA index_resource  = {0};
     index_resource.pSysMem                 = indices;
-    ID3D11Buffer* index_buffer;
-    hr = d3d_device->CreateBuffer(&index_buffer_desc, &index_resource, &index_buffer);
+    hr = d3d_device->CreateBuffer(&index_buffer_desc, &index_resource, &d3d_index_buffer);
     assert_hr(hr);
 
-    d3d_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
+    d3d_context->IASetIndexBuffer(d3d_index_buffer, DXGI_FORMAT_R32_UINT, 0);
     //-------------------------------------------------------------------
 
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -84,10 +78,10 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
 
     // now
     Vertex vertices[] = {
-        { make_v3(x0, y0, 0.0f), WHITE, make_v2(0.0f, 0.0f)},
-        { make_v3(x1, y0, 0.0f), WHITE, make_v2(1.0f, 0.0f)},
-        { make_v3(x0, y1, 0.0f), WHITE, make_v2(0.0f, 1.0f)},
-        { make_v3(x1, y1, 0.0f), WHITE, make_v2(1.0f, 1.0f)},
+        { make_v3(x0, y0, 0.0f), CLEAR, make_v2(0.0f, 0.0f)},
+        { make_v3(x1, y0, 0.0f), CLEAR, make_v2(1.0f, 0.0f)},
+        { make_v3(x0, y1, 0.0f), CLEAR, make_v2(0.0f, 1.0f)},
+        { make_v3(x1, y1, 0.0f), CLEAR, make_v2(1.0f, 1.0f)},
     };
 
     s32 indices[] = {
@@ -103,11 +97,10 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
 
     D3D11_SUBRESOURCE_DATA vertex_resource = {0};
     vertex_resource.pSysMem = vertices;
-    ID3D11Buffer* vertex_buffer;
-    hr = d3d_device->CreateBuffer(&vertex_buffer_desc, &vertex_resource, &vertex_buffer);
+    hr = d3d_device->CreateBuffer(&vertex_buffer_desc, &vertex_resource, &d3d_vertex_buffer);
     assert_hr(hr);
 
-    ID3D11Buffer* buffers[] = {vertex_buffer};
+    ID3D11Buffer* buffers[] = {d3d_vertex_buffer};
     u32 strides[] = {sizeof(Vertex)};
     u32 offset[] = {0};
 
@@ -123,11 +116,10 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
 
     D3D11_SUBRESOURCE_DATA index_resource  = {0};
     index_resource.pSysMem                 = indices;
-    ID3D11Buffer* index_buffer;
-    hr = d3d_device->CreateBuffer(&index_buffer_desc, &index_resource, &index_buffer);
+    hr = d3d_device->CreateBuffer(&index_buffer_desc, &index_resource, &d3d_index_buffer);
     assert_hr(hr);
 
-    d3d_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
+    d3d_context->IASetIndexBuffer(d3d_index_buffer, DXGI_FORMAT_R32_UINT, 0);
     //-------------------------------------------------------------------
 
     D3D11_TEXTURE2D_DESC texture_desc = {
@@ -226,11 +218,6 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
         22, 21, 23,
     };
 
-    {
-        begin_timed_scope("cube_textured_instanced_shader_loader");
-        d3d_load_shader(str8_literal("3d_shader.hlsl"), d3d_3d_input_layout, 7);
-    }
-
     D3D11_BUFFER_DESC instance_buffer_desc = {0};
     instance_buffer_desc.Usage = D3D11_USAGE_IMMUTABLE;
     instance_buffer_desc.ByteWidth = sizeof(InstanceData) * instance_count;
@@ -239,8 +226,7 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
     D3D11_SUBRESOURCE_DATA instance_data = {};
     instance_data.pSysMem = {cube_instances};
 
-    ID3D11Buffer* instance_buffer;
-    hr = d3d_device->CreateBuffer(&instance_buffer_desc, &instance_data, &instance_buffer);
+    hr = d3d_device->CreateBuffer(&instance_buffer_desc, &instance_data, &d3d_instance_buffer);
     assert_hr(hr);
     //-------------------------------------------------------------------
 
@@ -252,11 +238,10 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
 
     D3D11_SUBRESOURCE_DATA vertex_resource = {0};
     vertex_resource.pSysMem = vertices;
-    ID3D11Buffer* vertex_buffer;
-    hr = d3d_device->CreateBuffer(&vertex_buffer_desc, &vertex_resource, &vertex_buffer);
+    hr = d3d_device->CreateBuffer(&vertex_buffer_desc, &vertex_resource, &d3d_vertex_buffer);
     assert_hr(hr);
 
-    ID3D11Buffer* buffers[] = {vertex_buffer, instance_buffer};
+    ID3D11Buffer* buffers[] = {d3d_vertex_buffer, d3d_instance_buffer};
     u32 strides[] = {sizeof(Vertex), sizeof(InstanceData)};
     u32 offset[] = {0, 0};
 
@@ -272,11 +257,10 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
 
     D3D11_SUBRESOURCE_DATA index_resource  = {0};
     index_resource.pSysMem                 = indices;
-    ID3D11Buffer* index_buffer;
-    hr = d3d_device->CreateBuffer(&index_buffer_desc, &index_resource, &index_buffer);
+    hr = d3d_device->CreateBuffer(&index_buffer_desc, &index_resource, &d3d_index_buffer);
     assert_hr(hr);
 
-    d3d_context->IASetIndexBuffer(index_buffer, DXGI_FORMAT_R32_UINT, 0);
+    d3d_context->IASetIndexBuffer(d3d_index_buffer, DXGI_FORMAT_R32_UINT, 0);
     //-------------------------------------------------------------------
 
     D3D11_TEXTURE2D_DESC texture_desc = {

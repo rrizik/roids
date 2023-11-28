@@ -287,6 +287,30 @@ d3d_init(Window window){
     assert_hr(hr);
 }
 
+static void
+d3d_release(){
+    d3d_framebuffer->Release();
+    d3d_depthbuffer->Release();
+    d3d_swapchain->Release();
+    d3d_swapchain->SetFullscreenState(false, 0);
+    d3d_device->Release();
+    d3d_context->Release();
+    d3d_vertex_shader->Release();
+    d3d_pixel_shader->Release();
+    d3d_vertex_buffer->Release();
+    d3d_index_buffer->Release();
+    d3d_constant_buffer->Release();
+    d3d_instance_buffer->Release();
+    d3d_input_layout->Release();
+    d3d_framebuffer_view->Release();
+    d3d_depthbuffer_view->Release();
+    d3d_shader_resource->Release();
+    d3d_depthstencil_state->Release();
+    d3d_rasterizer_state->Release();
+    d3d_sampler_state->Release();
+    d3d_blend_state->Release();
+}
+
 
 // todo: Get rid of this I think.
 //d3d_set_constant_buffer(v3 pos, v3 angle, v3 scale){

@@ -22,7 +22,7 @@ VertexOut vs_main(VertexIn vertex){
     VertexOut output;
 
     // todo(rr): verify variable names are correct. What is result?
-    float4 world_space = mul(float4(vertex.pos, 1), vertex.model_transform);
+    float4 world_space = mul(float4(vertex.pos, 1.0), vertex.model_transform);
     float4 camera_space = mul(world_space, view);
     float4 result = mul(camera_space, projection);
     output.pos = result;

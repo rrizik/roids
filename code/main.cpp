@@ -328,10 +328,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     f64 MSPF = 0;
     u64 frame_count = 0;
 
-    clock.dt =  1.0/240.0;
+    clock.dt =  1.0/60.0;
     f64 accumulator = 0.0;
     s64 last_ticks = clock.get_ticks();
-    s64 second_marker = clock.get_ticks();
+    s64 prev_marker = clock.get_ticks();
 
 	u32 simulations = 0;
     f64 time_elapsed = 0;
@@ -354,7 +354,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         // simulation
         accumulator += frame_time;
         while(accumulator >= clock.dt){
-            begin_timed_scope("simulation");
 
             update_game(&window, &memory, &events, &clock);
             accumulator -= clock.dt;
@@ -365,41 +364,38 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         // draw everything
         if(memory.initialized){
-            begin_timed_scope("draw");
             //draw_everything();
             d3d_clear_color(BACKGROUND_COLOR);
 
+            d3d_load_shader(str8_literal("3d_shader.hlsl"), d3d_3d_input_layout, 7);
             d3d_draw_cube_texture_instanced(&second->texture);
 
+            d3d_load_shader(str8_literal("2d_shader.hlsl"), d3d_2dui_color_input_layout, 2);
             d3d_draw_quad(-0.0f, -0.0f, 0.5f, 0.5f, BLUE);
 
-            {
-                begin_timed_scope("draw_textured_quad_shader_loading");
-                d3d_load_shader(str8_literal("2d_texture_shader.hlsl"), d3d_2dui_texture_input_layout, 3);
-            }
             if(console_is_visible()){
-                begin_timed_scope("draw_console");
                 draw_console();
             }
 
+            d3d_load_shader(str8_literal("2d_texture_shader.hlsl"), d3d_2dui_texture_input_layout, 3);
             String8 ship_str   = str8_literal("ship_simple.bmp");
             Bitmap ship_image = load_bitmap(&tm->arena, path_sprites, ship_str);
             d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, &ship_image);
-            //print("%i\n", simulations);
             simulations = 0;
         }
 
         d3d_present();
 
         frame_count++;
-        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), second_marker);
+        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), prev_marker);
         if(second_elapsed > 1){
             FPS = ((f64)frame_count / second_elapsed);
-            second_marker = clock.get_ticks();
+            prev_marker = clock.get_ticks();
             frame_count = 0;
         }
         print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed);
     }
+    d3d_release();
     end_profiler();
 
     return(0);

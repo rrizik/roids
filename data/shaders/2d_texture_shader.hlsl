@@ -16,8 +16,8 @@ struct VertexOutput{
 VertexOutput vs_main(VertexInput vertex){
     VertexOutput result;
 
-    result.pos = float4(vertex.pos, 1);
-    result.col = vertex.col;
+    result.pos = float4(vertex.pos, 1.0);
+    //result.col = vertex.col;
     result.tex = vertex.tex;
     return result;
 }
