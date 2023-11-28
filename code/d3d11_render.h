@@ -2,13 +2,18 @@
 
 static void
 d3d_clear_color(RGBA color){
+    begin_timed_function();
     d3d_context->ClearRenderTargetView(d3d_framebuffer_view, color.e);
     d3d_context->ClearDepthStencilView(d3d_depthbuffer_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
 static void
 d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
-    d3d_load_shader(str8_literal("2d_shader.hlsl"), d3d_2dui_color_input_layout, 2);
+    begin_timed_function();
+    {
+        begin_timed_scope("draw_quad_shader_loading");
+        d3d_load_shader(str8_literal("2d_shader.hlsl"), d3d_2dui_color_input_layout, 2);
+    }
 
     Vertex vertices[] = {
         { make_v3(x0, y0,  0.0f), color },
@@ -75,7 +80,7 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
 }
 
 static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* texture){
-    d3d_load_shader(str8_literal("2d_texture_shader.hlsl"), d3d_2dui_texture_input_layout, 3);
+    begin_timed_function();
 
     // now
     Vertex vertices[] = {
@@ -172,6 +177,7 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
 // TODO: definition needs to change once we establish the different ways to draw things
 static void
 d3d_draw_cube_texture_instanced(Bitmap* texture){
+    begin_timed_function();
 
     static Vertex vertices[] = {
         { make_v3(-20.0f, -20.0f,  20.0f), WHITE, make_v2(0.0f, 0.0f) },
@@ -220,7 +226,10 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
         22, 21, 23,
     };
 
-    d3d_load_shader(str8_literal("3d_shader.hlsl"), d3d_3d_input_layout, 7);
+    {
+        begin_timed_scope("cube_textured_instanced_shader_loader");
+        d3d_load_shader(str8_literal("3d_shader.hlsl"), d3d_3d_input_layout, 7);
+    }
 
     D3D11_BUFFER_DESC instance_buffer_desc = {0};
     instance_buffer_desc.Usage = D3D11_USAGE_IMMUTABLE;

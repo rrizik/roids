@@ -260,16 +260,10 @@ draw_text(v2 pos, Font* font, RGBA color, String8 string){
             }
             Rect screen_rect = rect_pixel_to_screen(rect, resolution);
 
-            print("------------------------------------------\nps: min(%f, %f) max(%f, %f)\nss: min(%f, %f), max(%f, %f)\n",
-                    rect.min.x,
-                    rect.min.y,
-                    rect.max.x,
-                    rect.max.y,
-                    screen_rect.min.x,
-                    screen_rect.min.y,
-                    screen_rect.max.x,
-                    screen_rect.max.y);
-            d3d_draw_textured_quad(screen_rect.x0, screen_rect.y0, screen_rect.x1, screen_rect.y1, &glyph.bitmap);
+            // CONSIDER(rjf): pushing render commands to a render arena?
+            if(*c != ' '){
+                d3d_draw_textured_quad(screen_rect.x0, screen_rect.y0, screen_rect.x1, screen_rect.y1, &glyph.bitmap);
+            }
             //push_bitmap(command_arena, rect, glyph.bitmap);
         }
         else{

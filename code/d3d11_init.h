@@ -308,6 +308,7 @@ d3d_init(Window window){
 //    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
 //}
 
+static RGBA CLEAR =   {1.0f, 1.0f, 1.0f,  0.0f};
 static RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
 static RGBA GREEN =   {0.0f, 1.0f, 0.0f,  1.0f};
 static RGBA BLUE =    {0.0f, 0.0f, 1.0f,  1.0f};

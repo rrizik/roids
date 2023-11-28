@@ -17,6 +17,8 @@ struct Window{ // todo: maybe this should be in win32
 global Window window;
 
 global HRESULT hr; //todo: add this in win32_base_inc?
+#define PROFILER 1
+#include "profiler.h"
 #include "camera.h"
 #include "math.h"
 #include "rect.h"
@@ -322,19 +324,20 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     init_clock(&clock);
     init_events(&events);
 
-    //f64 FPS = 0;
-    //f64 MSPF = 0;
-    //u64 frame_count = 0;
+    f64 FPS = 0;
+    f64 MSPF = 0;
+    u64 frame_count = 0;
 
     clock.dt =  1.0/240.0;
     f64 accumulator = 0.0;
     s64 last_ticks = clock.get_ticks();
-    //s64 second_marker = clock.get_ticks();
+    s64 second_marker = clock.get_ticks();
 
 	u32 simulations = 0;
     f64 time_elapsed = 0;
 
     should_quit = false;
+    begin_profiler();
     while(!should_quit){
         MSG message;
         while(PeekMessageW(&message, window.handle, 0, 0, PM_REMOVE)){
@@ -345,11 +348,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         s64 now_ticks = clock.get_ticks();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
-        //MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
+        MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
+        // simulation
         accumulator += frame_time;
         while(accumulator >= clock.dt){
+            begin_timed_scope("simulation");
+
             update_game(&window, &memory, &events, &clock);
             accumulator -= clock.dt;
             time_elapsed += clock.dt;
@@ -359,33 +365,42 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         // draw everything
         if(memory.initialized){
+            begin_timed_scope("draw");
             //draw_everything();
             d3d_clear_color(BACKGROUND_COLOR);
 
             d3d_draw_cube_texture_instanced(&second->texture);
 
             d3d_draw_quad(-0.0f, -0.0f, 0.5f, 0.5f, BLUE);
+
+            {
+                begin_timed_scope("draw_textured_quad_shader_loading");
+                d3d_load_shader(str8_literal("2d_texture_shader.hlsl"), d3d_2dui_texture_input_layout, 3);
+            }
             if(console_is_visible()){
+                begin_timed_scope("draw_console");
                 draw_console();
             }
 
             String8 ship_str   = str8_literal("ship_simple.bmp");
             Bitmap ship_image = load_bitmap(&tm->arena, path_sprites, ship_str);
             d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, &ship_image);
+            //print("%i\n", simulations);
             simulations = 0;
         }
 
         d3d_present();
 
-        //frame_count++;
-        //f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), second_marker);
-        //if(second_elapsed > 1){
-        //    FPS = ((f64)frame_count / second_elapsed);
-        //    second_marker = clock.get_ticks();
-        //    frame_count = 0;
-        //}
-        //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed);
+        frame_count++;
+        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), second_marker);
+        if(second_elapsed > 1){
+            FPS = ((f64)frame_count / second_elapsed);
+            second_marker = clock.get_ticks();
+            frame_count = 0;
+        }
+        print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed);
     }
+    end_profiler();
 
     return(0);
 }
