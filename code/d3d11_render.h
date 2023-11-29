@@ -24,7 +24,7 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
     };
 
     D3D11_BUFFER_DESC vertex_buffer_desc = {0};
-    vertex_buffer_desc.StructureByteStride = sizeof(Vertex);
+    //vertex_buffer_desc.StructureByteStride = sizeof(Vertex);
     vertex_buffer_desc.ByteWidth = sizeof(Vertex) * array_count(vertices);
     vertex_buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
     vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -42,7 +42,7 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
     //-------------------------------------------------------------------
 
     D3D11_BUFFER_DESC index_buffer_desc = {0};
-    index_buffer_desc.StructureByteStride = sizeof(u32);
+    //index_buffer_desc.StructureByteStride = sizeof(u32);
     index_buffer_desc.ByteWidth = sizeof(u32) * array_count(indices);
     index_buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
     index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -65,18 +65,20 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
 
     d3d_context->RSSetState(d3d_rasterizer_state);
     d3d_context->RSSetViewports(1, &d3d_viewport);
-    d3d_context->IASetInputLayout(d3d_input_layout);
 
-    d3d_context->VSSetShader(d3d_vertex_shader, 0, 0);
-    d3d_context->PSSetShader(d3d_pixel_shader, 0, 0);
+    d3d_context->IASetInputLayout(d3d_2d_input_layout);
+    d3d_context->VSSetShader(d3d_2d_vertex_shader, 0, 0);
+    d3d_context->PSSetShader(d3d_2d_pixel_shader, 0, 0);
 
     d3d_context->DrawIndexed(array_count(indices), 0, 0);
+
+    d3d_vertex_buffer->Release();
+    d3d_index_buffer->Release();
 }
 
 static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* texture){
     begin_timed_function();
 
-    // now
     Vertex vertices[] = {
         { make_v3(x0, y0, 0.0f), CLEAR, make_v2(0.0f, 0.0f)},
         { make_v3(x1, y0, 0.0f), CLEAR, make_v2(1.0f, 0.0f)},
@@ -90,7 +92,7 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
     };
 
     D3D11_BUFFER_DESC vertex_buffer_desc = {0};
-    vertex_buffer_desc.StructureByteStride = sizeof(Vertex);
+    //vertex_buffer_desc.StructureByteStride = sizeof(Vertex);
     vertex_buffer_desc.ByteWidth = sizeof(Vertex) * array_count(vertices);
     vertex_buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
     vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -109,7 +111,7 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
 
     D3D11_BUFFER_DESC index_buffer_desc = {0};
 
-    index_buffer_desc.StructureByteStride = sizeof(u32);
+    //index_buffer_desc.StructureByteStride = sizeof(u32);
     index_buffer_desc.ByteWidth = sizeof(u32) * array_count(indices);
     index_buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
     index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -138,7 +140,6 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
         .SysMemPitch = (u32)texture->stride,
     };
 
-    ID3D11Texture2D* d3d_texture;
     hr = d3d_device->CreateTexture2D(&texture_desc, &data, &d3d_texture);
     assert_hr(hr);
 
@@ -158,15 +159,18 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
 
     d3d_context->RSSetState(d3d_rasterizer_state);
     d3d_context->RSSetViewports(1, &d3d_viewport);
-    d3d_context->IASetInputLayout(d3d_input_layout);
 
-    d3d_context->VSSetShader(d3d_vertex_shader, 0, 0);
-    d3d_context->PSSetShader(d3d_pixel_shader, 0, 0);
+    d3d_context->IASetInputLayout(d3d_2d_textured_input_layout);
+    d3d_context->VSSetShader(d3d_2d_textured_vertex_shader, 0, 0);
+    d3d_context->PSSetShader(d3d_2d_textured_pixel_shader, 0, 0);
 
     d3d_context->DrawIndexed(array_count(indices), 0, 0);
+
+    d3d_vertex_buffer->Release();
+    d3d_index_buffer->Release();
+    d3d_texture->Release();
 }
 
-// TODO: definition needs to change once we establish the different ways to draw things
 static void
 d3d_draw_cube_texture_instanced(Bitmap* texture){
     begin_timed_function();
@@ -231,7 +235,7 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
     //-------------------------------------------------------------------
 
     D3D11_BUFFER_DESC vertex_buffer_desc = {0};
-    vertex_buffer_desc.StructureByteStride = sizeof(Vertex);
+    ////vertex_buffer_desc.StructureByteStride = sizeof(Vertex);
     vertex_buffer_desc.ByteWidth = sizeof(Vertex) * array_count(vertices);
     vertex_buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
     vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
@@ -250,7 +254,7 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
 
     D3D11_BUFFER_DESC index_buffer_desc = {0};
 
-    index_buffer_desc.StructureByteStride = sizeof(u32);
+    //index_buffer_desc.StructureByteStride = sizeof(u32);
     index_buffer_desc.ByteWidth = sizeof(u32) * array_count(indices);
     index_buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
     index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
@@ -279,7 +283,6 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
         .SysMemPitch = (u32)texture->stride,
     };
 
-    ID3D11Texture2D* d3d_texture;
     hr = d3d_device->CreateTexture2D(&texture_desc, &data, &d3d_texture);
     assert_hr(hr);
 
@@ -299,12 +302,17 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
 
     d3d_context->RSSetState(d3d_rasterizer_state);
     d3d_context->RSSetViewports(1, &d3d_viewport);
-    d3d_context->IASetInputLayout(d3d_input_layout);
 
-    d3d_context->VSSetShader(d3d_vertex_shader, 0, 0);
-    d3d_context->PSSetShader(d3d_pixel_shader, 0, 0);
+    d3d_context->IASetInputLayout(d3d_3d_input_layout);
+    d3d_context->VSSetShader(d3d_3d_vertex_shader, 0, 0);
+    d3d_context->PSSetShader(d3d_3d_pixel_shader, 0, 0);
 
     d3d_context->DrawIndexedInstanced(array_count(indices), 3, 0, 0, 0);
+
+    d3d_vertex_buffer->Release();
+    d3d_index_buffer->Release();
+    d3d_instance_buffer->Release();
+    d3d_texture->Release();
 }
 
 static void

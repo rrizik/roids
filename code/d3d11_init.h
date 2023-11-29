@@ -14,6 +14,7 @@ using namespace dx;
 global ID3D11Device1*        d3d_device;
 global ID3D11DeviceContext1* d3d_context;
 global IDXGISwapChain1*      d3d_swapchain;
+global D3D11_VIEWPORT d3d_viewport;
 
 global ID3D11Texture2D*        d3d_framebuffer;
 global ID3D11RenderTargetView* d3d_framebuffer_view;
@@ -21,7 +22,6 @@ global ID3D11RenderTargetView* d3d_framebuffer_view;
 global ID3D11Texture2D*        d3d_depthbuffer;
 global ID3D11DepthStencilView* d3d_depthbuffer_view;
 
-global ID3D11ShaderResourceView* d3d_shader_resource;
 
 global ID3D11DepthStencilState* d3d_depthstencil_state;
 global ID3D11RasterizerState1*  d3d_rasterizer_state;
@@ -29,18 +29,28 @@ global ID3D11SamplerState*      d3d_sampler_state;
 global ID3D11BlendState*        d3d_blend_state; // note: maybe use BlendState1 later
 
 
-
 global ID3D11Buffer* d3d_vertex_buffer;
 global ID3D11Buffer* d3d_index_buffer;
 global ID3D11Buffer* d3d_constant_buffer;
 global ID3D11Buffer* d3d_instance_buffer;
 
-global ID3D11VertexShader* d3d_vertex_shader;
-global ID3D11PixelShader*  d3d_pixel_shader;
-global ID3D11InputLayout*  d3d_input_layout;
-global D3D11_VIEWPORT d3d_viewport;
+global ID3D11Texture2D* d3d_texture;
 
-global D3D11_INPUT_ELEMENT_DESC d3d_3d_input_layout[] = {
+global ID3D11ShaderResourceView* d3d_shader_resource;
+global ID3D11VertexShader* d3d_3d_vertex_shader;
+global ID3D11PixelShader*  d3d_3d_pixel_shader;
+global ID3D11InputLayout*  d3d_3d_input_layout;
+
+global ID3D11VertexShader* d3d_2d_vertex_shader;
+global ID3D11PixelShader*  d3d_2d_pixel_shader;
+global ID3D11InputLayout*  d3d_2d_input_layout;
+
+global ID3D11VertexShader* d3d_2d_textured_vertex_shader;
+global ID3D11PixelShader*  d3d_2d_textured_pixel_shader;
+global ID3D11InputLayout*  d3d_2d_textured_input_layout;
+
+
+global D3D11_INPUT_ELEMENT_DESC input_layout_3d[] = {
         // vertex data
         {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
@@ -52,13 +62,13 @@ global D3D11_INPUT_ELEMENT_DESC d3d_3d_input_layout[] = {
         {"TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
 };
 
-global D3D11_INPUT_ELEMENT_DESC d3d_2dui_color_input_layout[] = {
+global D3D11_INPUT_ELEMENT_DESC input_layout_2dui_color[] = {
         // vertex data
         {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 };
 
-global D3D11_INPUT_ELEMENT_DESC d3d_2dui_texture_input_layout[] = {
+global D3D11_INPUT_ELEMENT_DESC input_layout_2dui_textured[] = {
         // vertex data
         {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
@@ -86,7 +96,7 @@ d3d_init_debug_stuff(){
 }
 
 static void
-d3d_load_shader(String8 shader_file, D3D11_INPUT_ELEMENT_DESC* input_layout, u32 layout_count){
+d3d_load_shader(String8 shader_file, D3D11_INPUT_ELEMENT_DESC* input_layout, u32 layout_count, ID3D11VertexShader** d3d_vertex_shader, ID3D11PixelShader** d3d_pixel_shader, ID3D11InputLayout** d3d_input_layout){
     // ---------------------------------------------------------------------------------
     // Vertex/Pixel Shader
     // ---------------------------------------------------------------------------------
@@ -107,7 +117,7 @@ d3d_load_shader(String8 shader_file, D3D11_INPUT_ELEMENT_DESC* input_layout, u32
         print("\tMessage: %s\n", (char*)error->GetBufferPointer());
         assert_hr(hr);
     }
-    hr = d3d_device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &d3d_vertex_shader);
+    hr = d3d_device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, d3d_vertex_shader);
     assert_hr(hr);
 
     hr = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "ps_main", "ps_5_0", shader_compile_flags, 0, &ps_blob, &error);
@@ -117,13 +127,13 @@ d3d_load_shader(String8 shader_file, D3D11_INPUT_ELEMENT_DESC* input_layout, u32
         assert_hr(hr);
     }
 
-    hr = d3d_device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, &d3d_pixel_shader);
+    hr = d3d_device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, d3d_pixel_shader);
     assert_hr(hr);
 
     // ---------------------------------------------------------------------------------
     // Input Layout
     // ---------------------------------------------------------------------------------
-    hr = d3d_device->CreateInputLayout(input_layout, layout_count, vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), &d3d_input_layout);
+    hr = d3d_device->CreateInputLayout(input_layout, layout_count, vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), d3d_input_layout);
     assert_hr(hr);
 
     end_scratch(scratch);
@@ -289,22 +299,34 @@ d3d_init(Window window){
 
 static void
 d3d_release(){
-    d3d_framebuffer->Release();
-    d3d_depthbuffer->Release();
-    d3d_swapchain->Release();
-    d3d_swapchain->SetFullscreenState(false, 0);
     d3d_device->Release();
     d3d_context->Release();
-    d3d_vertex_shader->Release();
-    d3d_pixel_shader->Release();
+    d3d_swapchain->Release();
+    d3d_swapchain->SetFullscreenState(false, 0);
+
+    d3d_framebuffer->Release();
+    d3d_depthbuffer->Release();
+    d3d_framebuffer_view->Release();
+    d3d_depthbuffer_view->Release();
+
+    d3d_texture->Release();
+
+    d3d_3d_vertex_shader->Release();
+    d3d_3d_pixel_shader->Release();
+    d3d_3d_input_layout->Release();
+    d3d_2d_vertex_shader->Release();
+    d3d_2d_pixel_shader->Release();
+    d3d_2d_input_layout->Release();
+    d3d_2d_textured_vertex_shader->Release();
+    d3d_2d_textured_pixel_shader->Release();
+    d3d_2d_textured_input_layout->Release();
+    d3d_shader_resource->Release();
+
     d3d_vertex_buffer->Release();
     d3d_index_buffer->Release();
     d3d_constant_buffer->Release();
     d3d_instance_buffer->Release();
-    d3d_input_layout->Release();
-    d3d_framebuffer_view->Release();
-    d3d_depthbuffer_view->Release();
-    d3d_shader_resource->Release();
+
     d3d_depthstencil_state->Release();
     d3d_rasterizer_state->Release();
     d3d_sampler_state->Release();

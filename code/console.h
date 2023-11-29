@@ -278,7 +278,6 @@ draw_text(v2 pos, Font* font, RGBA color, String8 string){
 static void
 draw_console(){
     // push input string
-    d3d_load_shader(str8_literal("2d_texture_shader.hlsl"), d3d_2dui_texture_input_layout, 3);
     if(console.input_char_count > 0){
         String8 input_str = str8(console.input, console.input_char_count);
         draw_text(make_v2(console.input_rect.x0 + 10, console.input_rect.y0 + 6), &console.input_font, console.input_color, input_str);
@@ -297,7 +296,6 @@ draw_console(){
         }
     }
 
-    d3d_load_shader(str8_literal("2d_shader.hlsl"), d3d_2dui_color_input_layout, 2);
     Rect output = rect_pixel_to_screen(console.output_rect, resolution);
     Rect input = rect_pixel_to_screen(console.input_rect, resolution);
     Rect cursor = rect_pixel_to_screen(console.cursor_rect, resolution);
@@ -309,7 +307,6 @@ draw_console(){
 static void
 update_console(){
     // lerp to appropriate position based on state. Everything is positioned based on output_rect.
-    f32 lerp_speed =  console_speed * (f32)clock.dt;
     f32 output_rect_bottom = 0;
     switch(console.state){
         case CLOSED:{
@@ -326,6 +323,7 @@ update_console(){
         }
     }
 
+    f32 lerp_speed =  console_speed * (f32)clock.dt;
     if(console_t < 1) {
         console_t += lerp_speed;
 

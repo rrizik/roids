@@ -304,6 +304,7 @@ static Entity* third;
 static f32 cangle = 0;
 static HRESULT hresult;
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
+    begin_profiler();
 
     bool succeed = win32_init();
     assert(succeed);
@@ -327,24 +328,24 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     f64 FPS = 0;
     f64 MSPF = 0;
     u64 frame_count = 0;
-
-    clock.dt =  1.0/60.0;
-    f64 accumulator = 0.0;
-    s64 last_ticks = clock.get_ticks();
-    s64 prev_marker = clock.get_ticks();
-
 	u32 simulations = 0;
     f64 time_elapsed = 0;
+    f64 accumulator = 0.0;
+
+    clock.dt =  1.0/240.0;
+    s64 last_ticks = clock.get_ticks();
+    s64 frame_tick_start = clock.get_ticks();
 
     should_quit = false;
-    begin_profiler();
+	d3d_load_shader(str8_literal("3d_shader.hlsl"), input_layout_3d, 7, &d3d_3d_vertex_shader, &d3d_3d_pixel_shader, &d3d_3d_input_layout);
+	d3d_load_shader(str8_literal("2d_shader.hlsl"), input_layout_2dui_color, 2, &d3d_2d_vertex_shader, &d3d_2d_pixel_shader, &d3d_2d_input_layout);
+	d3d_load_shader(str8_literal("2d_texture_shader.hlsl"), input_layout_2dui_textured, 3, &d3d_2d_textured_vertex_shader, &d3d_2d_textured_pixel_shader, &d3d_2d_textured_input_layout);
     while(!should_quit){
         MSG message;
         while(PeekMessageW(&message, window.handle, 0, 0, PM_REMOVE)){
             TranslateMessage(&message);
             DispatchMessage(&message);
         }
-
 
         s64 now_ticks = clock.get_ticks();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
@@ -354,11 +355,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         // simulation
         accumulator += frame_time;
         while(accumulator >= clock.dt){
-
             update_game(&window, &memory, &events, &clock);
+
             accumulator -= clock.dt;
             time_elapsed += clock.dt;
             simulations++;
+
             clear_controller_pressed(&controller);
         }
 
@@ -367,33 +369,30 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             //draw_everything();
             d3d_clear_color(BACKGROUND_COLOR);
 
-            d3d_load_shader(str8_literal("3d_shader.hlsl"), d3d_3d_input_layout, 7);
             d3d_draw_cube_texture_instanced(&second->texture);
 
-            d3d_load_shader(str8_literal("2d_shader.hlsl"), d3d_2dui_color_input_layout, 2);
             d3d_draw_quad(-0.0f, -0.0f, 0.5f, 0.5f, BLUE);
 
             if(console_is_visible()){
                 draw_console();
             }
 
-            d3d_load_shader(str8_literal("2d_texture_shader.hlsl"), d3d_2dui_texture_input_layout, 3);
             String8 ship_str   = str8_literal("ship_simple.bmp");
             Bitmap ship_image = load_bitmap(&tm->arena, path_sprites, ship_str);
             d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, &ship_image);
-            simulations = 0;
         }
 
         d3d_present();
 
         frame_count++;
-        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), prev_marker);
+        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), frame_tick_start);
         if(second_elapsed > 1){
             FPS = ((f64)frame_count / second_elapsed);
-            prev_marker = clock.get_ticks();
+            frame_tick_start = clock.get_ticks();
             frame_count = 0;
         }
-        print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed);
+        print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
+		simulations = 0;
     }
     d3d_release();
     end_profiler();
