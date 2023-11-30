@@ -23,36 +23,33 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
         0, 3, 1, // bottom right
     };
 
-    D3D11_BUFFER_DESC vertex_buffer_desc = {0};
-    //vertex_buffer_desc.StructureByteStride = sizeof(Vertex);
-    vertex_buffer_desc.ByteWidth = sizeof(Vertex) * array_count(vertices);
-    vertex_buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
-    vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    //----vertex buffer----
+    {
+        D3D11_MAPPED_SUBRESOURCE resource;
+        hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        assert_hr(hr);
 
-    D3D11_SUBRESOURCE_DATA vertex_resource = {0};
-    vertex_resource.pSysMem = vertices;
-    hr = d3d_device->CreateBuffer(&vertex_buffer_desc, &vertex_resource, &d3d_vertex_buffer);
-    assert_hr(hr);
+        memcpy(resource.pData, vertices, sizeof(Vertex) * array_count(vertices));
+        d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
 
-    ID3D11Buffer* buffers[] = {d3d_vertex_buffer};
-    u32 strides[] = {sizeof(Vertex)};
-    u32 offset[] = {0};
+        ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
+        u32 strides[] = {sizeof(Vertex)};
+        u32 offset[] = {0};
 
-    d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
-    //-------------------------------------------------------------------
+        d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
+    }
 
-    D3D11_BUFFER_DESC index_buffer_desc = {0};
-    //index_buffer_desc.StructureByteStride = sizeof(u32);
-    index_buffer_desc.ByteWidth = sizeof(u32) * array_count(indices);
-    index_buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
-    index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    //----index buffer----
+    {
+        D3D11_MAPPED_SUBRESOURCE resource;
+        hr = d3d_context->Map(d3d_index_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        assert_hr(hr);
 
-    D3D11_SUBRESOURCE_DATA index_resource  = {0};
-    index_resource.pSysMem                 = indices;
-    hr = d3d_device->CreateBuffer(&index_buffer_desc, &index_resource, &d3d_index_buffer);
-    assert_hr(hr);
+        memcpy(resource.pData, indices, sizeof(s32) * array_count(indices));
+        d3d_context->Unmap(d3d_index_buffer, 0);
 
-    d3d_context->IASetIndexBuffer(d3d_index_buffer, DXGI_FORMAT_R32_UINT, 0);
+        d3d_context->IASetIndexBuffer(d3d_index_buffer, DXGI_FORMAT_R32_UINT, 0);
+    }
     //-------------------------------------------------------------------
 
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -71,9 +68,6 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
     d3d_context->PSSetShader(d3d_2d_pixel_shader, 0, 0);
 
     d3d_context->DrawIndexed(array_count(indices), 0, 0);
-
-    d3d_vertex_buffer->Release();
-    d3d_index_buffer->Release();
 }
 
 static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* texture){
@@ -91,37 +85,35 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
         0, 3, 1, // bottom right
     };
 
-    D3D11_BUFFER_DESC vertex_buffer_desc = {0};
-    //vertex_buffer_desc.StructureByteStride = sizeof(Vertex);
-    vertex_buffer_desc.ByteWidth = sizeof(Vertex) * array_count(vertices);
-    vertex_buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
-    vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-    D3D11_SUBRESOURCE_DATA vertex_resource = {0};
-    vertex_resource.pSysMem = vertices;
-    hr = d3d_device->CreateBuffer(&vertex_buffer_desc, &vertex_resource, &d3d_vertex_buffer);
-    assert_hr(hr);
+    //----vertex buffer----
+    {
+        D3D11_MAPPED_SUBRESOURCE resource;
+        hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        assert_hr(hr);
 
-    ID3D11Buffer* buffers[] = {d3d_vertex_buffer};
-    u32 strides[] = {sizeof(Vertex)};
-    u32 offset[] = {0};
+        memcpy(resource.pData, vertices, sizeof(Vertex) * array_count(vertices));
+        d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
 
-    d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
-    //-------------------------------------------------------------------
+        ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
+        u32 strides[] = {sizeof(Vertex)};
+        u32 offset[] = {0};
 
-    D3D11_BUFFER_DESC index_buffer_desc = {0};
+        d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
+    }
 
-    //index_buffer_desc.StructureByteStride = sizeof(u32);
-    index_buffer_desc.ByteWidth = sizeof(u32) * array_count(indices);
-    index_buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
-    index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    //----index buffer----
+    {
+        D3D11_MAPPED_SUBRESOURCE resource;
+        hr = d3d_context->Map(d3d_index_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        assert_hr(hr);
 
-    D3D11_SUBRESOURCE_DATA index_resource  = {0};
-    index_resource.pSysMem                 = indices;
-    hr = d3d_device->CreateBuffer(&index_buffer_desc, &index_resource, &d3d_index_buffer);
-    assert_hr(hr);
+        memcpy(resource.pData, indices, sizeof(s32) * array_count(indices));
+        d3d_context->Unmap(d3d_index_buffer, 0);
 
-    d3d_context->IASetIndexBuffer(d3d_index_buffer, DXGI_FORMAT_R32_UINT, 0);
+        d3d_context->IASetIndexBuffer(d3d_index_buffer, DXGI_FORMAT_R32_UINT, 0);
+    }
+
     //-------------------------------------------------------------------
 
     D3D11_TEXTURE2D_DESC texture_desc = {
@@ -166,8 +158,6 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
 
     d3d_context->DrawIndexed(array_count(indices), 0, 0);
 
-    d3d_vertex_buffer->Release();
-    d3d_index_buffer->Release();
     d3d_texture->Release();
 }
 
@@ -222,76 +212,73 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
         22, 21, 23,
     };
 
-    D3D11_BUFFER_DESC instance_buffer_desc = {0};
-    instance_buffer_desc.Usage = D3D11_USAGE_IMMUTABLE;
-    instance_buffer_desc.ByteWidth = sizeof(InstanceData) * instance_count;
-    instance_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    //----instance buffer----
+    {
+        D3D11_MAPPED_SUBRESOURCE resource;
+        hr = d3d_context->Map(d3d_instance_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        assert_hr(hr);
 
-    D3D11_SUBRESOURCE_DATA instance_data = {};
-    instance_data.pSysMem = {cube_instances};
+        memcpy(resource.pData, cube_instances, sizeof(InstanceData) * array_count(cube_instances));
+        d3d_context->Unmap(d3d_instance_buffer, 0);
 
-    hr = d3d_device->CreateBuffer(&instance_buffer_desc, &instance_data, &d3d_instance_buffer);
-    assert_hr(hr);
-    //-------------------------------------------------------------------
+    }
 
-    D3D11_BUFFER_DESC vertex_buffer_desc = {0};
-    ////vertex_buffer_desc.StructureByteStride = sizeof(Vertex);
-    vertex_buffer_desc.ByteWidth = sizeof(Vertex) * array_count(vertices);
-    vertex_buffer_desc.Usage     = D3D11_USAGE_IMMUTABLE;
-    vertex_buffer_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    //----vertex buffer----
+    {
+        D3D11_MAPPED_SUBRESOURCE resource;
+        hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        assert_hr(hr);
 
-    D3D11_SUBRESOURCE_DATA vertex_resource = {0};
-    vertex_resource.pSysMem = vertices;
-    hr = d3d_device->CreateBuffer(&vertex_buffer_desc, &vertex_resource, &d3d_vertex_buffer);
-    assert_hr(hr);
+        memcpy(resource.pData, vertices, sizeof(Vertex) * array_count(vertices));
+        d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
 
-    ID3D11Buffer* buffers[] = {d3d_vertex_buffer, d3d_instance_buffer};
-    u32 strides[] = {sizeof(Vertex), sizeof(InstanceData)};
-    u32 offset[] = {0, 0};
+        ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb, d3d_instance_buffer};
+        u32 strides[] = {sizeof(Vertex), sizeof(InstanceData)};
+        u32 offset[] = {0, 0};
 
-    d3d_context->IASetVertexBuffers(0, 2, buffers, strides, offset);
-    //-------------------------------------------------------------------
+        d3d_context->IASetVertexBuffers(0, 2, buffers, strides, offset);
+    }
 
-    D3D11_BUFFER_DESC index_buffer_desc = {0};
+    //----index buffer----
+    {
+        D3D11_MAPPED_SUBRESOURCE resource;
+        hr = d3d_context->Map(d3d_index_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        assert_hr(hr);
 
-    //index_buffer_desc.StructureByteStride = sizeof(u32);
-    index_buffer_desc.ByteWidth = sizeof(u32) * array_count(indices);
-    index_buffer_desc.Usage     = D3D11_USAGE_DEFAULT;
-    index_buffer_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        memcpy(resource.pData, indices, sizeof(s32) * array_count(indices));
+        d3d_context->Unmap(d3d_index_buffer, 0);
 
-    D3D11_SUBRESOURCE_DATA index_resource  = {0};
-    index_resource.pSysMem                 = indices;
-    hr = d3d_device->CreateBuffer(&index_buffer_desc, &index_resource, &d3d_index_buffer);
-    assert_hr(hr);
+        d3d_context->IASetIndexBuffer(d3d_index_buffer, DXGI_FORMAT_R32_UINT, 0);
+    }
 
-    d3d_context->IASetIndexBuffer(d3d_index_buffer, DXGI_FORMAT_R32_UINT, 0);
-    //-------------------------------------------------------------------
+    //----texture buffer----
+    {
+        D3D11_TEXTURE2D_DESC desc = {
+            .Width = (u32)texture->width,
+            .Height = (u32)texture->height,
+            .MipLevels = 1, // mip levels to use. Set to 0 for mips
+            .ArraySize = 1,
+            .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+            .SampleDesc = {1, 0},
+            .Usage = D3D11_USAGE_IMMUTABLE,
+            .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+        };
 
-    D3D11_TEXTURE2D_DESC texture_desc = {
-        .Width = (u32)texture->width,
-        .Height = (u32)texture->height,
-        .MipLevels = 1, // mip levels to use. Set to 0 for mips
-        .ArraySize = 1,
-        .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
-        .SampleDesc = {1, 0},
-        .Usage = D3D11_USAGE_IMMUTABLE,
-        .BindFlags = D3D11_BIND_SHADER_RESOURCE,
-    };
+        D3D11_SUBRESOURCE_DATA data = {
+            .pSysMem = texture->base,
+            .SysMemPitch = (u32)texture->stride,
+        };
 
-    D3D11_SUBRESOURCE_DATA data = {
-        .pSysMem = texture->base,
-        .SysMemPitch = (u32)texture->stride,
-    };
+        hr = d3d_device->CreateTexture2D(&desc, &data, &d3d_texture);
+        assert_hr(hr);
 
-    hr = d3d_device->CreateTexture2D(&texture_desc, &data, &d3d_texture);
-    assert_hr(hr);
+        hr = d3d_device->CreateShaderResourceView(d3d_texture, 0, &d3d_shader_resource);
+        assert_hr(hr);
 
-    hr = d3d_device->CreateShaderResourceView(d3d_texture, 0, &d3d_shader_resource);
-    assert_hr(hr);
+        d3d_context->PSSetShaderResources(0, 1, &d3d_shader_resource);
+    }
 
-    d3d_context->PSSetShaderResources(0, 1, &d3d_shader_resource);
-    //-------------------------------------------------------------------
-
+    //----state----
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
     d3d_context->PSSetShaderResources(0, 1, &d3d_shader_resource);
@@ -309,9 +296,6 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
 
     d3d_context->DrawIndexedInstanced(array_count(indices), 3, 0, 0, 0);
 
-    d3d_vertex_buffer->Release();
-    d3d_index_buffer->Release();
-    d3d_instance_buffer->Release();
     d3d_texture->Release();
 }
 

@@ -28,12 +28,6 @@ global ID3D11RasterizerState1*  d3d_rasterizer_state;
 global ID3D11SamplerState*      d3d_sampler_state;
 global ID3D11BlendState*        d3d_blend_state; // note: maybe use BlendState1 later
 
-
-global ID3D11Buffer* d3d_vertex_buffer;
-global ID3D11Buffer* d3d_index_buffer;
-global ID3D11Buffer* d3d_constant_buffer;
-global ID3D11Buffer* d3d_instance_buffer;
-
 global ID3D11Texture2D* d3d_texture;
 
 global ID3D11ShaderResourceView* d3d_shader_resource;
@@ -49,6 +43,11 @@ global ID3D11VertexShader* d3d_2d_textured_vertex_shader;
 global ID3D11PixelShader*  d3d_2d_textured_pixel_shader;
 global ID3D11InputLayout*  d3d_2d_textured_input_layout;
 
+global ID3D11Buffer* d3d_vertex_buffer_8mb;
+global ID3D11Buffer* d3d_vertex_buffer;
+global ID3D11Buffer* d3d_index_buffer;
+global ID3D11Buffer* d3d_instance_buffer;
+global ID3D11Buffer* d3d_constant_buffer;
 
 global D3D11_INPUT_ELEMENT_DESC input_layout_3d[] = {
         // vertex data
@@ -284,17 +283,62 @@ d3d_init(Window window){
         .MaxDepth = 1.0f
     };
 
+
+    // ---------------------------------------------------------------------------------
+    // Vertex Buffers
+    // ---------------------------------------------------------------------------------
+    {
+        D3D11_BUFFER_DESC desc = {0};
+        desc.ByteWidth = MB(8);
+        desc.Usage     = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        hr = d3d_device->CreateBuffer(&desc, 0, &d3d_vertex_buffer_8mb);
+        assert_hr(hr);
+    }
+
+    // ---------------------------------------------------------------------------------
+    // Index Buffers
+    // ---------------------------------------------------------------------------------
+    {
+        D3D11_BUFFER_DESC desc = {0};
+        desc.ByteWidth = MB(8);
+        desc.Usage     = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        hr = d3d_device->CreateBuffer(&desc, 0, &d3d_index_buffer);
+        assert_hr(hr);
+    }
+
+    // ---------------------------------------------------------------------------------
+    // Instance Buffers
+    // ---------------------------------------------------------------------------------
+    {
+        D3D11_BUFFER_DESC desc = {0};
+        desc.ByteWidth = MB(8);
+        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        hr = d3d_device->CreateBuffer(&desc, 0, &d3d_instance_buffer);
+        assert_hr(hr);
+    }
+
     // ---------------------------------------------------------------------------------
     // Constant Buffer
     // ---------------------------------------------------------------------------------
-    D3D11_BUFFER_DESC buffer_desc = {0};
-    buffer_desc.ByteWidth = sizeof(ConstantBuffer);
-    buffer_desc.Usage     = D3D11_USAGE_DYNAMIC;
-    buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
-    buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+    {
+        D3D11_BUFFER_DESC desc = {0};
+        desc.ByteWidth = sizeof(ConstantBuffer);
+        desc.Usage     = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-    hr = d3d_device->CreateBuffer(&buffer_desc, 0, &d3d_constant_buffer);
-    assert_hr(hr);
+        hr = d3d_device->CreateBuffer(&desc, 0, &d3d_constant_buffer);
+        assert_hr(hr);
+    }
 }
 
 static void
@@ -322,7 +366,7 @@ d3d_release(){
     d3d_2d_textured_input_layout->Release();
     d3d_shader_resource->Release();
 
-    d3d_vertex_buffer->Release();
+    d3d_vertex_buffer_8mb->Release();
     d3d_index_buffer->Release();
     d3d_constant_buffer->Release();
     d3d_instance_buffer->Release();
