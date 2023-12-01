@@ -6,11 +6,48 @@ static Font global_font = {0};
 
 
 
-enum GameMode{
+typedef enum GameMode{
     GameMode_FirstPerson,
     GameMode_Editor,
     GameMode_Game,
-};
+} GameMode;
+
+typedef enum AssetID{
+    AssetID_Image,
+    AssetID_Ship,
+    AssetID_Tree,
+    AssetID_Circle,
+    AssetID_Bullet,
+    AssetID_Test,
+
+    AssetID_count,
+} AssetID;
+
+typedef struct Assets{
+    Bitmap bitmaps[AssetID_count];
+    Bitmap image_image;
+    Bitmap ship_image;
+    Bitmap tree_image;
+    Bitmap circle_image;
+    Bitmap bullet_image;
+    Bitmap test_image;
+} Assets;
+
+static void
+load_assets(Arena* arena, Assets* assets){
+    assets->bitmaps[AssetID_Image] = load_bitmap(str8_literal("sprites\\image.bmp"));
+    assets->bitmaps[AssetID_Ship] = load_bitmap(str8_literal("sprites\\ship.bmp"));
+    assets->bitmaps[AssetID_Tree] = load_bitmap(str8_literal("sprites\\tree00.bmp"));
+    assets->bitmaps[AssetID_Circle] = load_bitmap(str8_literal("sprites\\circle.bmp"));
+    assets->bitmaps[AssetID_Bullet] = load_bitmap(str8_literal("sprites\\bullet4.bmp"));
+    assets->bitmaps[AssetID_Test] = load_bitmap(str8_literal("sprites\\test.bmp"));
+}
+
+static Bitmap*
+get_bitmap(Assets* assets, AssetID id){
+    Bitmap* bitmap = assets->bitmaps + id;
+    return(bitmap);
+}
 
 #define ENTITIES_MAX 100
 typedef struct PermanentMemory{
@@ -38,6 +75,8 @@ typedef struct TransientMemory{
     Arena arena;
     Arena *frame_arena;
     Arena *render_command_arena;
+
+    Assets assets;
 } TransientMemory;
 global TransientMemory* tm;
 
@@ -135,7 +174,7 @@ add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor 
 }
 
 static Entity*
-add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, RGBA color = {0, 0, 0, 1}){
+add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1}){
     Entity* e = add_entity(pm, EntityType_Bases);
     e->origin = origin;
     e->x_axis = x_axis;
@@ -146,7 +185,7 @@ add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, 
 }
 
 static Entity*
-add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, RGBA color = {0, 0, 0, 1}){
+add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1}){
     Entity* e = add_entity(pm, EntityType_Ship);
     e->origin = origin;
     e->x_axis = x_axis;
@@ -162,7 +201,7 @@ add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, R
 }
 
 static Entity*
-add_bullet(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture, RGBA color = {0, 0, 0, 1}){
+add_bullet(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1}){
     Entity* e = add_entity(pm, EntityType_Bullet);
     e->origin = origin;
     e->x_axis = x_axis;
@@ -177,7 +216,7 @@ add_bullet(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap texture,
 }
 
 static Entity*
-add_cube(PermanentMemory* pm, Bitmap texture, v3 pos, v3 angle, v3 scale, u32 index){
+add_cube(PermanentMemory* pm, Bitmap* texture, v3 pos, v3 angle, v3 scale, u32 index){
     Entity* e = add_entity(pm, EntityType_Cube);
     e->index = index;
     e->pos = pos;
@@ -188,7 +227,7 @@ add_cube(PermanentMemory* pm, Bitmap texture, v3 pos, v3 angle, v3 scale, u32 in
 }
 
 static Entity*
-add_player(PermanentMemory* pm, Bitmap texture, v3 pos, v3 angle, v3 scale, u32 index){
+add_player(PermanentMemory* pm, Bitmap* texture, v3 pos, v3 angle, v3 scale, u32 index){
     Entity* e = add_entity(pm, EntityType_Player);
     e->index = index;
     e->pos = pos;
@@ -240,7 +279,7 @@ add_circle(PermanentMemory *pm, Rect rect, u8 rad, RGBA color, bool fill){
 }
 
 static Entity*
-add_bitmap(PermanentMemory* pm, v2 pos, Bitmap texture){
+add_bitmap(PermanentMemory* pm, v2 pos, Bitmap* texture){
     Entity* e = add_entity(pm, EntityType_Bitmap);
     e->rect = make_rect(pos.x, pos.y, 0, 0);
     e->texture = texture;
@@ -259,7 +298,7 @@ entities_clear(PermanentMemory* pm){
 
 static void
 serialize_data(PermanentMemory* pm, String8 filename){
-    File file = os_file_open(path_saves, filename, 1);
+    File file = os_file_open(filename, GENERIC_WRITE, CREATE_NEW);
     assert_fh(file);
 
     os_file_write(&file, pm->entities, sizeof(Entity) * ENTITIES_MAX);
@@ -268,7 +307,7 @@ serialize_data(PermanentMemory* pm, String8 filename){
 
 static void
 deserialize_data(PermanentMemory* pm, String8 filename){
-    File file = os_file_open(path_saves, filename);
+    File file = os_file_open(filename, GENERIC_READ, OPEN_EXISTING);
     assert_fh(file);
     String8 data = os_file_read(&pm->arena, &file);
 
@@ -281,9 +320,9 @@ deserialize_data(PermanentMemory* pm, String8 filename){
                 Entity* ship = add_entity(pm, EntityType_Ship);
                 *ship = *e;
 
-                String8 ship_str = str8_literal("\\ship_simple.bmp");
-                Bitmap ship_image = load_bitmap(&tm->arena, path_saves, ship_str);
-                ship->texture = ship_image;
+                String8 ship_str = str8_literal("sprites\\ship_simple.bmp");
+                Bitmap ship_image = load_bitmap(ship_str);
+                ship->texture = get_bitmap(&tm->assets, AssetID_Ship);
 
                 pm->ship = ship;
                 pm->ship_loaded = true;
@@ -440,6 +479,13 @@ handle_controller_events(Event event){
     return(false);
 }
 
+//static String8 tree_str   = str8_literal("tree00.bmp");
+//static String8 image_str  = str8_literal("image.bmp");
+//static String8 test_str   = str8_literal("test3.bmp");
+//static String8 circle_str = str8_literal("circle.bmp");
+//static String8 ship_str   = str8_literal("ship_simple.bmp");
+//static String8 bullet_str = str8_literal("bullet4.bmp");
+
 static f32 angle = 0;
 static void
 //update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* clock){
@@ -473,22 +519,10 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         //pm->saves_dir   = str8_path_append(&pm->arena, path_data, str8_literal("saves"));
 
         // basis test
-        String8 tree_str   = str8_literal("tree00.bmp");
-        String8 image_str  = str8_literal("image.bmp");
-        String8 test_str   = str8_literal("test3.bmp");
-        String8 circle_str = str8_literal("circle.bmp");
-        String8 ship_str   = str8_literal("ship_simple.bmp");
-        String8 bullet_str = str8_literal("bullet4.bmp");
-
-        Bitmap image_image = load_bitmap(&tm->arena, path_sprites, image_str);
-        Bitmap ship_image = load_bitmap(&tm->arena, path_sprites, ship_str);
-        Bitmap tree_image = load_bitmap(&pm->arena, path_sprites, tree_str);
-        Bitmap circle_image = load_bitmap(&tm->arena, path_sprites, circle_str);
-        Bitmap bullet_image = load_bitmap(&tm->arena, path_sprites, bullet_str);
-        Bitmap test_image = load_bitmap(&tm->arena, path_sprites, test_str);
         //d3d_init_texture(ship_image);
 
 
+        load_assets(&tm->arena, &tm->assets);
         //Bitmap ship_image = load_bitmap(&pm->arena, pm->sprites_dir, ship_str);
         //Bitmap aa = stb_load_image(pm->sprites_dir, circle_str);
         //Bitmap ship_image = stb_load_image(pm->sprites_dir, ship_str);
@@ -506,15 +540,15 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         //add_basis(pm, origin, x_axis, y_axis, circle_image, {0, 0, 0, 0});
         //add_basis(pm, origin, x_axis, y_axis, test_image0, {0, 0, 0, 0});
         //pm->ship = add_ship(pm, make_v2(100, 100), x_axis, y_axis, ship_image, {0, 0, 0, 0});
-        Entity* bullet = add_bullet(pm, origin, x_axis, y_axis, bullet_image, {0, 0, 0, 0});
+        Entity* bullet = add_bullet(pm, origin, x_axis, y_axis, get_bitmap(&tm->assets, AssetID_Bullet), {0, 0, 0, 0});
         //add_rect(pm, rect_screen_to_pixel(make_rect(.1, .5f, .2, .6), resolution), MAGENTA);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.3, .5f, .4, .6), resolution), MAGENTA, 4, GREEN);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
         //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .5f, .8, .6), resolution), MAGENTA, -20000, TEAL);
 
-        first = add_cube(pm, test_image, make_v3(40.0f, 0.0f, 200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.5f, 0.5f, 0.5f), 120);
-        second = add_player(pm, ship_image, make_v3(-40.0f, 0.0f, 200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
-        third = add_player(pm, ship_image, make_v3(0.0f, 0.0f, -200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
+        first = add_cube(pm, get_bitmap(&tm->assets, AssetID_Test), make_v3(40.0f, 0.0f, 200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.5f, 0.5f, 0.5f), 120);
+        second = add_player(pm, get_bitmap(&tm->assets, AssetID_Ship), make_v3(-40.0f, 0.0f, 200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
+        third = add_player(pm, get_bitmap(&tm->assets, AssetID_Ship), make_v3(0.0f, 0.0f, -200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
         //Inconsolata-Regular
         Bitmap inconsolate[128];
 
@@ -522,14 +556,14 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         //String8 incon = str8_literal("MatrixSans-Video.ttf");
         //String8 incon = str8_literal("Rock Jack Writing.ttf");
         //String8 incon = str8_literal("Inconsolata-Regular.ttf");
-        String8 roboto = str8_literal("\\Roboto-Regular.ttf");
-        String8 golos = str8_literal("\\GolosText-Regular.ttf");
-        String8 arial = str8_literal("\\arial.ttf");
-        String8 incon = str8_literal("\\consola.ttf");
-        global_font.name = str8_literal("\\GolosText-Regular.ttf");
+        String8 roboto = str8_literal("fonts\\Roboto-Regular.ttf");
+        String8 golos = str8_literal("fonts\\GolosText-Regular.ttf");
+        String8 arial = str8_literal("fonts\\arial.ttf");
+        String8 incon = str8_literal("fonts\\consola.ttf");
+        global_font.name = str8_literal("fonts\\GolosText-Regular.ttf");
         global_font.size = 24;
         global_font.color = WHITE;
-        bool succeed = load_font_ttf(&pm->arena, path_fonts, &global_font);
+        bool succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\GolosText-Regular.ttf"), &global_font);
         assert(succeed);
         load_font_glyphs(&pm->arena, &global_font, RED);
 

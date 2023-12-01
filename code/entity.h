@@ -42,8 +42,7 @@ typedef struct Entity{
     bool fill;
 
     // QUESTION: Should this be a pointer
-    Bitmap texture;
-    Bitmap glyph;
+    Bitmap* texture;
     bool render;
 } Entity;
 

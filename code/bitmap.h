@@ -97,15 +97,15 @@ find_first_set_bit(u32 value){
 }
 
 static Bitmap
-load_bitmap(Arena *arena, String8 dir, String8 file_name){
+load_bitmap(String8 filename){
     // NOTE: Returns back a pre-multiplied alpha bitmap
     Bitmap result = {0};
 
-    File file = os_file_open(dir, file_name);
+    File file = os_file_open(filename, GENERIC_READ, OPEN_EXISTING);
     assert_fh(file);
-    defer(os_file_close(&file));
 
-    String8 bitmap_file = os_file_read(arena, &file);
+    ScratchArena scratch = begin_scratch(0);
+    String8 bitmap_file = os_file_read(scratch.arena, &file);
 
     BitmapHeader *header = (BitmapHeader *)bitmap_file.str;
     result.base = (u8 *)bitmap_file.str + header->bitmap_offset;
@@ -173,6 +173,8 @@ load_bitmap(Arena *arena, String8 dir, String8 file_name){
         }
     }
 
+    end_scratch(scratch);
+    os_file_close(&file);
     return(result);
 }
 

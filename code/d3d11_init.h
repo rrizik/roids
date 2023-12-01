@@ -95,7 +95,7 @@ d3d_init_debug_stuff(){
 }
 
 static void
-d3d_load_shader(String8 shader_file, D3D11_INPUT_ELEMENT_DESC* input_layout, u32 layout_count, ID3D11VertexShader** d3d_vertex_shader, ID3D11PixelShader** d3d_pixel_shader, ID3D11InputLayout** d3d_input_layout){
+d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* input_layout, u32 layout_count, ID3D11VertexShader** d3d_vertex_shader, ID3D11PixelShader** d3d_pixel_shader, ID3D11InputLayout** d3d_input_layout){
     // ---------------------------------------------------------------------------------
     // Vertex/Pixel Shader
     // ---------------------------------------------------------------------------------
@@ -106,8 +106,8 @@ d3d_load_shader(String8 shader_file, D3D11_INPUT_ELEMENT_DESC* input_layout, u32
 #endif
 
     ScratchArena scratch = begin_scratch(0);
-    String8 utf8_shader_path = str8_path_append(scratch.arena, path_shaders, shader_file);
-    String16 utf16_shader_path = os_utf8_utf16(scratch.arena, utf8_shader_path);
+    //String8 utf8_shader_path = str8_path_append(scratch.arena, path_shaders, shader_file);
+    String16 utf16_shader_path = os_utf8_utf16(scratch.arena, shader_path);
 
     ID3DBlob* vs_blob, *ps_blob, *error;
     hr = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "vs_main", "vs_5_0", shader_compile_flags, 0, &vs_blob, &error);
@@ -283,6 +283,9 @@ d3d_init(Window window){
         .MaxDepth = 1.0f
     };
 
+	d3d_load_shader(str8_literal("shaders\\3d_shader.hlsl"), input_layout_3d, 7, &d3d_3d_vertex_shader, &d3d_3d_pixel_shader, &d3d_3d_input_layout);
+	d3d_load_shader(str8_literal("shaders\\2d_shader.hlsl"), input_layout_2dui_color, 2, &d3d_2d_vertex_shader, &d3d_2d_pixel_shader, &d3d_2d_input_layout);
+	d3d_load_shader(str8_literal("shaders\\2d_texture_shader.hlsl"), input_layout_2dui_textured, 3, &d3d_2d_textured_vertex_shader, &d3d_2d_textured_pixel_shader, &d3d_2d_textured_input_layout);
 
     // ---------------------------------------------------------------------------------
     // Vertex Buffers
@@ -339,6 +342,34 @@ d3d_init(Window window){
         hr = d3d_device->CreateBuffer(&desc, 0, &d3d_constant_buffer);
         assert_hr(hr);
     }
+
+    // ---------------------------------------------------------------------------------
+    // Cube Texture
+    // ---------------------------------------------------------------------------------
+    //{
+    //    D3D11_TEXTURE2D_DESC desc = {
+    //        .Width = (u32)texture->width,
+    //        .Height = (u32)texture->height,
+    //        .MipLevels = 1, // mip levels to use. Set to 0 for mips
+    //        .ArraySize = 1,
+    //        .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+    //        .SampleDesc = {1, 0},
+    //        .Usage = D3D11_USAGE_IMMUTABLE,
+    //        .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+    //    };
+
+    //    D3D11_SUBRESOURCE_DATA data = {
+    //        .pSysMem = texture->base,
+    //        .SysMemPitch = (u32)texture->stride,
+    //    };
+
+    //    hr = d3d_device->CreateTexture2D(&desc, &data, &d3d_texture);
+    //    assert_hr(hr);
+
+    //    hr = d3d_device->CreateShaderResourceView(d3d_texture, 0, &d3d_shader_resource);
+    //    assert_hr(hr);
+    //}
+
 }
 
 static void

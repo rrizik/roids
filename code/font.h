@@ -113,8 +113,8 @@ typedef struct Font{
 } Font;
 
 static bool
-load_font_ttf(Arena* arena, String8 dir, Font* font){
-    File file = os_file_open(dir, font->name);
+load_font_ttf(Arena* arena, String8 path, Font* font){
+    File file = os_file_open(path, GENERIC_READ, OPEN_EXISTING);
     assert_fh(file);
 
     String8 data =  os_file_read(arena, &file);
@@ -159,8 +159,6 @@ load_font_glyphs(Arena* arena, Font* font, RGBA color){
                           ((u32)(color.r * 255.0f) << 16) |
                           ((u32)(color.g * 255.0f) <<  8) |
                           ((u32)(color.b * 255.0f) <<  0));
-                //*dest++ = (u32)((alpha << 24) | 0xFFFFFF);
-
             }
             dest_row -= glyph->w * 4;
         }

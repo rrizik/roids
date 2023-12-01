@@ -85,7 +85,6 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
         0, 3, 1, // bottom right
     };
 
-
     //----vertex buffer----
     {
         D3D11_MAPPED_SUBRESOURCE resource;
@@ -119,7 +118,7 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
     D3D11_TEXTURE2D_DESC texture_desc = {
         .Width = (u32)texture->width,
         .Height = (u32)texture->height,
-        .MipLevels = 1, // mip levels to use. Set to 0 for mips
+        .MipLevels = 1,
         .ArraySize = 1,
         .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
         .SampleDesc = {1, 0},

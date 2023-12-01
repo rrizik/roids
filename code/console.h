@@ -81,28 +81,25 @@ init_console(PermanentMemory* pm){
     console.cursor_color = CONSOLE_CURSOR_COLOR;
 
     // init and load fonts
-    console.input_font.name = str8_literal("\\GolosText-Regular.ttf");
     console.input_font.size = 24;
     console.input_font.color = TEAL;
 
-    console.output_font.name = str8_literal("\\Inconsolata-Regular.ttf");
     console.output_font.size = 24;
     console.output_font.color = ORANGE;
 
-    console.command_history_font.name = str8_literal("\\GolosText-Regular.ttf");
     console.command_history_font.size = 24;
     console.command_history_font.color = LIGHT_GRAY;
 
     bool succeed;
-    succeed = load_font_ttf(&pm->arena, path_fonts, &console.input_font);
+    succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\GolosText-Regular.ttf"), &console.input_font);
     assert(succeed);
     load_font_glyphs(&pm->arena, &console.input_font, BLUE);
 
-    succeed = load_font_ttf(&pm->arena, path_fonts, &console.output_font);
+    succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\Inconsolata-Regular.ttf"), &console.output_font);
     assert(succeed);
     load_font_glyphs(&pm->arena, &console.output_font, GREEN);
 
-    succeed = load_font_ttf(&pm->arena, path_fonts, &console.command_history_font);
+    succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\GolosText-Regular.ttf"), &console.command_history_font);
     assert(succeed);
     load_font_glyphs(&pm->arena, &console.command_history_font, YELLOW);
 }

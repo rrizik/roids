@@ -27,31 +27,31 @@ global HRESULT hr; //todo: add this in win32_base_inc?
 #include "entity.h"
 global Arena* global_arena = os_make_arena(MB(100));
 
-static String8 path_exe;
-static String8 path_cwd;
-static String8 path_data;
-static String8 path_sprites;
-static String8 path_fonts;
-static String8 path_saves;
-static String8 path_shaders;
-static void
-init_paths(Arena* arena){
-    path_exe = os_get_exe_path(global_arena);
-
-    ScratchArena scratch = begin_scratch(0);
-    String8Node split_exe_path = str8_split(scratch.arena, path_exe, '\\');
-    dll_pop_back(&split_exe_path);
-    dll_pop_back(&split_exe_path);
-    String8Join opts = { .mid = str8_literal("\\"), };
-    path_cwd = str8_join(global_arena, &split_exe_path, opts);
-    end_scratch(scratch);
-
-    path_data    = str8_path_append(arena, path_cwd, str8_literal("data"));
-    path_sprites = str8_path_append(arena, path_data, str8_literal("sprites"));
-    path_fonts   = str8_path_append(arena, path_data, str8_literal("fonts"));
-    path_saves   = str8_path_append(arena, path_data, str8_literal("saves"));
-    path_shaders = str8_path_append(arena, path_data, str8_literal("shaders"));
-}
+//static String8 path_exe;
+//static String8 path_cwd;
+//static String8 path_data;
+//static String8 path_sprites;
+//static String8 path_fonts;
+//static String8 path_saves;
+//static String8 path_shaders;
+//static void
+//init_paths(Arena* arena){
+//    path_exe = os_get_exe_path(global_arena);
+//
+//    ScratchArena scratch = begin_scratch(0);
+//    String8Node split_exe_path = str8_split(scratch.arena, path_exe, '\\');
+//    dll_pop_back(&split_exe_path);
+//    dll_pop_back(&split_exe_path);
+//    String8Join opts = { .mid = str8_literal("\\"), };
+//    path_cwd = str8_join(global_arena, &split_exe_path, opts);
+//    end_scratch(scratch);
+//
+//    path_data    = str8_path_append(arena, path_cwd, str8_literal("data"));
+//    path_sprites = str8_path_append(arena, path_data, str8_literal("sprites"));
+//    path_fonts   = str8_path_append(arena, path_data, str8_literal("fonts"));
+//    path_saves   = str8_path_append(arena, path_data, str8_literal("saves"));
+//    path_shaders = str8_path_append(arena, path_data, str8_literal("shaders"));
+//}
 
 #include "d3d11_init.h"
 #include "d3d11_render.h"
@@ -64,15 +64,6 @@ global v2s32 resolution = {
 typedef s64 GetTicks(void);
 typedef f64 GetSecondsElapsed(s64 start, s64 end);
 typedef f64 GetMSElapsed(s64 start, s64 end);
-
-typedef struct Clock{
-    f64 dt;
-    s64 frequency;
-    GetTicks* get_ticks;
-    GetSecondsElapsed* get_seconds_elapsed;
-    GetMSElapsed* get_ms_elapsed;
-} Clock;
-global Clock clock;
 
 typedef struct Memory{
     void* base;
@@ -87,10 +78,29 @@ typedef struct Memory{
 } Memory;
 global Memory memory;
 
+static void
+init_memory(Memory* m){
+    m->permanent_size = MB(500);
+    m->transient_size = GB(1);
+    m->size = m->permanent_size + m->transient_size;
+
+    m->base = os_virtual_alloc(m->size);
+    m->permanent_base = m->base;
+    m->transient_base = (u8*)m->base + m->permanent_size;
+}
 
 global bool should_quit;
 #include "input.h"
 global Events events;
+
+typedef struct Clock{
+    f64 dt;
+    s64 frequency;
+    GetTicks* get_ticks;
+    GetSecondsElapsed* get_seconds_elapsed;
+    GetMSElapsed* get_ms_elapsed;
+} Clock;
+global Clock clock;
 
 static s64 get_ticks(){
     LARGE_INTEGER result;
@@ -119,17 +129,6 @@ init_clock(Clock* c){
     c->get_seconds_elapsed = get_seconds_elapsed;
     c->get_ms_elapsed = get_ms_elapsed;
 }
-
-static void
-init_memory(Memory* m){
-    m->permanent_size = MB(500);
-    m->transient_size = GB(1);
-    m->size = m->permanent_size + m->transient_size;
-    m->base = os_virtual_alloc(m->size);
-    m->permanent_base = m->base;
-    m->transient_base = (u8*)m->base + m->permanent_size;
-}
-
 
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
     LRESULT result = 0;
@@ -309,7 +308,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     bool succeed = win32_init();
     assert(succeed);
 
-    init_paths(global_arena);
+    //init_paths(global_arena);
 
     random_seed(0, 1);
 
@@ -337,9 +336,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     s64 frame_tick_start = clock.get_ticks();
 
     should_quit = false;
-	d3d_load_shader(str8_literal("3d_shader.hlsl"), input_layout_3d, 7, &d3d_3d_vertex_shader, &d3d_3d_pixel_shader, &d3d_3d_input_layout);
-	d3d_load_shader(str8_literal("2d_shader.hlsl"), input_layout_2dui_color, 2, &d3d_2d_vertex_shader, &d3d_2d_pixel_shader, &d3d_2d_input_layout);
-	d3d_load_shader(str8_literal("2d_texture_shader.hlsl"), input_layout_2dui_textured, 3, &d3d_2d_textured_vertex_shader, &d3d_2d_textured_pixel_shader, &d3d_2d_textured_input_layout);
     while(!should_quit){
         MSG message;
         while(PeekMessageW(&message, window.handle, 0, 0, PM_REMOVE)){
@@ -369,7 +365,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             //draw_everything();
             d3d_clear_color(BACKGROUND_COLOR);
 
-            d3d_draw_cube_texture_instanced(&second->texture);
+            d3d_draw_cube_texture_instanced(get_bitmap(&tm->assets, AssetID_Image));
 
             d3d_draw_quad(-0.0f, -0.0f, 0.5f, 0.5f, BLUE);
 
@@ -377,9 +373,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 draw_console();
             }
 
-            String8 ship_str   = str8_literal("ship_simple.bmp");
-            Bitmap ship_image = load_bitmap(&tm->arena, path_sprites, ship_str);
-            d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, &ship_image);
+            d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, get_bitmap(&tm->assets, AssetID_Ship));
         }
 
         d3d_present();
