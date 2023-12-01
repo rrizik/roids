@@ -25,12 +25,6 @@ typedef enum AssetID{
 
 typedef struct Assets{
     Bitmap bitmaps[AssetID_count];
-    Bitmap image_image;
-    Bitmap ship_image;
-    Bitmap tree_image;
-    Bitmap circle_image;
-    Bitmap bullet_image;
-    Bitmap test_image;
 } Assets;
 
 static void
