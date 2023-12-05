@@ -42,6 +42,7 @@ win32_window_create(wchar* window_name, s32 width, s32 height){
     resolution.w = width;
     resolution.h = height;
 
+
     result.width = width;
     result.height = height;
     result.aspect_ratio = (f32)width / (f32)height;
