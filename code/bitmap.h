@@ -96,19 +96,19 @@ find_first_set_bit(u32 value){
     return(result);
 }
 
+// NOTE: This is not a complete BMP loader. Use stb_image.h to load bmps instead if you want something complete
 static Bitmap
-load_bitmap(String8 filename){
-    // NOTE: Returns back a pre-multiplied alpha bitmap
+load_bitmap(Arena* arena, String8 filename){
     Bitmap result = {0};
 
-    File file = os_file_open(filename, GENERIC_READ, OPEN_EXISTING);
+    ScratchArena scratch = begin_scratch(0);
+    String8 full_path = str8_concatenate(scratch.arena, path_data, filename);
+    File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
     assert_fh(file);
 
-    ScratchArena scratch = begin_scratch(0);
-    String8 bitmap_file = os_file_read(scratch.arena, &file);
-
-    BitmapHeader *header = (BitmapHeader *)bitmap_file.str;
-    result.base = (u8 *)bitmap_file.str + header->bitmap_offset;
+    String8 data = os_file_read(arena, &file);
+    BitmapHeader *header = (BitmapHeader *)data.str;
+    result.base = (u8 *)data.str + header->bitmap_offset;
     result.width = header->width;
     result.height = header->height;
     result.stride = header->width * 4;

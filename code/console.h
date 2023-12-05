@@ -260,7 +260,7 @@ draw_text(v2 pos, Font* font, RGBA color, String8 string){
             Rect screen_rect = rect_pixel_to_screen(rect, resolution);
 
             if(*c != ' '){
-                d3d_draw_textured_quad(screen_rect.x0, screen_rect.y0, screen_rect.x1, screen_rect.y1, &glyph.bitmap);
+                //d3d_draw_textured_quad(screen_rect.x0, screen_rect.y0, screen_rect.x1, screen_rect.y1, &glyph.bitmap);
             }
             //push_bitmap(command_arena, rect, glyph.bitmap);
         }

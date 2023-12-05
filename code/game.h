@@ -20,28 +20,66 @@ typedef enum AssetID{
     AssetID_Bullet,
     AssetID_Test,
 
-    AssetID_count,
+    AssetID_Count,
 } AssetID;
 
 typedef struct Assets{
-    Bitmap bitmaps[AssetID_count];
+    Bitmap bitmaps[AssetID_Count];
+    //ID3D11Texture2D* textures[AssetID_Count];
+    //ID3D11ShaderResourceView* shader_resources[AssetID_Count];
 } Assets;
 
 static void
 load_assets(Arena* arena, Assets* assets){
-    assets->bitmaps[AssetID_Image] = load_bitmap(str8_literal("sprites\\image.bmp"));
-    assets->bitmaps[AssetID_Ship] = load_bitmap(str8_literal("sprites\\ship.bmp"));
-    assets->bitmaps[AssetID_Tree] = load_bitmap(str8_literal("sprites\\tree00.bmp"));
-    assets->bitmaps[AssetID_Circle] = load_bitmap(str8_literal("sprites\\circle.bmp"));
-    assets->bitmaps[AssetID_Bullet] = load_bitmap(str8_literal("sprites\\bullet4.bmp"));
-    assets->bitmaps[AssetID_Test] = load_bitmap(str8_literal("sprites\\test.bmp"));
+    assets->bitmaps[AssetID_Image] = load_bitmap(arena, str8_literal("sprites\\image.bmp"));
+    assets->bitmaps[AssetID_Ship] = load_bitmap(arena, str8_literal("sprites\\ship.bmp"));
+    assets->bitmaps[AssetID_Tree] = load_bitmap(arena, str8_literal("sprites\\tree00.bmp"));
+    assets->bitmaps[AssetID_Circle] = load_bitmap(arena, str8_literal("sprites\\circle.bmp"));
+    assets->bitmaps[AssetID_Bullet] = load_bitmap(arena, str8_literal("sprites\\bullet4.bmp"));
+    assets->bitmaps[AssetID_Test] = load_bitmap(arena, str8_literal("sprites\\test.bmp"));
 }
+
+//static void
+//load_textures_from_assets(Assets* assets){
+//    for(s32 i=0; i < AssetID_Count; ++i){
+//        Bitmap* bitmap = assets->bitmaps + i;
+//
+//        D3D11_TEXTURE2D_DESC desc = {
+//            .Width = (u32)bitmap->width,
+//            .Height = (u32)bitmap->height,
+//            .MipLevels = 1, // mip levels to use. Set to 0 for mips
+//            .ArraySize = 1,
+//            .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+//            .SampleDesc = {1, 0},
+//            .Usage = D3D11_USAGE_IMMUTABLE,
+//            .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+//        };
+//
+//        D3D11_SUBRESOURCE_DATA data = {
+//            .pSysMem = bitmap->base,
+//            .SysMemPitch = (u32)bitmap->stride,
+//        };
+//        ID3D11Texture2D* texture = assets->textures[i];
+//        ID3D11ShaderResourceView* shader_resource = assets->shader_resources[i];
+//
+//        hr = d3d_device->CreateTexture2D(&desc, &data, &texture);
+//        assert_hr(hr);
+//        hr = d3d_device->CreateShaderResourceView(texture, 0, &shader_resource);
+//        assert_hr(hr);
+//    }
+//}
 
 static Bitmap*
 get_bitmap(Assets* assets, AssetID id){
-    Bitmap* bitmap = assets->bitmaps + id;
-    return(bitmap);
+    Bitmap* result = assets->bitmaps + id;
+    return(result);
 }
+
+//static ID3D11ShaderResourceView*
+//get_shader_resource(Assets* assets, AssetID id){
+//    ID3D11ShaderResourceView* result = *assets->shader_resources + id;
+//    return(result);
+//}
 
 #define ENTITIES_MAX 100
 typedef struct PermanentMemory{
@@ -315,7 +353,7 @@ deserialize_data(PermanentMemory* pm, String8 filename){
                 *ship = *e;
 
                 String8 ship_str = str8_literal("sprites\\ship_simple.bmp");
-                Bitmap ship_image = load_bitmap(ship_str);
+                Bitmap ship_image = load_bitmap(&pm->arena, ship_str);
                 ship->texture = get_bitmap(&tm->assets, AssetID_Ship);
 
                 pm->ship = ship;
@@ -517,6 +555,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
 
 
         load_assets(&tm->arena, &tm->assets);
+        //load_textures_from_assets(&tm->assets);
         //Bitmap ship_image = load_bitmap(&pm->arena, pm->sprites_dir, ship_str);
         //Bitmap aa = stb_load_image(pm->sprites_dir, circle_str);
         //Bitmap ship_image = stb_load_image(pm->sprites_dir, ship_str);

@@ -2,10 +2,18 @@
 
 #pragma comment(lib, "d3d11")
 #pragma comment(lib, "d3dcompiler")
+#pragma comment(lib, "dxguid")
+#pragma comment(lib, "dxgi.lib")
 
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
+#include <dxgidebug.h>
+#include <dxgi1_3.h>
 #include <DirectXMath.h> // TODO: Get rid of this later when you can replace it with your own code
+
+//#include <d3d11.h>
+//#include <dxgidebug.h>
+//#pragma comment(lib, "dxguid.lib")
 
 
 namespace dx = DirectX;
@@ -28,12 +36,12 @@ global ID3D11RasterizerState1*  d3d_rasterizer_state;
 global ID3D11SamplerState*      d3d_sampler_state;
 global ID3D11BlendState*        d3d_blend_state; // note: maybe use BlendState1 later
 
-global ID3D11Texture2D* d3d_texture;
 
-global ID3D11ShaderResourceView* d3d_shader_resource;
 global ID3D11VertexShader* d3d_3d_vertex_shader;
 global ID3D11PixelShader*  d3d_3d_pixel_shader;
 global ID3D11InputLayout*  d3d_3d_input_layout;
+//global ID3D11ShaderResourceView* d3d_shader_resource;
+//global ID3D11Texture2D* d3d_texture;
 
 global ID3D11VertexShader* d3d_2d_vertex_shader;
 global ID3D11PixelShader*  d3d_2d_pixel_shader;
@@ -48,6 +56,19 @@ global ID3D11Buffer* d3d_vertex_buffer;
 global ID3D11Buffer* d3d_index_buffer;
 global ID3D11Buffer* d3d_instance_buffer;
 global ID3D11Buffer* d3d_constant_buffer;
+
+global ID3D11Texture2D* image_texture;
+global ID3D11ShaderResourceView* image_shader_resource;
+global ID3D11Texture2D* ship_texture;
+global ID3D11ShaderResourceView* ship_shader_resource;
+global ID3D11Texture2D* tree_texture;
+global ID3D11ShaderResourceView* tree_shader_resource;
+global ID3D11Texture2D* circle_texture;
+global ID3D11ShaderResourceView* circle_shader_resource;
+global ID3D11Texture2D* bullet_texture;
+global ID3D11ShaderResourceView* bullet_shader_resource;
+global ID3D11Texture2D* test_texture;
+global ID3D11ShaderResourceView* test_shader_resource;
 
 global D3D11_INPUT_ELEMENT_DESC input_layout_3d[] = {
         // vertex data
@@ -150,15 +171,15 @@ d3d_init(Window window){
     flags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
-    ID3D11Device* baseDevice;
-    ID3D11DeviceContext* baseDeviceContext;
-    hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, flags, featureLevels, ARRAYSIZE(featureLevels), D3D11_SDK_VERSION, &baseDevice, nullptr, &baseDeviceContext);
+    ID3D11Device* base_device;
+    ID3D11DeviceContext* base_device_context;
+    hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, flags, featureLevels, ARRAYSIZE(featureLevels), D3D11_SDK_VERSION, &base_device, nullptr, &base_device_context);
     assert_hr(hr);
 
-    hr = baseDevice->QueryInterface(__uuidof(ID3D11Device1), (void**)(&d3d_device));
+    hr = base_device->QueryInterface(__uuidof(ID3D11Device1), (void**)(&d3d_device));
     assert_hr(hr);
 
-    hr = baseDeviceContext->QueryInterface(__uuidof(ID3D11DeviceContext1), (void**)(&d3d_context));
+    hr = base_device_context->QueryInterface(__uuidof(ID3D11DeviceContext1), (void**)(&d3d_context));
     assert_hr(hr);
 
     // ---------------------------------------------------------------------------------
@@ -343,33 +364,11 @@ d3d_init(Window window){
         assert_hr(hr);
     }
 
-    // ---------------------------------------------------------------------------------
-    // Cube Texture
-    // ---------------------------------------------------------------------------------
-    //{
-    //    D3D11_TEXTURE2D_DESC desc = {
-    //        .Width = (u32)texture->width,
-    //        .Height = (u32)texture->height,
-    //        .MipLevels = 1, // mip levels to use. Set to 0 for mips
-    //        .ArraySize = 1,
-    //        .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
-    //        .SampleDesc = {1, 0},
-    //        .Usage = D3D11_USAGE_IMMUTABLE,
-    //        .BindFlags = D3D11_BIND_SHADER_RESOURCE,
-    //    };
-
-    //    D3D11_SUBRESOURCE_DATA data = {
-    //        .pSysMem = texture->base,
-    //        .SysMemPitch = (u32)texture->stride,
-    //    };
-
-    //    hr = d3d_device->CreateTexture2D(&desc, &data, &d3d_texture);
-    //    assert_hr(hr);
-
-    //    hr = d3d_device->CreateShaderResourceView(d3d_texture, 0, &d3d_shader_resource);
-    //    assert_hr(hr);
-    //}
-
+    base_device->Release();
+    base_device_context->Release();
+    dxgiAdapter->Release();
+    dxgiFactory->Release();
+    dxgiDevice->Release();
 }
 
 static void
@@ -384,7 +383,8 @@ d3d_release(){
     d3d_framebuffer_view->Release();
     d3d_depthbuffer_view->Release();
 
-    d3d_texture->Release();
+    //d3d_texture->Release();
+    //d3d_shader_resource->Release();
 
     d3d_3d_vertex_shader->Release();
     d3d_3d_pixel_shader->Release();
@@ -395,7 +395,6 @@ d3d_release(){
     d3d_2d_textured_vertex_shader->Release();
     d3d_2d_textured_pixel_shader->Release();
     d3d_2d_textured_input_layout->Release();
-    d3d_shader_resource->Release();
 
     d3d_vertex_buffer_8mb->Release();
     d3d_index_buffer->Release();
@@ -406,6 +405,25 @@ d3d_release(){
     d3d_rasterizer_state->Release();
     d3d_sampler_state->Release();
     d3d_blend_state->Release();
+
+    image_texture->Release();
+    image_shader_resource->Release();
+    ship_texture->Release();
+    ship_shader_resource->Release();
+    tree_texture->Release();
+    tree_shader_resource->Release();
+    circle_texture->Release();
+    circle_shader_resource->Release();
+    bullet_texture->Release();
+    bullet_shader_resource->Release();
+    test_texture->Release();
+    test_shader_resource->Release();
+
+    IDXGIDebug1* pDxgiDebug;
+    if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDxgiDebug)))) {
+        pDxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+        pDxgiDebug->Release();
+    }
 }
 
 

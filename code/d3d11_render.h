@@ -54,7 +54,7 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
 
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
-    d3d_context->PSSetShaderResources(0, 1, &d3d_shader_resource);
+    //d3d_context->PSSetShaderResources(0, 1, &shader_resource);
 
     d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
     d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
@@ -70,7 +70,7 @@ d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
     d3d_context->DrawIndexed(array_count(indices), 0, 0);
 }
 
-static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* texture){
+static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* texture, ID3D11ShaderResourceView** shader_resource){
     begin_timed_function();
 
     Vertex vertices[] = {
@@ -115,34 +115,34 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
 
     //-------------------------------------------------------------------
 
-    D3D11_TEXTURE2D_DESC texture_desc = {
-        .Width = (u32)texture->width,
-        .Height = (u32)texture->height,
-        .MipLevels = 1,
-        .ArraySize = 1,
-        .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
-        .SampleDesc = {1, 0},
-        .Usage = D3D11_USAGE_IMMUTABLE,
-        .BindFlags = D3D11_BIND_SHADER_RESOURCE,
-    };
+    //D3D11_TEXTURE2D_DESC texture_desc = {
+    //    .Width = (u32)texture->width,
+    //    .Height = (u32)texture->height,
+    //    .MipLevels = 1,
+    //    .ArraySize = 1,
+    //    .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+    //    .SampleDesc = {1, 0},
+    //    .Usage = D3D11_USAGE_IMMUTABLE,
+    //    .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+    //};
 
-    D3D11_SUBRESOURCE_DATA data = {
-        .pSysMem = texture->base,
-        .SysMemPitch = (u32)texture->stride,
-    };
+    //D3D11_SUBRESOURCE_DATA data = {
+    //    .pSysMem = texture->base,
+    //    .SysMemPitch = (u32)texture->stride,
+    //};
 
-    hr = d3d_device->CreateTexture2D(&texture_desc, &data, &d3d_texture);
-    assert_hr(hr);
+    //hr = d3d_device->CreateTexture2D(&texture_desc, &data, &d3d_texture);
+    //assert_hr(hr);
 
-    hr = d3d_device->CreateShaderResourceView(d3d_texture, 0, &d3d_shader_resource);
-    assert_hr(hr);
+    //hr = d3d_device->CreateShaderResourceView(d3d_texture, 0, &d3d_shader_resource);
+    //assert_hr(hr);
 
-    d3d_context->PSSetShaderResources(0, 1, &d3d_shader_resource);
+    //d3d_context->PSSetShaderResources(0, 1, shader_resource);
     //-------------------------------------------------------------------
 
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
-    d3d_context->PSSetShaderResources(0, 1, &d3d_shader_resource);
+    d3d_context->PSSetShaderResources(0, 1, shader_resource);
 
     d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
     d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
@@ -157,11 +157,11 @@ static void d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, Bitmap* textu
 
     d3d_context->DrawIndexed(array_count(indices), 0, 0);
 
-    d3d_texture->Release();
+    //d3d_texture->Release();
 }
 
 static void
-d3d_draw_cube_texture_instanced(Bitmap* texture){
+d3d_draw_textured_cube_instanced(Bitmap* texture, ID3D11ShaderResourceView** shader_resource){
     begin_timed_function();
 
     static Vertex vertices[] = {
@@ -252,35 +252,35 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
 
     //----texture buffer----
     {
-        D3D11_TEXTURE2D_DESC desc = {
-            .Width = (u32)texture->width,
-            .Height = (u32)texture->height,
-            .MipLevels = 1, // mip levels to use. Set to 0 for mips
-            .ArraySize = 1,
-            .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
-            .SampleDesc = {1, 0},
-            .Usage = D3D11_USAGE_IMMUTABLE,
-            .BindFlags = D3D11_BIND_SHADER_RESOURCE,
-        };
+        //D3D11_TEXTURE2D_DESC desc = {
+        //    .Width = (u32)texture->width,
+        //    .Height = (u32)texture->height,
+        //    .MipLevels = 1, // mip levels to use. Set to 0 for mips
+        //    .ArraySize = 1,
+        //    .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+        //    .SampleDesc = {1, 0},
+        //    .Usage = D3D11_USAGE_IMMUTABLE,
+        //    .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+        //};
 
-        D3D11_SUBRESOURCE_DATA data = {
-            .pSysMem = texture->base,
-            .SysMemPitch = (u32)texture->stride,
-        };
+        //D3D11_SUBRESOURCE_DATA data = {
+        //    .pSysMem = texture->base,
+        //    .SysMemPitch = (u32)texture->stride,
+        //};
 
-        hr = d3d_device->CreateTexture2D(&desc, &data, &d3d_texture);
-        assert_hr(hr);
+        //hr = d3d_device->CreateTexture2D(&desc, &data, &d3d_texture);
+        //assert_hr(hr);
 
-        hr = d3d_device->CreateShaderResourceView(d3d_texture, 0, &d3d_shader_resource);
-        assert_hr(hr);
+        //hr = d3d_device->CreateShaderResourceView(d3d_texture, 0, &d3d_shader_resource);
+        //assert_hr(hr);
 
-        d3d_context->PSSetShaderResources(0, 1, &d3d_shader_resource);
+        //d3d_context->PSSetShaderResources(0, 1, shader_resource);
     }
 
     //----state----
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
-    d3d_context->PSSetShaderResources(0, 1, &d3d_shader_resource);
+    d3d_context->PSSetShaderResources(0, 1, shader_resource);
 
     d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
     d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
@@ -295,7 +295,7 @@ d3d_draw_cube_texture_instanced(Bitmap* texture){
 
     d3d_context->DrawIndexedInstanced(array_count(indices), 3, 0, 0, 0);
 
-    d3d_texture->Release();
+    //d3d_texture->Release();
 }
 
 static void

@@ -2,81 +2,14 @@
 //#pragma comment(lib, "gdi32")
 //#pragma comment(lib, "winmm")
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
+#include "main.h"
 
-
-#include "base_inc.h"
-#include "win32_base_inc.h"
-struct Window{ // todo: maybe this should be in win32
-    s32 width;
-    s32 height;
-    f32 aspect_ratio;
-    HWND handle;
-};
-global Window window;
-
-global HRESULT hr; //todo: add this in win32_base_inc?
-#define PROFILER 1
-#include "profiler.h"
-#include "camera.h"
-#include "math.h"
-#include "rect.h"
-#include "bitmap.h"
-#include "font.h"
-#include "entity.h"
-global Arena* global_arena = os_make_arena(MB(100));
-
-//static String8 path_exe;
-//static String8 path_cwd;
-//static String8 path_data;
-//static String8 path_sprites;
-//static String8 path_fonts;
-//static String8 path_saves;
-//static String8 path_shaders;
-//static void
-//init_paths(Arena* arena){
-//    path_exe = os_get_exe_path(global_arena);
-//
-//    ScratchArena scratch = begin_scratch(0);
-//    String8Node split_exe_path = str8_split(scratch.arena, path_exe, '\\');
-//    dll_pop_back(&split_exe_path);
-//    dll_pop_back(&split_exe_path);
-//    String8Join opts = { .mid = str8_literal("\\"), };
-//    path_cwd = str8_join(global_arena, &split_exe_path, opts);
-//    end_scratch(scratch);
-//
-//    path_data    = str8_path_append(arena, path_cwd, str8_literal("data"));
-//    path_sprites = str8_path_append(arena, path_data, str8_literal("sprites"));
-//    path_fonts   = str8_path_append(arena, path_data, str8_literal("fonts"));
-//    path_saves   = str8_path_append(arena, path_data, str8_literal("saves"));
-//    path_shaders = str8_path_append(arena, path_data, str8_literal("shaders"));
-//}
-
-#include "d3d11_init.h"
-#include "d3d11_render.h"
-
-global v2s32 resolution = {
-    .x = SCREEN_WIDTH,
-    .y = SCREEN_HEIGHT
-};
-
-typedef s64 GetTicks(void);
-typedef f64 GetSecondsElapsed(s64 start, s64 end);
-typedef f64 GetMSElapsed(s64 start, s64 end);
-
-typedef struct Memory{
-    void* base;
-    size_t size;
-
-    void* permanent_base;
-    size_t permanent_size;
-    void* transient_base;
-    size_t transient_size;
-
-    bool initialized;
-} Memory;
-global Memory memory;
+static void
+init_paths(Arena* arena){
+    path_data = os_get_data_path(global_arena);
+    String8 exe = os_get_exe_path(global_arena);
+    u32 a = 1;
+}
 
 static void
 init_memory(Memory* m){
@@ -89,45 +22,195 @@ init_memory(Memory* m){
     m->transient_base = (u8*)m->base + m->permanent_size;
 }
 
-global bool should_quit;
-#include "input.h"
-global Events events;
+static Window
+win32_window_create(wchar* window_name, s32 width, s32 height){
+    Window result = {0};
 
-typedef struct Clock{
-    f64 dt;
-    s64 frequency;
-    GetTicks* get_ticks;
-    GetSecondsElapsed* get_seconds_elapsed;
-    GetMSElapsed* get_ms_elapsed;
-} Clock;
-global Clock clock;
+    WNDCLASSW window_class = {
+        .style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC,
+        .lpfnWndProc = win_message_handler_callback,
+        .hInstance = GetModuleHandle(0),
+        .hIcon = LoadIcon(0, IDI_APPLICATION),
+        .hCursor = LoadCursor(0, IDC_ARROW),
+        .lpszClassName = L"window class",
+    };
 
-static s64 get_ticks(){
-    LARGE_INTEGER result;
-    QueryPerformanceCounter(&result);
-    return(result.QuadPart);
-}
+    if(!RegisterClassW(&window_class)){
+        return(result);
+    }
 
-static f64 get_seconds_elapsed(s64 end, s64 start){
-    f64 result;
-    result = ((f64)(end - start) / ((f64)clock.frequency));
-    return(result);
-}
+    resolution.w = width;
+    resolution.h = height;
 
-static f64 get_ms_elapsed(s64 start, s64 end){
-    f64 result;
-    result = (1000 * ((f64)(end - start) / ((f64)clock.frequency)));
+    result.width = width;
+    result.height = height;
+    result.aspect_ratio = (f32)width / (f32)height;
+    result.handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, (s32)result.width, (s32)result.height, 0, 0, GetModuleHandle(0), 0);
+    assert(IsWindow(result.handle));
+
     return(result);
 }
 
 static void
-init_clock(Clock* c){
-    LARGE_INTEGER frequency;
-    QueryPerformanceFrequency(&frequency);
-    c->frequency = frequency.QuadPart;
-    c->get_ticks = get_ticks;
-    c->get_seconds_elapsed = get_seconds_elapsed;
-    c->get_ms_elapsed = get_ms_elapsed;
+show_cursor(bool show){
+    if(show){
+        while(ShowCursor(1) < 0);
+    }
+    else{
+        while(ShowCursor(0) >= 0);
+    }
+}
+
+#include "input.h"
+#include "clock.h"
+#include "camera.h"
+#include "math.h"
+#include "rect.h"
+#include "bitmap.h"
+#include "font.h"
+#include "entity.h"
+// todo(rr): get rid of these once your done settings things up
+static Entity* first;
+static Entity* second;
+static Entity* third;
+
+static Bitmap image;
+static Bitmap ship;
+static Bitmap tree;
+static Bitmap circle;
+static Bitmap bullet;
+static Bitmap test;
+
+#include "d3d11_init.h"
+#include "d3d11_render.h"
+#include "game.h"
+
+static void
+init_texture_resource(Bitmap* bitmap, ID3D11Texture2D** texture, ID3D11ShaderResourceView** shader_resource){
+    D3D11_TEXTURE2D_DESC desc = {
+        .Width = (u32)bitmap->width,
+        .Height = (u32)bitmap->height,
+        .MipLevels = 1,
+        .ArraySize = 1,
+        .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+        .SampleDesc = {1, 0},
+        .Usage = D3D11_USAGE_IMMUTABLE,
+        .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+    };
+
+    D3D11_SUBRESOURCE_DATA data = {
+        .pSysMem = bitmap->base,
+        .SysMemPitch = (u32)bitmap->stride,
+    };
+
+    hr = d3d_device->CreateTexture2D(&desc, &data, texture);
+    assert_hr(hr);
+
+    hr = d3d_device->CreateShaderResourceView(*texture, 0, shader_resource);
+    assert_hr(hr);
+}
+
+s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
+    image  = load_bitmap(global_arena, str8_literal("sprites\\image.bmp"));
+    ship   = load_bitmap(global_arena, str8_literal("sprites\\ship.bmp"));
+    tree   = load_bitmap(global_arena, str8_literal("sprites\\tree00.bmp"));
+    circle = load_bitmap(global_arena, str8_literal("sprites\\circle.bmp"));
+    bullet = load_bitmap(global_arena, str8_literal("sprites\\bullet4.bmp"));
+    test   = load_bitmap(global_arena, str8_literal("sprites\\test.bmp"));
+
+    begin_profiler();
+
+    Window window = win32_window_create(L"Roids", SCREEN_WIDTH, SCREEN_HEIGHT);
+    if(!window.handle){ return(0); }
+
+    init_paths(global_arena);
+    random_seed(0, 1);
+
+    // D3D11 stuff
+    d3d_init(window);
+#if DEBUG
+    d3d_init_debug_stuff();
+#endif
+
+    init_texture_resource(&image, &image_texture, &image_shader_resource);
+    init_texture_resource(&ship, &ship_texture, &ship_shader_resource);
+    init_texture_resource(&tree, &tree_texture, &tree_shader_resource);
+    init_texture_resource(&circle, &circle_texture, &circle_shader_resource);
+    init_texture_resource(&bullet, &bullet_texture, &bullet_shader_resource);
+    init_texture_resource(&test, &test_texture, &test_shader_resource);
+
+    init_memory(&memory);
+    init_clock(&clock);
+    init_events(&events);
+
+    f64 FPS = 0;
+    f64 MSPF = 0;
+    u64 frame_count = 0;
+	u32 simulations = 0;
+    f64 time_elapsed = 0;
+    f64 accumulator = 0.0;
+
+    clock.dt =  1.0/240.0;
+    u64 last_ticks = clock.get_os_timer();
+    u64 frame_tick_start = clock.get_os_timer();
+
+    should_quit = false;
+    while(!should_quit){
+        MSG message;
+        while(PeekMessageW(&message, window.handle, 0, 0, PM_REMOVE)){
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
+
+        u64 now_ticks = clock.get_os_timer();
+        f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
+        MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
+        last_ticks = now_ticks;
+
+        // simulation
+        accumulator += frame_time;
+        while(accumulator >= clock.dt){
+            update_game(&window, &memory, &events, &clock);
+
+            accumulator -= clock.dt;
+            time_elapsed += clock.dt;
+            simulations++;
+
+            clear_controller_pressed(&controller);
+        }
+
+        // draw everything
+        if(memory.initialized){
+            //draw_everything();
+            d3d_clear_color(BACKGROUND_COLOR);
+
+            d3d_draw_textured_cube_instanced(get_bitmap(&tm->assets, AssetID_Image), &image_shader_resource);
+
+            d3d_draw_quad(-0.0f, -0.0f, 0.5f, 0.5f, BLUE);
+
+            //if(console_is_visible()){
+            //    draw_console();
+            //}
+
+            d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, get_bitmap(&tm->assets, AssetID_Ship), &circle_shader_resource);
+        }
+
+        d3d_present();
+
+        frame_count++;
+        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
+        if(second_elapsed > 1){
+            FPS = ((f64)frame_count / second_elapsed);
+            frame_tick_start = clock.get_os_timer();
+            frame_count = 0;
+        }
+        print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
+		simulations = 0;
+    }
+    d3d_release();
+    end_profiler();
+
+    return(0);
 }
 
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
@@ -255,142 +338,3 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
     }
     return(result);
 }
-
-static bool
-win32_init(){
-    WNDCLASSW window_class = {
-        .style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC,
-        .lpfnWndProc = win_message_handler_callback,
-        .hInstance = GetModuleHandle(0),
-        .hIcon = LoadIcon(0, IDI_APPLICATION),
-        .hCursor = LoadCursor(0, IDC_ARROW),
-        .lpszClassName = L"window class",
-    };
-
-    if(RegisterClassW(&window_class)){
-        return(true);
-    }
-
-    return(false);
-}
-
-static Window
-win32_window_create(wchar* window_name, s32 width, s32 height){
-    Window result = {0};
-    result.width = width;
-    result.height = height;
-    result.aspect_ratio = (f32)width / (f32)height;
-    result.handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, (s32)result.width, (s32)result.height, 0, 0, GetModuleHandle(0), 0);
-    assert(IsWindow(result.handle));
-
-    return(result);
-}
-
-static void
-show_cursor(bool show){
-    if(show){
-        while(ShowCursor(1) < 0);
-    }
-    else{
-        while(ShowCursor(0) >= 0);
-    }
-}
-
-static Entity* first;
-static Entity* second;
-static Entity* third;
-#include "game.h"
-static f32 cangle = 0;
-static HRESULT hresult;
-s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
-    begin_profiler();
-
-    bool succeed = win32_init();
-    assert(succeed);
-
-    //init_paths(global_arena);
-
-    random_seed(0, 1);
-
-    Window window = win32_window_create(L"Roids", SCREEN_WIDTH, SCREEN_HEIGHT);
-
-    // D3D11 stuff
-    d3d_init(window);
-#if DEBUG
-    d3d_init_debug_stuff();
-#endif
-
-    init_memory(&memory);
-    init_clock(&clock);
-    init_events(&events);
-
-    f64 FPS = 0;
-    f64 MSPF = 0;
-    u64 frame_count = 0;
-	u32 simulations = 0;
-    f64 time_elapsed = 0;
-    f64 accumulator = 0.0;
-
-    clock.dt =  1.0/240.0;
-    s64 last_ticks = clock.get_ticks();
-    s64 frame_tick_start = clock.get_ticks();
-
-    should_quit = false;
-    while(!should_quit){
-        MSG message;
-        while(PeekMessageW(&message, window.handle, 0, 0, PM_REMOVE)){
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
-
-        s64 now_ticks = clock.get_ticks();
-        f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
-        MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
-        last_ticks = now_ticks;
-
-        // simulation
-        accumulator += frame_time;
-        while(accumulator >= clock.dt){
-            update_game(&window, &memory, &events, &clock);
-
-            accumulator -= clock.dt;
-            time_elapsed += clock.dt;
-            simulations++;
-
-            clear_controller_pressed(&controller);
-        }
-
-        // draw everything
-        if(memory.initialized){
-            //draw_everything();
-            d3d_clear_color(BACKGROUND_COLOR);
-
-            d3d_draw_cube_texture_instanced(get_bitmap(&tm->assets, AssetID_Image));
-
-            d3d_draw_quad(-0.0f, -0.0f, 0.5f, 0.5f, BLUE);
-
-            if(console_is_visible()){
-                draw_console();
-            }
-
-            d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, get_bitmap(&tm->assets, AssetID_Ship));
-        }
-
-        d3d_present();
-
-        frame_count++;
-        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_ticks(), frame_tick_start);
-        if(second_elapsed > 1){
-            FPS = ((f64)frame_count / second_elapsed);
-            frame_tick_start = clock.get_ticks();
-            frame_count = 0;
-        }
-        print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
-		simulations = 0;
-    }
-    d3d_release();
-    end_profiler();
-
-    return(0);
-}
-

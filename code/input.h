@@ -215,6 +215,7 @@ typedef struct Events{
     u32 read;
     u32 size;
 } Events;
+global Events events;
 
 static void
 init_events(Events* events){
