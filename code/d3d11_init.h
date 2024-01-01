@@ -5,11 +5,17 @@
 #pragma comment(lib, "dxguid")
 #pragma comment(lib, "dxgi.lib")
 
+#if COMPILER_CL
+#pragma warning(push, 0)
+#endif
 #include <d3d11_1.h>
 #include <d3dcompiler.h>
 #include <dxgidebug.h>
 #include <dxgi1_3.h>
 #include <DirectXMath.h> // TODO: Get rid of this later when you can replace it with your own code
+#if COMPILER_CL
+#pragma warning(pop)
+#endif
 
 //#include <d3d11.h>
 //#include <dxgidebug.h>
@@ -57,18 +63,22 @@ global ID3D11Buffer* d3d_index_buffer;
 global ID3D11Buffer* d3d_instance_buffer;
 global ID3D11Buffer* d3d_constant_buffer;
 
-global ID3D11Texture2D* image_texture;
+//global ID3D11Texture2D* image_texture;
+//global ID3D11Texture2D* ship_texture;
+//global ID3D11Texture2D* tree_texture;
+//global ID3D11Texture2D* circle_texture;
+//global ID3D11Texture2D* bullet_texture;
+//global ID3D11Texture2D* test_texture;
+
 global ID3D11ShaderResourceView* image_shader_resource;
-global ID3D11Texture2D* ship_texture;
 global ID3D11ShaderResourceView* ship_shader_resource;
-global ID3D11Texture2D* tree_texture;
 global ID3D11ShaderResourceView* tree_shader_resource;
-global ID3D11Texture2D* circle_texture;
 global ID3D11ShaderResourceView* circle_shader_resource;
-global ID3D11Texture2D* bullet_texture;
 global ID3D11ShaderResourceView* bullet_shader_resource;
-global ID3D11Texture2D* test_texture;
 global ID3D11ShaderResourceView* test_shader_resource;
+
+global ID3D11Texture2D* white_texture;
+global ID3D11ShaderResourceView* white_shader_resource;
 
 global D3D11_INPUT_ELEMENT_DESC input_layout_3d[] = {
         // vertex data
@@ -80,12 +90,6 @@ global D3D11_INPUT_ELEMENT_DESC input_layout_3d[] = {
         {"TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
         {"TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
-};
-
-global D3D11_INPUT_ELEMENT_DESC input_layout_2dui_color[] = {
-        // vertex data
-        {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 };
 
 global D3D11_INPUT_ELEMENT_DESC input_layout_2dui_textured[] = {
@@ -105,6 +109,11 @@ typedef struct InstanceData {
 } InstanceData;
 global u32 instance_count = 3;
 global InstanceData cube_instances[3];
+
+typedef struct Texture2D{
+    ID3D11ShaderResourceView* view;
+    ID3D11Texture2D* texture;
+} Texture2D;
 
 static void
 d3d_init_debug_stuff(){
@@ -276,36 +285,34 @@ d3d_init(Window window){
     // ---------------------------------------------------------------------------------
     // Blend State
     // ---------------------------------------------------------------------------------
-    D3D11_BLEND_DESC blend_desc = {
-        .AlphaToCoverageEnable = true,
-        .IndependentBlendEnable = false,
-        .RenderTarget[0].BlendEnable = true,
-        .RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD,
-        .RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA,
-        .RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA,
-        .RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD,
-        .RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE,
-        .RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO,
-        .RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL,
-    };
+    D3D11_BLEND_DESC blend_desc = {0};
+    blend_desc.AlphaToCoverageEnable = true;
+    blend_desc.IndependentBlendEnable = false;
+    blend_desc.RenderTarget[0].BlendEnable = true;
+    blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
     hr = d3d_device->CreateBlendState(&blend_desc, &d3d_blend_state);
     assert_hr(hr);
 
     // ---------------------------------------------------------------------------------
-    // Blend State
+    // Viewport
     // ---------------------------------------------------------------------------------
     // NOTE: can be used to create split screens for 2+ players
-    d3d_viewport = {
-        .TopLeftX = 0,
-        .TopLeftY = 0,
-        .Width = (f32)window.width,
-        .Height = (f32)window.height,
-        .MinDepth = 0,
-        .MaxDepth = 1.0f
-    };
+    d3d_viewport = {0};
+    d3d_viewport.TopLeftX = 0;
+    d3d_viewport.TopLeftY = 0;
+    d3d_viewport.Width = (f32)window.width;
+    d3d_viewport.Height = (f32)window.height;
+    d3d_viewport.MinDepth = 0;
+    d3d_viewport.MaxDepth = 1.0;
 
 	d3d_load_shader(str8_literal("shaders\\3d_shader.hlsl"), input_layout_3d, 7, &d3d_3d_vertex_shader, &d3d_3d_pixel_shader, &d3d_3d_input_layout);
-	d3d_load_shader(str8_literal("shaders\\2d_shader.hlsl"), input_layout_2dui_color, 2, &d3d_2d_vertex_shader, &d3d_2d_pixel_shader, &d3d_2d_input_layout);
 	d3d_load_shader(str8_literal("shaders\\2d_texture_shader.hlsl"), input_layout_2dui_textured, 3, &d3d_2d_textured_vertex_shader, &d3d_2d_textured_pixel_shader, &d3d_2d_textured_input_layout);
 
     // ---------------------------------------------------------------------------------
@@ -362,6 +369,32 @@ d3d_init(Window window){
 
         hr = d3d_device->CreateBuffer(&desc, 0, &d3d_constant_buffer);
         assert_hr(hr);
+    };
+
+    {
+        D3D11_TEXTURE2D_DESC desc = {
+            .Width = (u32)1,
+            .Height = (u32)1,
+            .MipLevels = 1,
+            .ArraySize = 1,
+            .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+            .SampleDesc = {1, 0},
+            .Usage = D3D11_USAGE_IMMUTABLE,
+            .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+        };
+
+        u32 white = 0xFFFFFFFF;
+        D3D11_SUBRESOURCE_DATA data = {
+            .pSysMem = &white,
+            .SysMemPitch = sizeof(u32),
+        };
+
+        hr = d3d_device->CreateTexture2D(&desc, &data, &white_texture);
+        assert_hr(hr);
+
+        hr = d3d_device->CreateShaderResourceView(white_texture, 0, &white_shader_resource);
+        assert_hr(hr);
+        white_texture->Release();
     }
 
     base_device->Release();
@@ -372,52 +405,80 @@ d3d_init(Window window){
 }
 
 static void
-d3d_release(){
-    d3d_device->Release();
-    d3d_context->Release();
-    d3d_swapchain->Release();
-    d3d_swapchain->SetFullscreenState(false, 0);
+init_texture_resource(Bitmap* bitmap, ID3D11ShaderResourceView** shader_resource){
+    D3D11_TEXTURE2D_DESC desc = {
+        .Width = (u32)bitmap->width,
+        .Height = (u32)bitmap->height,
+        .MipLevels = 1,
+        .ArraySize = 1,
+        .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+        .SampleDesc = {1, 0},
+        .Usage = D3D11_USAGE_IMMUTABLE,
+        .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+    };
 
-    d3d_framebuffer->Release();
-    d3d_depthbuffer->Release();
-    d3d_framebuffer_view->Release();
-    d3d_depthbuffer_view->Release();
+    D3D11_SUBRESOURCE_DATA data = {
+        .pSysMem = bitmap->base,
+        .SysMemPitch = (u32)bitmap->stride,
+    };
+
+    ID3D11Texture2D* texture;
+    hr = d3d_device->CreateTexture2D(&desc, &data, &texture);
+    assert_hr(hr);
+
+    hr = d3d_device->CreateShaderResourceView(texture, 0, shader_resource);
+    assert_hr(hr);
+    texture->Release();
+}
+
+static void
+d3d_release(){
+    if(d3d_device) d3d_device->Release();
+    if(d3d_context) d3d_context->Release();
+    d3d_swapchain->SetFullscreenState(false, 0);
+    if(d3d_swapchain) d3d_swapchain->Release();
+
+    if(d3d_framebuffer) d3d_framebuffer->Release();
+    if(d3d_depthbuffer) d3d_depthbuffer->Release();
+    if(d3d_framebuffer_view) d3d_framebuffer_view->Release();
+    if(d3d_depthbuffer_view) d3d_depthbuffer_view->Release();
 
     //d3d_texture->Release();
     //d3d_shader_resource->Release();
 
-    d3d_3d_vertex_shader->Release();
-    d3d_3d_pixel_shader->Release();
-    d3d_3d_input_layout->Release();
-    d3d_2d_vertex_shader->Release();
-    d3d_2d_pixel_shader->Release();
-    d3d_2d_input_layout->Release();
-    d3d_2d_textured_vertex_shader->Release();
-    d3d_2d_textured_pixel_shader->Release();
-    d3d_2d_textured_input_layout->Release();
+    if(d3d_3d_vertex_shader) d3d_3d_vertex_shader->Release();
+    if(d3d_3d_pixel_shader)  d3d_3d_pixel_shader->Release();
+    if(d3d_3d_input_layout)  d3d_3d_input_layout->Release();
+    if(d3d_2d_vertex_shader) d3d_2d_vertex_shader->Release();
+    if(d3d_2d_pixel_shader)  d3d_2d_pixel_shader->Release();
+    if(d3d_2d_input_layout)  d3d_2d_input_layout->Release();
+    if(d3d_2d_textured_vertex_shader) d3d_2d_textured_vertex_shader->Release();
+    if(d3d_2d_textured_pixel_shader)  d3d_2d_textured_pixel_shader->Release();
+    if(d3d_2d_textured_input_layout)  d3d_2d_textured_input_layout->Release();
 
-    d3d_vertex_buffer_8mb->Release();
-    d3d_index_buffer->Release();
-    d3d_constant_buffer->Release();
-    d3d_instance_buffer->Release();
+    if(d3d_vertex_buffer_8mb) d3d_vertex_buffer_8mb->Release();
+    if(d3d_index_buffer)      d3d_index_buffer->Release();
+    if(d3d_constant_buffer)   d3d_constant_buffer->Release();
+    if(d3d_instance_buffer)   d3d_instance_buffer->Release();
 
-    d3d_depthstencil_state->Release();
-    d3d_rasterizer_state->Release();
-    d3d_sampler_state->Release();
-    d3d_blend_state->Release();
+    if(d3d_blend_state)        d3d_blend_state->Release();
+    if(d3d_sampler_state)      d3d_sampler_state->Release();
+    if(d3d_rasterizer_state)   d3d_rasterizer_state->Release();
+    if(d3d_depthstencil_state) d3d_depthstencil_state->Release();
 
-    image_texture->Release();
-    image_shader_resource->Release();
-    ship_texture->Release();
-    ship_shader_resource->Release();
-    tree_texture->Release();
-    tree_shader_resource->Release();
-    circle_texture->Release();
-    circle_shader_resource->Release();
-    bullet_texture->Release();
-    bullet_shader_resource->Release();
-    test_texture->Release();
-    test_shader_resource->Release();
+    //if(image_texture)  image_texture->Release();
+    //if(ship_texture)   ship_texture->Release();
+    //if(tree_texture)   tree_texture->Release();
+    //if(circle_texture) circle_texture->Release();
+    //if(bullet_texture) bullet_texture->Release();
+    //if(test_texture)   test_texture->Release();
+
+    if(image_shader_resource)  image_shader_resource->Release();
+    if(ship_shader_resource)   ship_shader_resource->Release();
+    if(tree_shader_resource)   tree_shader_resource->Release();
+    if(circle_shader_resource) circle_shader_resource->Release();
+    if(bullet_shader_resource) bullet_shader_resource->Release();
+    if(test_shader_resource)   test_shader_resource->Release();
 
     IDXGIDebug1* pDxgiDebug;
     if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDxgiDebug)))) {

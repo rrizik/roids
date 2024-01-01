@@ -728,15 +728,15 @@ typedef unsigned char validate_uint32[sizeof(stbi__uint32)==4 ? 1 : -1];
 // INCOMPLETE: Ask handmade about this error
 // TODO: Ask handmade about this error
 // INCOMPLETE: Ask handmade about this error
-//#if _MSC_VER >= 1400  // not VC6
-//#include <intrin.h> // __cpuid
-//static int stbi__cpuid3(void)
-//{
-//   int info[4];
-//   __cpuid(info,1);
-//   return info[3];
-//}
-//#else
+#if _MSC_VER >= 1400  // not VC6
+#include <intrin.h> // __cpuid
+static int stbi__cpuid3(void)
+{
+   int info[4];
+   __cpuid(info,1);
+   return info[3];
+}
+#else
 static int stbi__cpuid3(void)
 {
    int res;
@@ -747,7 +747,7 @@ static int stbi__cpuid3(void)
    }
    return res;
 }
-//#endif
+#endif
 
 #define STBI_SIMD_ALIGN(type, name) __declspec(align(16)) type name
 

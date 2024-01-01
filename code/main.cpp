@@ -1,7 +1,3 @@
-#pragma comment(lib, "user32")
-//#pragma comment(lib, "gdi32")
-//#pragma comment(lib, "winmm")
-
 #include "main.h"
 
 static void
@@ -23,7 +19,7 @@ init_memory(Memory* m){
 }
 
 static Window
-win32_window_create(wchar* window_name, s32 width, s32 height){
+win32_window_create(const wchar* window_name, s32 width, s32 height){
     Window result = {0};
 
     WNDCLASSW window_class = {
@@ -68,7 +64,6 @@ show_cursor(bool show){
 #include "math.h"
 #include "rect.h"
 #include "bitmap.h"
-#include "font.h"
 #include "entity.h"
 // todo(rr): get rid of these once your done settings things up
 static Entity* first;
@@ -84,41 +79,10 @@ static Bitmap test;
 
 #include "d3d11_init.h"
 #include "d3d11_render.h"
+#include "font.h"
 #include "game.h"
 
-static void
-init_texture_resource(Bitmap* bitmap, ID3D11Texture2D** texture, ID3D11ShaderResourceView** shader_resource){
-    D3D11_TEXTURE2D_DESC desc = {
-        .Width = (u32)bitmap->width,
-        .Height = (u32)bitmap->height,
-        .MipLevels = 1,
-        .ArraySize = 1,
-        .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
-        .SampleDesc = {1, 0},
-        .Usage = D3D11_USAGE_IMMUTABLE,
-        .BindFlags = D3D11_BIND_SHADER_RESOURCE,
-    };
-
-    D3D11_SUBRESOURCE_DATA data = {
-        .pSysMem = bitmap->base,
-        .SysMemPitch = (u32)bitmap->stride,
-    };
-
-    hr = d3d_device->CreateTexture2D(&desc, &data, texture);
-    assert_hr(hr);
-
-    hr = d3d_device->CreateShaderResourceView(*texture, 0, shader_resource);
-    assert_hr(hr);
-}
-
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
-    image  = load_bitmap(global_arena, str8_literal("sprites\\image.bmp"));
-    ship   = load_bitmap(global_arena, str8_literal("sprites\\ship.bmp"));
-    tree   = load_bitmap(global_arena, str8_literal("sprites\\tree00.bmp"));
-    circle = load_bitmap(global_arena, str8_literal("sprites\\circle.bmp"));
-    bullet = load_bitmap(global_arena, str8_literal("sprites\\bullet4.bmp"));
-    test   = load_bitmap(global_arena, str8_literal("sprites\\test.bmp"));
-
     begin_profiler();
 
     Window window = win32_window_create(L"Roids", SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -133,16 +97,26 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     d3d_init_debug_stuff();
 #endif
 
-    init_texture_resource(&image, &image_texture, &image_shader_resource);
-    init_texture_resource(&ship, &ship_texture, &ship_shader_resource);
-    init_texture_resource(&tree, &tree_texture, &tree_shader_resource);
-    init_texture_resource(&circle, &circle_texture, &circle_shader_resource);
-    init_texture_resource(&bullet, &bullet_texture, &bullet_shader_resource);
-    init_texture_resource(&test, &test_texture, &test_shader_resource);
+    image  = load_bitmap(global_arena, str8_literal("sprites\\image.bmp"));
+    ship   = load_bitmap(global_arena, str8_literal("sprites\\ship.bmp"));
+    tree   = load_bitmap(global_arena, str8_literal("sprites\\tree00.bmp"));
+    circle = load_bitmap(global_arena, str8_literal("sprites\\circle.bmp"));
+    bullet = load_bitmap(global_arena, str8_literal("sprites\\bullet4.bmp"));
+    test   = load_bitmap(global_arena, str8_literal("sprites\\test.bmp"));
+
+    init_texture_resource(&image, &image_shader_resource);
+    init_texture_resource(&ship, &ship_shader_resource);
+    init_texture_resource(&tree, &tree_shader_resource);
+    init_texture_resource(&circle, &circle_shader_resource);
+    init_texture_resource(&bullet, &bullet_shader_resource);
+    init_texture_resource(&test, &test_shader_resource);
+
+    Font font;
+    load_font_ttf2(global_arena, str8_literal("fonts/arial.ttf"), &font, 48);
 
     init_memory(&memory);
     init_clock(&clock);
-    init_events(&events);
+    events_init(&events);
 
     f64 FPS = 0;
     f64 MSPF = 0;
@@ -185,17 +159,39 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             //draw_everything();
             d3d_clear_color(BACKGROUND_COLOR);
 
-            d3d_draw_textured_cube_instanced(get_bitmap(&tm->assets, AssetID_Image), &image_shader_resource);
+            s32 char_index = 'A' - font.first_char;
+            const char* word = "WORD";
+            stbtt_aligned_quad quad;
+            f32 xpos = 100, ypos = 100; // assuming its pixel coordinates
 
-            d3d_draw_quad(-0.0f, -0.0f, 0.5f, 0.5f, BLUE);
+            // Just the data thats given to me
+            while(*word){
+                stbtt_GetPackedQuad(font.packed_chars, font.texture_w, font.texture_h, *word++, &xpos, &ypos, &quad, 1);
+                Rect rect = make_rect(quad.x0, quad.y0, quad.x1, quad.y1);
+                Rect clip_rect = rect_pixel_to_clip(rect, resolution); // if its pixel coordinates, then I want to conver to clip space, dont I?
+                d3d_draw_text(quad.x0, quad.y0, quad.x1, quad.y1, quad.s0, quad.t0, quad.s1, quad.t1, RED, &font.atlas.view);
+                d3d_draw_text(clip_rect.x0, clip_rect.y0, clip_rect.x1, clip_rect.y1, quad.s0, quad.t0, quad.s1, quad.t1, ORANGE, &font.atlas.view);
+            }
+            //d3d_draw_text(quad.x0, quad.y0, quad.x1, quad.y1, quad.s0, quad.t0, quad.s1, quad.t1, RED, &font.atlas.view);
 
-            //if(console_is_visible()){
-            //    draw_console();
-            //}
+            // converted to clip space, assuming its in pixel space
+            //Rect rect = make_rect(quad.x0, quad.y0, quad.x1, quad.y1);
+            //Rect clip_rect = rect_pixel_to_clip(rect, resolution); // if its pixel coordinates, then I want to conver to clip space, dont I?
+            //d3d_draw_text(clip_rect.x0, clip_rect.y0, clip_rect.x1, clip_rect.y1, quad.s0, quad.t0, quad.s1, quad.t1, ORANGE, &font.atlas.view);
 
-            d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, get_bitmap(&tm->assets, AssetID_Ship), &circle_shader_resource);
+            // three different attempts at drawing
+            //d3d_draw_text(0, 0, 0.5, 0.5, quad.s0, quad.t0, quad.s1, quad.t1, ORANGE, &font.atlas.view);
+            //d3d_draw_textured_cube_instanced(&image_shader_resource);
+
+            if(console_is_visible()){
+                draw_console();
+            }
+
+            //d3d_draw_textured_quad(0.0f, 0.0f, 0.5f, 0.5f, MAGENTA, &ship_shader_resource);
+            //d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, YELLOW, &white_shader_resource);
+            //d3d_draw_textured_quad(0.0f, -0.5f, 0.5f, 0.0f, WHITE, &ship_shader_resource);
+            //d3d_draw_textured_quad(-0.5f, 0.0f, 0.0f, 0.5f, WHITE, &white_shader_resource);
         }
-
         d3d_present();
 
         frame_count++;

@@ -218,7 +218,7 @@ typedef struct Events{
 global Events events;
 
 static void
-init_events(Events* events){
+events_init(Events* events){
     events->size = array_count(events->e);
 }
 

@@ -78,7 +78,7 @@ command_add(String8* args){
 static void
 command_saves(String8* args){
     ScratchArena scratch = begin_scratch(0);
-    defer(end_scratch(scratch));
+    //defer(end_scratch(scratch));
 
     String8Node files = {0};
     files.next = &files;
@@ -91,6 +91,7 @@ command_saves(String8* args){
     for(String8Node* file = files.next; file != &files; file = file->next){
         console_store_output(file->str);
     }
+    end_scratch(scratch);
 }
 
 static void

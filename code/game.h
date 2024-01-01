@@ -333,15 +333,15 @@ serialize_data(PermanentMemory* pm, String8 filename){
     File file = os_file_open(filename, GENERIC_WRITE, CREATE_NEW);
     assert_fh(file);
 
-    os_file_write(&file, pm->entities, sizeof(Entity) * ENTITIES_MAX);
-    os_file_close(&file);
+    os_file_write(file, pm->entities, sizeof(Entity) * ENTITIES_MAX);
+    os_file_close(file);
 }
 
 static void
 deserialize_data(PermanentMemory* pm, String8 filename){
     File file = os_file_open(filename, GENERIC_READ, OPEN_EXISTING);
     assert_fh(file);
-    String8 data = os_file_read(&pm->arena, &file);
+    String8 data = os_file_read(&pm->arena, file);
 
     entities_clear(pm);
     u32 offset = 0;
@@ -598,7 +598,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         global_font.color = WHITE;
         bool succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\GolosText-Regular.ttf"), &global_font);
         assert(succeed);
-        load_font_glyphs(&pm->arena, &global_font, RED);
+        load_font_glyphs(&pm->arena, &global_font, RED, 24);
 
         init_console(pm);
         init_commands();
@@ -669,11 +669,11 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
             camera.pos = camera.pos - result;
         }
         if(controller.left.held){
-            v3 result = (normalized_v3(cross_product_v3(camera.forward, (v3){0, 1, 0})) * camera.move_speed * (f32)clock->dt);
+            v3 result = (normalized_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock->dt);
             camera.pos = camera.pos + result;
         }
         if(controller.right.held){
-            v3 result = (normalized_v3(cross_product_v3(camera.forward, (v3){0, 1, 0})) * camera.move_speed * (f32)clock->dt);
+            v3 result = (normalized_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock->dt);
             camera.pos = camera.pos - result;
         }
 
@@ -712,9 +712,9 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     //}
     update_console();
 
-    XMVECTOR camera_pos = (XMVECTOR){camera.pos.x, camera.pos.y, camera.pos.z};
-    XMVECTOR camera_forward = (XMVECTOR){camera.forward.x, camera.forward.y, camera.forward.z};
-    XMVECTOR camera_up = (XMVECTOR){camera.up.x, camera.up.y, camera.up.z};
+    XMVECTOR camera_pos = {camera.pos.x, camera.pos.y, camera.pos.z};
+    XMVECTOR camera_forward = {camera.forward.x, camera.forward.y, camera.forward.z};
+    XMVECTOR camera_up = {camera.up.x, camera.up.y, camera.up.z};
     XMMATRIX view_matrix = XMMatrixLookAtLH(camera_pos, camera_pos + camera_forward, camera_up);
     XMMATRIX perspective_matrix = XMMatrixPerspectiveFovLH(PI_f32*0.25f, (f32)((f32)SCREEN_WIDTH/(f32)SCREEN_HEIGHT), 1.0f, 1000.0f);
 

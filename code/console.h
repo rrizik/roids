@@ -93,15 +93,15 @@ init_console(PermanentMemory* pm){
     bool succeed;
     succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\GolosText-Regular.ttf"), &console.input_font);
     assert(succeed);
-    load_font_glyphs(&pm->arena, &console.input_font, BLUE);
+    load_font_glyphs(&pm->arena, &console.input_font, BLUE, 24);
 
     succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\Inconsolata-Regular.ttf"), &console.output_font);
     assert(succeed);
-    load_font_glyphs(&pm->arena, &console.output_font, GREEN);
+    load_font_glyphs(&pm->arena, &console.output_font, GREEN, 24);
 
     succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\GolosText-Regular.ttf"), &console.command_history_font);
     assert(succeed);
-    load_font_glyphs(&pm->arena, &console.command_history_font, YELLOW);
+    load_font_glyphs(&pm->arena, &console.command_history_font, YELLOW, 24);
 }
 
 static bool
@@ -131,7 +131,6 @@ input_add_char(u8 c){
     if(console.input_char_count < INPUT_MAX_COUNT){
         if(console.cursor_index < console.input_char_count){
             ScratchArena scratch = begin_scratch(0);
-            defer(end_scratch(scratch));
 
             String8 left = {
                 .str = push_array(scratch.arena, u8, console.cursor_index),
@@ -158,6 +157,8 @@ input_add_char(u8 c){
             Glyph glyph = console.input_font.glyphs[c];
             console.cursor_rect.x0 += ((f32)glyph.advance_width * console.input_font.scale);
             console.cursor_rect.x1 += ((f32)glyph.advance_width * console.input_font.scale);
+
+            end_scratch(scratch);
         }
         else{
             console.input[console.input_char_count++] = c;
@@ -175,7 +176,6 @@ input_remove_char(){
     if(console.input_char_count > 0 && console.cursor_index > 0){
         if(console.cursor_index < console.input_char_count){
             ScratchArena scratch = begin_scratch(0);
-            defer(end_scratch(scratch));
 
             String8 left = {
                 .str = push_array(scratch.arena, u8, console.cursor_index-1),
@@ -201,6 +201,8 @@ input_remove_char(){
             Glyph glyph = console.input_font.glyphs[c];
             console.cursor_rect.x0 -= ((f32)glyph.advance_width * console.input_font.scale);
             console.cursor_rect.x1 -= ((f32)glyph.advance_width * console.input_font.scale);
+
+            end_scratch(scratch);
         }
         else{
             u8 c = console.input[--console.input_char_count];
@@ -243,11 +245,18 @@ draw_text(v2 pos, Font* font, RGBA color, String8 string){
             Glyph glyph = font->glyphs[*c];
 
             // setup rect
+            f32 x = round_f32((f32)(unscaled_offset.x + glyph.lsb) * font->scale);
+            f32 y = round_f32(((f32)unscaled_offset.y * font->scale)) - (f32)glyph.y1;
             Rect rect = {
-                pos.x + (s32)round_f32_s32((unscaled_offset.x + glyph.lsb) * font->scale),
-                pos.y + (s32)(round_f32_s32(unscaled_offset.y * font->scale) - glyph.y1),
+                pos.x + x,
+                pos.y + y,
                 0, 0 // no x1, y1 needed for bitmap
             };
+            //Rect rect = {
+            //    pos.x + (s32)round_f32_s32((unscaled_offset.x + glyph.lsb) * font->scale),
+            //    pos.y + (s32)(round_f32_s32(unscaled_offset.y * font->scale) - glyph.y1),
+            //    0, 0 // no x1, y1 needed for bitmap
+            //};
             rect.x1 = rect.x0 + (f32)glyph.w;
             rect.y1 = rect.y0 + (f32)glyph.h;
 
@@ -257,10 +266,13 @@ draw_text(v2 pos, Font* font, RGBA color, String8 string){
                 kern = stbtt_GetCodepointKernAdvance(&font->info, *c, string.str[i+1]);
                 unscaled_offset.x += kern;
             }
-            Rect screen_rect = rect_pixel_to_screen(rect, resolution);
+            Rect screen_rect = rect_pixel_to_clip(rect, resolution);
 
             if(*c != ' '){
-                //d3d_draw_textured_quad(screen_rect.x0, screen_rect.y0, screen_rect.x1, screen_rect.y1, &glyph.bitmap);
+                ID3D11ShaderResourceView* shader_resource;
+                init_texture_resource(&glyph.bitmap, &shader_resource);
+                d3d_draw_textured_quad(screen_rect.x0, screen_rect.y0, screen_rect.x1, screen_rect.y1, font->color, &shader_resource);
+                shader_resource->Release();
             }
             //push_bitmap(command_arena, rect, glyph.bitmap);
         }
@@ -293,12 +305,12 @@ draw_console(){
         }
     }
 
-    Rect output = rect_pixel_to_screen(console.output_rect, resolution);
-    Rect input = rect_pixel_to_screen(console.input_rect, resolution);
-    Rect cursor = rect_pixel_to_screen(console.cursor_rect, resolution);
-    d3d_draw_quad(cursor.x0, cursor.y0, cursor.x1, cursor.y1, console.cursor_color);
-    d3d_draw_quad(input.x0, input.y0, input.x1, input.y1, console.input_background_color);
-    d3d_draw_quad(output.x0, output.y0, output.x1, output.y1, console.history_background_color);
+    Rect output = rect_pixel_to_clip(console.output_rect, resolution);
+    Rect input = rect_pixel_to_clip(console.input_rect, resolution);
+    Rect cursor = rect_pixel_to_clip(console.cursor_rect, resolution);
+    d3d_draw_textured_quad(cursor.x0, cursor.y0, cursor.x1, cursor.y1, console.cursor_color, &white_shader_resource);
+    d3d_draw_textured_quad(input.x0, input.y0, input.x1, input.y1, console.input_background_color, &white_shader_resource);
+    d3d_draw_textured_quad(output.x0, output.y0, output.x1, output.y1, console.history_background_color, &white_shader_resource);
 };
 
 static void
