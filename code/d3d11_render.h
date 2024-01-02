@@ -61,6 +61,11 @@ d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color, ID3D11ShaderR
     d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
     d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
 
+    D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
+    rasterizer_desc.FillMode = D3D11_FILL_SOLID;
+    rasterizer_desc.CullMode = D3D11_CULL_BACK;
+
+    hr = d3d_device->CreateRasterizerState1(&rasterizer_desc, &d3d_rasterizer_state);
     d3d_context->RSSetState(d3d_rasterizer_state);
     d3d_context->RSSetViewports(1, &d3d_viewport);
 
@@ -73,17 +78,15 @@ d3d_draw_textured_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color, ID3D11ShaderR
 
 static void
 d3d_draw_text(f32 x0, f32 y0, f32 x1, f32 y1, f32 s0, f32 t0, f32 s1, f32 t1, RGBA color, ID3D11ShaderResourceView** shader_resource){
-    begin_timed_function();
-
     Vertex vertices[] = {
-        //{ make_v3(x0, y0, 0.0f), color, make_v2(s0, t0)},
-        //{ make_v3(x1, y0, 0.0f), color, make_v2(s1, t0)},
-        //{ make_v3(x0, y1, 0.0f), color, make_v2(s0, t1)},
-        //{ make_v3(x1, y1, 0.0f), color, make_v2(s1, t1)},
         { make_v3(x0, y0, 0.0f), color, make_v2(s0, t0)},
         { make_v3(x1, y0, 0.0f), color, make_v2(s1, t0)},
         { make_v3(x0, y1, 0.0f), color, make_v2(s0, t1)},
         { make_v3(x1, y1, 0.0f), color, make_v2(s1, t1)},
+        //{ make_v3(x0, y0, 0.0f), color, make_v2(s0, t1)},
+        //{ make_v3(x1, y0, 0.0f), color, make_v2(s1, t1)},
+        //{ make_v3(x0, y1, 0.0f), color, make_v2(s0, t0)},
+        //{ make_v3(x1, y1, 0.0f), color, make_v2(s1, t0)},
     };
 
     s32 indices[] = {
@@ -129,7 +132,12 @@ d3d_draw_text(f32 x0, f32 y0, f32 x1, f32 y1, f32 s0, f32 t0, f32 s1, f32 t1, RG
     d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
     d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
 
+    D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
+    rasterizer_desc.FillMode = D3D11_FILL_SOLID;
+    rasterizer_desc.CullMode = D3D11_CULL_FRONT;
+    hr = d3d_device->CreateRasterizerState1(&rasterizer_desc, &d3d_rasterizer_state);
     d3d_context->RSSetState(d3d_rasterizer_state);
+
     d3d_context->RSSetViewports(1, &d3d_viewport);
 
     d3d_context->IASetInputLayout(d3d_2d_textured_input_layout);
@@ -238,6 +246,11 @@ d3d_draw_textured_cube_instanced(ID3D11ShaderResourceView** shader_resource){
     d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
     d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
 
+    D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
+    rasterizer_desc.FillMode = D3D11_FILL_SOLID;
+    rasterizer_desc.CullMode = D3D11_CULL_BACK;
+
+    hr = d3d_device->CreateRasterizerState1(&rasterizer_desc, &d3d_rasterizer_state);
     d3d_context->RSSetState(d3d_rasterizer_state);
     d3d_context->RSSetViewports(1, &d3d_viewport);
 

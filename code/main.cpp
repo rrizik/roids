@@ -111,8 +111,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     init_texture_resource(&bullet, &bullet_shader_resource);
     init_texture_resource(&test, &test_shader_resource);
 
-    Font font;
-    load_font_ttf2(global_arena, str8_literal("fonts/arial.ttf"), &font, 48);
+    Font2 font;
+    load_font_ttf2(global_arena, str8_literal("fonts/arial.ttf"), &font, 24);
 
     init_memory(&memory);
     init_clock(&clock);
@@ -159,38 +159,36 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             //draw_everything();
             d3d_clear_color(BACKGROUND_COLOR);
 
-            s32 char_index = 'A' - font.first_char;
-            const char* word = "WORD";
+
+            const char* word = "! \"#$%'()*+,-x/0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghujklmnopqrstuvwxyz{|}~";
+            //f32 xpos = 100, ypos = 200; // pixel coordinates
+            f32 xpos = 10;
+            f32 ypos = 0.7f * (f32)resolution.h;
             stbtt_aligned_quad quad;
-            f32 xpos = 100, ypos = 100; // assuming its pixel coordinates
-
-            // Just the data thats given to me
             while(*word){
-                stbtt_GetPackedQuad(font.packed_chars, font.texture_w, font.texture_h, *word++, &xpos, &ypos, &quad, 1);
+                stbtt_GetPackedQuad(font.packed_chars, font.texture_w, font.texture_h, (*word++) - font.first_char, &xpos, &ypos, &quad, 1);
+                // convert to clip space? Otherwise nothing shows up on my screen
                 Rect rect = make_rect(quad.x0, quad.y0, quad.x1, quad.y1);
-                Rect clip_rect = rect_pixel_to_clip(rect, resolution); // if its pixel coordinates, then I want to conver to clip space, dont I?
-                d3d_draw_text(quad.x0, quad.y0, quad.x1, quad.y1, quad.s0, quad.t0, quad.s1, quad.t1, RED, &font.atlas.view);
+                Rect clip_rect = rect_pixel_to_clip(rect, resolution);
+                f32 y0 = clip_rect.y0;
+                clip_rect.y0 = clip_rect.y1;
+                clip_rect.y1 = y0;
+                Rect clip_rect3 = rect_pixel_to_clip3(rect, resolution);
                 d3d_draw_text(clip_rect.x0, clip_rect.y0, clip_rect.x1, clip_rect.y1, quad.s0, quad.t0, quad.s1, quad.t1, ORANGE, &font.atlas.view);
+                d3d_draw_text(clip_rect3.x0, clip_rect3.y0, clip_rect3.x1, clip_rect3.y1, quad.s0, quad.t0, quad.s1, quad.t1, ORANGE, &font.atlas.view);
             }
-            //d3d_draw_text(quad.x0, quad.y0, quad.x1, quad.y1, quad.s0, quad.t0, quad.s1, quad.t1, RED, &font.atlas.view);
-
-            // converted to clip space, assuming its in pixel space
-            //Rect rect = make_rect(quad.x0, quad.y0, quad.x1, quad.y1);
-            //Rect clip_rect = rect_pixel_to_clip(rect, resolution); // if its pixel coordinates, then I want to conver to clip space, dont I?
-            //d3d_draw_text(clip_rect.x0, clip_rect.y0, clip_rect.x1, clip_rect.y1, quad.s0, quad.t0, quad.s1, quad.t1, ORANGE, &font.atlas.view);
 
             // three different attempts at drawing
-            //d3d_draw_text(0, 0, 0.5, 0.5, quad.s0, quad.t0, quad.s1, quad.t1, ORANGE, &font.atlas.view);
-            //d3d_draw_textured_cube_instanced(&image_shader_resource);
+            d3d_draw_textured_cube_instanced(&image_shader_resource);
 
             if(console_is_visible()){
                 draw_console();
             }
 
-            //d3d_draw_textured_quad(0.0f, 0.0f, 0.5f, 0.5f, MAGENTA, &ship_shader_resource);
-            //d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, YELLOW, &white_shader_resource);
-            //d3d_draw_textured_quad(0.0f, -0.5f, 0.5f, 0.0f, WHITE, &ship_shader_resource);
-            //d3d_draw_textured_quad(-0.5f, 0.0f, 0.0f, 0.5f, WHITE, &white_shader_resource);
+            d3d_draw_textured_quad(0.0f, 0.0f, 0.5f, 0.5f, MAGENTA, &ship_shader_resource);
+            d3d_draw_textured_quad(-0.5f, -0.5f, 0.0f, 0.0f, YELLOW, &white_shader_resource);
+            d3d_draw_textured_quad(0.0f, -0.5f, 0.5f, 0.0f, WHITE, &ship_shader_resource);
+            d3d_draw_textured_quad(-0.5f, 0.0f, 0.0f, 0.5f, WHITE, &white_shader_resource);
         }
         d3d_present();
 

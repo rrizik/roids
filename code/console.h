@@ -252,11 +252,6 @@ draw_text(v2 pos, Font* font, RGBA color, String8 string){
                 pos.y + y,
                 0, 0 // no x1, y1 needed for bitmap
             };
-            //Rect rect = {
-            //    pos.x + (s32)round_f32_s32((unscaled_offset.x + glyph.lsb) * font->scale),
-            //    pos.y + (s32)(round_f32_s32(unscaled_offset.y * font->scale) - glyph.y1),
-            //    0, 0 // no x1, y1 needed for bitmap
-            //};
             rect.x1 = rect.x0 + (f32)glyph.w;
             rect.y1 = rect.y0 + (f32)glyph.h;
 
@@ -268,12 +263,7 @@ draw_text(v2 pos, Font* font, RGBA color, String8 string){
             }
             Rect screen_rect = rect_pixel_to_clip(rect, resolution);
 
-            if(*c != ' '){
-                ID3D11ShaderResourceView* shader_resource;
-                init_texture_resource(&glyph.bitmap, &shader_resource);
-                d3d_draw_textured_quad(screen_rect.x0, screen_rect.y0, screen_rect.x1, screen_rect.y1, font->color, &shader_resource);
-                shader_resource->Release();
-            }
+            // software renderer command buffer
             //push_bitmap(command_arena, rect, glyph.bitmap);
         }
         else{

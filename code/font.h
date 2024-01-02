@@ -136,8 +136,20 @@ typedef struct Font{
     Texture2D atlas;
 } Font;
 
+typedef struct Font2{
+    stbtt_fontinfo info;
+
+    s32 first_char;
+    s32 texture_w;
+    s32 texture_h;
+    f32 size;
+    stbtt_packedchar packed_chars[256];
+
+    Texture2D atlas;
+} Font2;
+
 static bool
-load_font_ttf2(Arena* arena, String8 path, Font* font, f32 size){
+load_font_ttf2(Arena* arena, String8 path, Font2* font, f32 size){
     // open file
     File file = os_file_open(path, GENERIC_READ, OPEN_EXISTING);
     assert_fh(file); // todo: replace all these asserts with if checks so it doesn't explode
@@ -150,6 +162,8 @@ load_font_ttf2(Arena* arena, String8 path, Font* font, f32 size){
 
     font->texture_w = 1024;
     font->texture_h = 1024;
+    font->first_char = 32;
+    font->size = size;
     s32 stride = font->texture_w * 4;
     ScratchArena scratch = begin_scratch(0);
 
@@ -203,7 +217,7 @@ load_font_ttf2(Arena* arena, String8 path, Font* font, f32 size){
     hr = d3d_device->CreateShaderResourceView(font->atlas.texture, 0, &font->atlas.view);
     assert_hr(hr);
 
-    //os_file_close(file);
+    os_file_close(file);
     end_scratch(scratch);
     return(true);
 }
