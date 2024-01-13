@@ -72,7 +72,7 @@ struct ProfileBlock{
 
 static void
 print_anchor_data(u64 total_cpu_elapsed, u64 cpu_freq){
-    for(u32 anchor_index = 0; anchor_index < ArrayCount(profile_anchors); ++anchor_index){
+    for(u32 anchor_index = 0; anchor_index < array_count(profile_anchors); ++anchor_index){
         ProfileAnchor *anchor = profile_anchors + anchor_index;
         if(anchor->tsc_elapsed_inclusive){
             f64 percent = 100.0 * ((f64)anchor->tsc_elapsed_exclusive / (f64)total_cpu_elapsed);

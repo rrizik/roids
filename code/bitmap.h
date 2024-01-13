@@ -193,7 +193,8 @@ u32_buffer_from_u8_buffer(String8* channel_1, String8* channel_4){
     u8* base_a = (u8*)channel_1->str;
 
     for(s32 i=0; i < channel_1->size; ++i){
-        *base_rgba = (u32)(*base_a << 24 | *base_a << 16 | *base_a << 8  | *base_a << 0);
+        //*base_rgba = (u32)(*base_a << 24 | *base_a << 16 | *base_a << 8  | *base_a << 0);
+        *base_rgba = (u32)(*base_a << 24 | 255 << 16 | 255 << 8  | 255 << 0);
         base_rgba++;
         base_a++;
     }

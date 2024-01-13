@@ -367,8 +367,6 @@ deserialize_data(PermanentMemory* pm, String8 filename){
     }
 }
 
-#include "console.h"
-
 static bool
 handle_global_event(Event event){
     if(event.type == MOUSE){
@@ -593,14 +591,14 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         String8 golos = str8_literal("fonts\\GolosText-Regular.ttf");
         String8 arial = str8_literal("fonts\\arial.ttf");
         String8 incon = str8_literal("fonts\\consola.ttf");
-        global_font.name = str8_literal("fonts\\GolosText-Regular.ttf");
+        //global_font.name = str8_literal("fonts\\GolosText-Regular.ttf");
         global_font.size = 24;
-        global_font.color = WHITE;
-        bool succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\GolosText-Regular.ttf"), &global_font);
+        //global_font.color = WHITE;
+        bool succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\GolosText-Regular.ttf"), &global_font, 24);
         assert(succeed);
-        load_font_glyphs(&pm->arena, &global_font, RED, 24);
+        //load_font_glyphs(&pm->arena, &global_font, RED, 24);
 
-        init_console(pm);
+        init_console(&pm->arena);
         init_commands();
 
         memory->initialized = true;

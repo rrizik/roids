@@ -9,30 +9,41 @@ typedef struct CommandInfo{
     Proc* proc;
 } CommandInfo;
 
-#define COMMANDS_MAX 20
-static CommandInfo commands[COMMANDS_MAX];
-static u32 command_count = 0;
+array_define(CommandInfo, 1024, Commands);
+static Commands commands = {0};
+//#define COMMANDS_MAX 20
+//global CommandInfo commands[COMMANDS_MAX];
+//global u32 command_count = 0;
 
-static CommandInfo*
+static void
 add_command(String8 name, u32 min, u32 max, Proc* proc){
-    CommandInfo* command = commands + command_count++;
-    command->name     = name;
-    command->min_args = min;
-    command->max_args = max;
-    command->proc = proc;
-    return(command);
+    CommandInfo command = {0};
+    command.name = name;
+    command.min_args = min;
+    command.max_args = max;
+    command.proc = proc;
+    array_add(&commands, command);
+    //CommandInfo* command = 0;
+    //if(command_count < COMMANDS_MAX){
+    //    command = commands + command_count++;
+    //    command->name     = name;
+    //    command->min_args = min;
+    //    command->max_args = max;
+    //    command->proc = proc;
+    //}
+    //return(command);
 }
 
 #define COMMAND_ARGS_MAX 50
-static String8 command_args[COMMAND_ARGS_MAX] = {0};
-static u32 command_args_count = 0;
+global String8 command_args[COMMAND_ARGS_MAX] = {0};
+global u32 command_args_count = 0;
 
-
-static void
+static u64
 add_argument(String8 arg){
     if(command_args_count < COMMAND_ARGS_MAX){
         command_args[command_args_count++] = arg;
     }
+    return(command_args_count);
 }
 
 // CONSIDER: I don't even think we need output_history.
@@ -41,8 +52,8 @@ static void console_store_command(String8 str);
 
 static void
 command_help(String8* args){
-    for(u32 i=0; i < command_count; ++i){
-        CommandInfo command = commands[i];
+    for(u32 i=0; i < commands.count; ++i){
+        CommandInfo command = commands.array[i];
         console_store_output(command.name);
     }
 }
@@ -51,20 +62,19 @@ static void
 command_exit(String8* args){
     console_store_output(str8_literal("Exiting!"));
     should_quit = true;
-
 }
 
-static void
-command_load(String8* args){
-    deserialize_data(pm, *args);
-    console_store_output(str8_formatted(global_arena, "loading from file: %s", args->str));
-}
-
-static void
-command_save(String8* args){
-    serialize_data(pm, *args);
-    console_store_output(str8_formatted(global_arena, "saving to file: %s", args->str));
-}
+//static void
+//command_load(String8* args){
+//    deserialize_data(pm, *args);
+//    console_store_output(str8_formatted(global_arena, "loading from file: %s", args->str));
+//}
+//
+//static void
+//command_save(String8* args){
+//    serialize_data(pm, *args);
+//    console_store_output(str8_formatted(global_arena, "saving to file: %s", args->str));
+//}
 
 static void
 command_add(String8* args){
@@ -96,8 +106,8 @@ command_saves(String8* args){
 
 static void
 init_commands(){
-    add_command(str8_literal("load"), 1, 1, command_load);
-    add_command(str8_literal("save"), 1, 1, command_save);
+    //add_command(str8_literal("load"), 1, 1, command_load);
+    //add_command(str8_literal("save"), 1, 1, command_save);
     add_command(str8_literal("add"), 2, 2, command_add);
     add_command(str8_literal("saves"), 0, 0, command_saves);
     add_command(str8_literal("exit"), 0, 0, command_exit);
@@ -105,20 +115,23 @@ init_commands(){
     add_command(str8_literal("help"), 0, 0, command_help);
 }
 
-static void
-parse_line(String8 line){
+static u64
+parse_line_args(String8 line){
+    u64 args_count = 0;
     String8 remaining = line;
     while(remaining.size){
         remaining = str8_eat_whitespace(remaining);
         if(remaining.size < 1){ break; }
 
-        u64 idx = str8_char_from_left(remaining, ' ');
+        u64 idx = str8_char_idx_from_left(remaining, ' ');
         String8 left_arg = str8_split_left(remaining, idx);
-        String8 arg = push_string(global_arena, left_arg);
+        String8 arg = push_string(global_arena, left_arg); // todo: This doesn't look correct
 		add_argument(arg);
 
         remaining = str8_advance(remaining, idx);
+        args_count++;
     }
+    return(args_count);
 }
 
 static void
@@ -130,8 +143,8 @@ run_command(String8 line){
 
     // run command proc
     bool found = false;
-    for(u32 i=0; i<command_count; ++i){
-        CommandInfo command = commands[i];
+    for(u32 i=0; i < commands.count; ++i){
+        CommandInfo command = commands.array[i];
         if(str8_cmp(command_name, command.name)){
             found = true;
             if(command.min_args > command_args_count){
@@ -144,7 +157,7 @@ run_command(String8 line){
             }
 
             command.proc(arguments);
-            console_store_output(str8_literal(""));
+            //console_store_output(str8_literal(""));
             break;
         }
     }

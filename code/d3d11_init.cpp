@@ -1,0 +1,397 @@
+#ifndef D3D11_INIT_CPP
+#define D3D11_INIT_CPP
+
+static void
+d3d_init_debug_stuff(){
+    ID3D11InfoQueue* info;
+    d3d_device->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&info);
+    info->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, TRUE);
+    info->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, TRUE);
+    info->Release();
+}
+
+static void
+d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* input_layout, u32 layout_count, ID3D11VertexShader** d3d_vertex_shader, ID3D11PixelShader** d3d_pixel_shader, ID3D11InputLayout** d3d_input_layout){
+    // ---------------------------------------------------------------------------------
+    // Vertex/Pixel Shader
+    // ---------------------------------------------------------------------------------
+#if DEBUG
+    u32 shader_compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+    u32 shader_compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
+#endif
+
+    ScratchArena scratch = begin_scratch(0);
+    //String8 utf8_shader_path = str8_path_append(scratch.arena, path_shaders, shader_file);
+    String16 utf16_shader_path = os_utf8_utf16(scratch.arena, shader_path);
+
+    ID3DBlob* vs_blob, *ps_blob, *error;
+    hr = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "vs_main", "vs_5_0", shader_compile_flags, 0, &vs_blob, &error);
+    if(FAILED(hr)) {
+        print("Error: failed D3DCompileFromFile()\n");
+        print("\tMessage: %s\n", (char*)error->GetBufferPointer());
+        assert_hr(hr);
+    }
+    hr = d3d_device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, d3d_vertex_shader);
+    assert_hr(hr);
+
+    hr = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "ps_main", "ps_5_0", shader_compile_flags, 0, &ps_blob, &error);
+    if(FAILED(hr)) {
+        print("Error: failed D3DCompileFromFile()\n");
+        print("\tMessage: %s\n", (char*)error->GetBufferPointer());
+        assert_hr(hr);
+    }
+
+    hr = d3d_device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, d3d_pixel_shader);
+    assert_hr(hr);
+
+    // ---------------------------------------------------------------------------------
+    // Input Layout
+    // ---------------------------------------------------------------------------------
+    hr = d3d_device->CreateInputLayout(input_layout, layout_count, vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), d3d_input_layout);
+    assert_hr(hr);
+
+    end_scratch(scratch);
+};
+
+static void
+d3d_init(Window window){
+    // ---------------------------------------------------------------------------------
+    // Device + Context
+    // ---------------------------------------------------------------------------------
+    D3D_FEATURE_LEVEL featureLevels[] = { D3D_FEATURE_LEVEL_11_0 };
+    u32 flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+
+#if DEBUG
+    flags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
+    ID3D11Device* base_device;
+    ID3D11DeviceContext* base_device_context;
+    hr = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, flags, featureLevels, ARRAYSIZE(featureLevels), D3D11_SDK_VERSION, &base_device, nullptr, &base_device_context);
+    assert_hr(hr);
+
+    hr = base_device->QueryInterface(__uuidof(ID3D11Device1), (void**)(&d3d_device));
+    assert_hr(hr);
+
+    hr = base_device_context->QueryInterface(__uuidof(ID3D11DeviceContext1), (void**)(&d3d_context));
+    assert_hr(hr);
+
+    // ---------------------------------------------------------------------------------
+    // Swap chain
+    // ---------------------------------------------------------------------------------
+    IDXGIDevice1* dxgiDevice;
+    hr = d3d_device->QueryInterface(__uuidof(IDXGIDevice1), (void**)(&dxgiDevice));
+    assert_hr(hr);
+
+    IDXGIAdapter* dxgiAdapter;
+    hr = dxgiDevice->GetAdapter(&dxgiAdapter);
+    assert_hr(hr);
+
+    IDXGIFactory2* dxgiFactory;
+    hr = dxgiAdapter->GetParent(__uuidof(IDXGIFactory2), (void**)(&dxgiFactory));
+    assert_hr(hr);
+
+    DXGI_SWAP_CHAIN_DESC1 swapChainDesc;
+    swapChainDesc.Width              = 0; // use window width
+    swapChainDesc.Height             = 0; // use window height
+    swapChainDesc.Format             = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
+    swapChainDesc.Stereo             = FALSE;
+    swapChainDesc.SampleDesc.Count   = 1;
+    swapChainDesc.SampleDesc.Quality = 0;
+    swapChainDesc.BufferUsage        = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    swapChainDesc.BufferCount        = 2;
+    swapChainDesc.Scaling            = DXGI_SCALING_STRETCH;
+    swapChainDesc.SwapEffect         = DXGI_SWAP_EFFECT_DISCARD; // prefer DXGI_SWAP_EFFECT_FLIP_DISCARD, see Minimal D3D11 pt2
+    swapChainDesc.AlphaMode          = DXGI_ALPHA_MODE_UNSPECIFIED;
+    swapChainDesc.Flags              = 0;
+
+    dxgiFactory->CreateSwapChainForHwnd(d3d_device, window.handle, &swapChainDesc, 0, 0, &d3d_swapchain);
+
+    // ---------------------------------------------------------------------------------
+    // Frame Buffer
+    // ---------------------------------------------------------------------------------
+    hr = d3d_swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&d3d_framebuffer);
+    assert_hr(hr);
+
+    hr = d3d_device->CreateRenderTargetView(d3d_framebuffer, 0, &d3d_framebuffer_view);
+    assert_hr(hr);
+
+    // ---------------------------------------------------------------------------------
+    // Depth Buffer
+    // ---------------------------------------------------------------------------------
+    D3D11_TEXTURE2D_DESC depthbuffer_desc = {0};
+    d3d_framebuffer->GetDesc(&depthbuffer_desc); // copy from framebuffer properties
+    depthbuffer_desc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    depthbuffer_desc.Format    = DXGI_FORMAT_D32_FLOAT;
+    depthbuffer_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+
+    hr = d3d_device->CreateTexture2D(&depthbuffer_desc, 0, &d3d_depthbuffer);
+    assert_hr(hr);
+
+    hr = d3d_device->CreateDepthStencilView(d3d_depthbuffer, 0, &d3d_depthbuffer_view);
+    assert_hr(hr);
+
+    // ---------------------------------------------------------------------------------
+    // Depth Stencil
+    // ---------------------------------------------------------------------------------
+    D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
+    depth_stencil_desc.DepthEnable = true;
+    depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
+
+    hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
+    assert_hr(hr);
+
+    // ---------------------------------------------------------------------------------
+    // Rasterizer State
+    // ---------------------------------------------------------------------------------
+    D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
+    rasterizer_desc.FillMode = D3D11_FILL_SOLID;
+    rasterizer_desc.CullMode = D3D11_CULL_BACK;
+
+    hr = d3d_device->CreateRasterizerState1(&rasterizer_desc, &d3d_rasterizer_state);
+    assert_hr(hr);
+
+    // ---------------------------------------------------------------------------------
+    // Sampler State
+    // ---------------------------------------------------------------------------------
+    D3D11_SAMPLER_DESC sampler_desc = {
+        .Filter = D3D11_FILTER_MIN_MAG_MIP_POINT,
+        .AddressU = D3D11_TEXTURE_ADDRESS_WRAP,
+        .AddressV = D3D11_TEXTURE_ADDRESS_WRAP,
+        .AddressW = D3D11_TEXTURE_ADDRESS_WRAP,
+        .MipLODBias = 2.0f,
+        .MinLOD = 0.0f,
+        .MaxLOD = FLT_MAX,
+    };
+    hr = d3d_device->CreateSamplerState(&sampler_desc, &d3d_sampler_state);
+    assert_hr(hr);
+
+    // ---------------------------------------------------------------------------------
+    // Blend State
+    // ---------------------------------------------------------------------------------
+    D3D11_BLEND_DESC blend_desc = {0};
+    blend_desc.AlphaToCoverageEnable = false;
+    blend_desc.IndependentBlendEnable = false;
+    blend_desc.RenderTarget[0].BlendEnable = true;
+    blend_desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    blend_desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    blend_desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blend_desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    blend_desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blend_desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blend_desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
+    hr = d3d_device->CreateBlendState(&blend_desc, &d3d_blend_state);
+    assert_hr(hr);
+
+    // ---------------------------------------------------------------------------------
+    // Viewport
+    // ---------------------------------------------------------------------------------
+    // NOTE: can be used to create split screens for 2+ players
+    d3d_viewport = {0};
+    d3d_viewport.TopLeftX = 0;
+    d3d_viewport.TopLeftY = 0;
+    d3d_viewport.Width = (f32)window.width;
+    d3d_viewport.Height = (f32)window.height;
+    d3d_viewport.MinDepth = 0;
+    d3d_viewport.MaxDepth = 1.0;
+
+	d3d_load_shader(str8_literal("shaders\\3d_shader.hlsl"), input_layout_3d, 7, &d3d_3d_vertex_shader, &d3d_3d_pixel_shader, &d3d_3d_input_layout);
+	d3d_load_shader(str8_literal("shaders\\2d_texture_shader.hlsl"), input_layout_2dui_textured, 3, &d3d_2d_textured_vertex_shader, &d3d_2d_textured_pixel_shader, &d3d_2d_textured_input_layout);
+
+    // ---------------------------------------------------------------------------------
+    // Vertex Buffers
+    // ---------------------------------------------------------------------------------
+    {
+        D3D11_BUFFER_DESC desc = {0};
+        desc.ByteWidth = MB(8);
+        desc.Usage     = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        hr = d3d_device->CreateBuffer(&desc, 0, &d3d_vertex_buffer_8mb);
+        assert_hr(hr);
+    }
+
+    // ---------------------------------------------------------------------------------
+    // Index Buffers
+    // ---------------------------------------------------------------------------------
+    {
+        D3D11_BUFFER_DESC desc = {0};
+        desc.ByteWidth = MB(8);
+        desc.Usage     = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        hr = d3d_device->CreateBuffer(&desc, 0, &d3d_index_buffer);
+        assert_hr(hr);
+    }
+
+    // ---------------------------------------------------------------------------------
+    // Instance Buffers
+    // ---------------------------------------------------------------------------------
+    {
+        D3D11_BUFFER_DESC desc = {0};
+        desc.ByteWidth = MB(8);
+        desc.Usage = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        hr = d3d_device->CreateBuffer(&desc, 0, &d3d_instance_buffer);
+        assert_hr(hr);
+    }
+
+    // ---------------------------------------------------------------------------------
+    // Constant Buffer
+    // ---------------------------------------------------------------------------------
+    {
+        D3D11_BUFFER_DESC desc = {0};
+        desc.ByteWidth = sizeof(ConstantBuffer);
+        desc.Usage     = D3D11_USAGE_DYNAMIC;
+        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+        hr = d3d_device->CreateBuffer(&desc, 0, &d3d_constant_buffer);
+        assert_hr(hr);
+    };
+
+    {
+        D3D11_TEXTURE2D_DESC desc = {
+            .Width = (u32)1,
+            .Height = (u32)1,
+            .MipLevels = 1,
+            .ArraySize = 1,
+            .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+            .SampleDesc = {1, 0},
+            .Usage = D3D11_USAGE_IMMUTABLE,
+            .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+        };
+
+        u32 white = 0xFFFFFFFF;
+        D3D11_SUBRESOURCE_DATA data = {
+            .pSysMem = &white,
+            .SysMemPitch = sizeof(u32),
+        };
+
+        hr = d3d_device->CreateTexture2D(&desc, &data, &white_texture);
+        assert_hr(hr);
+
+        hr = d3d_device->CreateShaderResourceView(white_texture, 0, &white_shader_resource);
+        assert_hr(hr);
+        white_texture->Release();
+    }
+
+    base_device->Release();
+    base_device_context->Release();
+    dxgiAdapter->Release();
+    dxgiFactory->Release();
+    dxgiDevice->Release();
+}
+
+static void
+init_texture_resource(Bitmap* bitmap, ID3D11ShaderResourceView** shader_resource){
+    D3D11_TEXTURE2D_DESC desc = {
+        .Width = (u32)bitmap->width,
+        .Height = (u32)bitmap->height,
+        .MipLevels = 1,
+        .ArraySize = 1,
+        .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+        .SampleDesc = {1, 0},
+        .Usage = D3D11_USAGE_IMMUTABLE,
+        .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+    };
+
+    D3D11_SUBRESOURCE_DATA data = {
+        .pSysMem = bitmap->base,
+        .SysMemPitch = (u32)bitmap->stride,
+    };
+
+    ID3D11Texture2D* texture;
+    hr = d3d_device->CreateTexture2D(&desc, &data, &texture);
+    assert_hr(hr);
+
+    hr = d3d_device->CreateShaderResourceView(texture, 0, shader_resource);
+    assert_hr(hr);
+    texture->Release();
+}
+
+static void
+d3d_release(){
+    if(d3d_device) d3d_device->Release();
+    if(d3d_context) d3d_context->Release();
+    d3d_swapchain->SetFullscreenState(false, 0);
+    if(d3d_swapchain) d3d_swapchain->Release();
+
+    if(d3d_framebuffer) d3d_framebuffer->Release();
+    if(d3d_depthbuffer) d3d_depthbuffer->Release();
+    if(d3d_framebuffer_view) d3d_framebuffer_view->Release();
+    if(d3d_depthbuffer_view) d3d_depthbuffer_view->Release();
+
+    //d3d_texture->Release();
+    //d3d_shader_resource->Release();
+
+    if(d3d_3d_vertex_shader) d3d_3d_vertex_shader->Release();
+    if(d3d_3d_pixel_shader)  d3d_3d_pixel_shader->Release();
+    if(d3d_3d_input_layout)  d3d_3d_input_layout->Release();
+    if(d3d_2d_vertex_shader) d3d_2d_vertex_shader->Release();
+    if(d3d_2d_pixel_shader)  d3d_2d_pixel_shader->Release();
+    if(d3d_2d_input_layout)  d3d_2d_input_layout->Release();
+    if(d3d_2d_textured_vertex_shader) d3d_2d_textured_vertex_shader->Release();
+    if(d3d_2d_textured_pixel_shader)  d3d_2d_textured_pixel_shader->Release();
+    if(d3d_2d_textured_input_layout)  d3d_2d_textured_input_layout->Release();
+
+    if(d3d_vertex_buffer_8mb) d3d_vertex_buffer_8mb->Release();
+    if(d3d_index_buffer)      d3d_index_buffer->Release();
+    if(d3d_constant_buffer)   d3d_constant_buffer->Release();
+    if(d3d_instance_buffer)   d3d_instance_buffer->Release();
+
+    if(d3d_blend_state)        d3d_blend_state->Release();
+    if(d3d_sampler_state)      d3d_sampler_state->Release();
+    if(d3d_rasterizer_state)   d3d_rasterizer_state->Release();
+    if(d3d_depthstencil_state) d3d_depthstencil_state->Release();
+
+    //if(image_texture)  image_texture->Release();
+    //if(ship_texture)   ship_texture->Release();
+    //if(tree_texture)   tree_texture->Release();
+    //if(circle_texture) circle_texture->Release();
+    //if(bullet_texture) bullet_texture->Release();
+    //if(test_texture)   test_texture->Release();
+
+    if(image_shader_resource)  image_shader_resource->Release();
+    if(ship_shader_resource)   ship_shader_resource->Release();
+    if(tree_shader_resource)   tree_shader_resource->Release();
+    if(circle_shader_resource) circle_shader_resource->Release();
+    if(bullet_shader_resource) bullet_shader_resource->Release();
+    if(test_shader_resource)   test_shader_resource->Release();
+
+    IDXGIDebug1* pDxgiDebug;
+    if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDxgiDebug)))) {
+        pDxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
+        pDxgiDebug->Release();
+    }
+}
+
+
+// todo: Get rid of this I think.
+//d3d_set_constant_buffer(v3 pos, v3 angle, v3 scale){
+//    f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
+//    D3D11_MAPPED_SUBRESOURCE mapped_subresource;
+//    d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+//
+//    ConstantBuffer* constants = (ConstantBuffer*)mapped_subresource.pData;
+//    //constants->transform = XMMatrixTranspose(
+//    //    XMMatrixRotationX(angle.x) *
+//    //    XMMatrixRotationY(angle.y) *
+//    //    XMMatrixRotationZ(angle.z) *
+//    //    XMMatrixScaling(scale.x, scale.y, scale.z) *
+//    //    XMMatrixTranslation(pos.x, pos.y, pos.z) *
+//    //    XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
+//    //);
+//    d3d_context->Unmap(constant_buffer, 0);
+//
+//    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
+//}
+
+#endif

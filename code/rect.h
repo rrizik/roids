@@ -59,12 +59,12 @@ rect_pixel_to_clip(Rect r, v2s32 res){
 }
 
 static Rect
-rect_pixel_to_clip3(Rect r, v2s32 res){
+rect_pixel_to_clip_inverted(Rect r, v2s32 res){
     Rect result = {
-        ((r.x0 / (f32)res.w) * 2.0f) - 1.0f,
-       -(((r.y0 / (f32)res.h) * 2.0f) - 1.0f),
-        ((r.x1 / (f32)res.w) * 2.0f) - 1.0f,
-       -(((r.y1 / (f32)res.h) * 2.0f) - 1.0f)
+       (((r.x0 / (f32)res.w) * 2.0f) - 1.0f),
+      -(((r.y0 / (f32)res.h) * 2.0f) - 1.0f),
+       (((r.x1 / (f32)res.w) * 2.0f) - 1.0f),
+      -(((r.y1 / (f32)res.h) * 2.0f) - 1.0f)
     };
     return(result);
 }
