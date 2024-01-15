@@ -1,22 +1,5 @@
-#ifndef RECT_H
-#define RECT_H
-
-
-// IMPORTANT
-// INCOMPLETE We changed our Rect type, make sure all rect functions work on screenspace
-// CLEANUP
-
-// NOTE: Rect by default is in screenspace
-typedef union Rect {
-    struct {
-        f32 x0, y0;
-        f32 x1, y1;
-    };
-    struct {
-        v2 min;
-        v2 max;
-    };
-} Rect, RectPixelSpace, RectScreenSpace;
+#ifndef RECT_C
+#define RECT_C
 
 static Rect
 make_rect(f32 x0, f32 y0, f32 x1, f32 y1){

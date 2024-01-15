@@ -1,5 +1,5 @@
-#ifndef D3D11_INIT_CPP
-#define D3D11_INIT_CPP
+#ifndef D3D11_INIT_C
+#define D3D11_INIT_C
 
 static void
 d3d_init_debug_stuff(){

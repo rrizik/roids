@@ -1,33 +1,5 @@
-#ifndef GAME_H
-#define GAME_H
-
-
-static Font global_font = {0};
-
-
-
-typedef enum GameMode{
-    GameMode_FirstPerson,
-    GameMode_Editor,
-    GameMode_Game,
-} GameMode;
-
-typedef enum AssetID{
-    AssetID_Image,
-    AssetID_Ship,
-    AssetID_Tree,
-    AssetID_Circle,
-    AssetID_Bullet,
-    AssetID_Test,
-
-    AssetID_Count,
-} AssetID;
-
-typedef struct Assets{
-    Bitmap bitmaps[AssetID_Count];
-    //ID3D11Texture2D* textures[AssetID_Count];
-    //ID3D11ShaderResourceView* shader_resources[AssetID_Count];
-} Assets;
+#ifndef GAME_C
+#define GAME_C
 
 static void
 load_assets(Arena* arena, Assets* assets){
@@ -80,37 +52,6 @@ get_bitmap(Assets* assets, AssetID id){
 //    ID3D11ShaderResourceView* result = *assets->shader_resources + id;
 //    return(result);
 //}
-
-#define ENTITIES_MAX 100
-typedef struct PermanentMemory{
-    Arena arena;
-    u32 game_mode;
-
-    u32 generation[ENTITIES_MAX];
-    u32 free_entities[ENTITIES_MAX];
-    u32 free_entities_at;
-
-    Entity entities[ENTITIES_MAX];
-    u32 entities_count;
-
-    Entity* texture;
-    Entity* circle;
-    Entity* basis;
-    Entity* ship;
-    Bitmap tree;
-    bool ship_loaded;
-
-} PermanentMemory, State;
-global PermanentMemory* pm;
-
-typedef struct TransientMemory{
-    Arena arena;
-    Arena *frame_arena;
-    Arena *render_command_arena;
-
-    Assets assets;
-} TransientMemory;
-global TransientMemory* tm;
 
 static Entity*
 entity_from_handle(PermanentMemory* pm, EntityHandle handle){
@@ -195,8 +136,7 @@ add_line(PermanentMemory* pm, Rect rect, v2 direction, RGBA color){
     return(e);
 }
 
-static Entity*
-add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0}){
+static Entity* add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize, RGBA bcolor){
     Entity* e = add_entity(pm, EntityType_Rect);
     e->rect =  rect;
     e->color = color;
@@ -206,7 +146,7 @@ add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor 
 }
 
 static Entity*
-add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1}){
+add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color){
     Entity* e = add_entity(pm, EntityType_Bases);
     e->origin = origin;
     e->x_axis = x_axis;
@@ -217,7 +157,7 @@ add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture,
 }
 
 static Entity*
-add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1}){
+add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color){
     Entity* e = add_entity(pm, EntityType_Ship);
     e->origin = origin;
     e->x_axis = x_axis;
@@ -233,7 +173,7 @@ add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, 
 }
 
 static Entity*
-add_bullet(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1}){
+add_bullet(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color){
     Entity* e = add_entity(pm, EntityType_Bullet);
     e->origin = origin;
     e->x_axis = x_axis;
@@ -526,9 +466,10 @@ handle_controller_events(Event event){
 //static String8 ship_str   = str8_literal("ship_simple.bmp");
 //static String8 bullet_str = str8_literal("bullet4.bmp");
 
-static f32 angle = 0;
+static Entity* first;
+static Entity* second;
+static Entity* third;
 static void
-//update_game(Memory* memory, RenderBuffer* render_buffer, Events* events, Clock* clock){
 update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     assert(sizeof(PermanentMemory) < memory->permanent_size);
     assert(sizeof(TransientMemory) < memory->transient_size);

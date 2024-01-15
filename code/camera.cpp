@@ -1,20 +1,5 @@
-#ifndef CAMERA_H
-#define CAMERA_H
-
-struct Camera{
-    f32 fov;
-
-    f32 yaw;
-    f32 pitch;
-
-    v3 pos;
-    v3 forward;
-    v3 up;
-
-    f32 move_speed;
-    f32 rotation_speed;
-};
-static Camera camera;
+#ifndef CAMERA_C
+#define CAMERA_C
 
 static void
 init_camera(){

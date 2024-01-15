@@ -1,16 +1,5 @@
-#ifndef COMMAND_H
-
-typedef void Proc(String8* args);
-
-typedef struct CommandInfo{
-    String8 name;
-    u32 min_args;
-    u32 max_args;
-    Proc* proc;
-} CommandInfo;
-
-array_define(CommandInfo, 1024, Commands);
-global Commands commands = {0};
+#ifndef COMMAND_C
+#define COMMAND_C
 
 static void
 add_command(String8 name, u32 min, u32 max, Proc* proc){
@@ -22,25 +11,16 @@ add_command(String8 name, u32 min, u32 max, Proc* proc){
     array_add(&commands, command);
 }
 
-array_define(String8, 50, CommandArgs);
-global CommandArgs command_args = {0};
-
-// CONSIDER: I don't even think we need output_history.
-static void console_store_output(String8 str);
-static void console_store_command(String8 str);
-
 static void
 command_help(String8* args){
     for(u32 i=0; i < commands.count; ++i){
         CommandInfo command = commands.array[i];
-        //console_store_output(command.name);
         array_add(&console.output_history, command.name);
     }
 }
 
 static void
 command_exit(String8* args){
-    //console_store_output(str8_literal("Exiting!"));
     array_add(&console.output_history, str8_literal("Existing!"));
     should_quit = true;
 }
@@ -63,7 +43,6 @@ command_add(String8* args){
     s32 right = atoi((char const*)(args + 1)->str);
     s32 value = left + right;
     String8 result = str8_formatted(global_arena, "Result: %i", value);
-    //console_store_output(result);
     array_add(&console.output_history, result);
 }
 
@@ -81,7 +60,6 @@ command_saves(String8* args){
     dll_pop_front(&files);
 
     for(String8Node* file = files.next; file != &files; file = file->next){
-        //console_store_output(file->str);
         array_add(&console.output_history, file->str);
     }
     end_scratch(scratch);
@@ -131,12 +109,10 @@ run_command(String8 line){
         if(str8_cmp(command_name, command.name)){
             found = true;
             if(command.min_args > command_args.count){
-                //console_store_output(str8_formatted(global_arena, "Argument count less than min - Expected %i - Got: %i", command.min_args, command_args.count));
                 array_add(&console.output_history, str8_formatted(global_arena, "Argument count less than min - Expected %i - Got: %i", command.min_args, command_args.count));
                 break;
             }
             if(command.max_args < command_args.count){
-                //console_store_output(str8_formatted(global_arena, "Argument count greater than max - Expected %i - Got: %i", command.max_args, command_args.count));
                 array_add(&console.output_history, str8_formatted(global_arena, "Argument count greater than max - Expected %i - Got: %i", command.max_args, command_args.count));
                 break;
             }
@@ -148,11 +124,9 @@ run_command(String8 line){
 
     // output unkown command
     if(!found){
-        //console_store_output(str8_formatted(global_arena, "Unkown command: %s", command_name.str));
         array_add(&console.output_history, str8_formatted(global_arena, "Unkown command: %s", command_name.str));
     }
     command_args.count = 0;
 }
 
-#define COMMAND_H
 #endif

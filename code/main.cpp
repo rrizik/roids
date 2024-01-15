@@ -1,4 +1,30 @@
-#include "main.h"
+#include "main.hpp"
+
+#include "input.hpp"
+#include "clock.hpp"
+#include "camera.hpp"
+#include "rect.hpp"
+#include "bitmap.hpp"
+#include "entity.hpp"
+#include "d3d11_init.hpp"
+#include "font.hpp"
+#include "d3d11_render.hpp"
+#include "console.hpp"
+#include "command.hpp"
+#include "game.hpp"
+
+#include "input.cpp"
+#include "clock.cpp"
+#include "camera.cpp"
+#include "rect.cpp"
+#include "bitmap.cpp"
+#include "entity.cpp"
+#include "d3d11_init.cpp"
+#include "d3d11_render.cpp"
+#include "font.cpp"
+#include "console.cpp"
+#include "command.cpp"
+#include "game.cpp"
 
 static void
 init_paths(Arena* arena){
@@ -57,17 +83,7 @@ show_cursor(bool show){
     }
 }
 
-#include "input.h"
-#include "clock.h"
-#include "camera.h"
-#include "math.h"
-#include "rect.h"
-#include "bitmap.h"
-#include "entity.h"
 // todo(rr): get rid of these once your done settings things up
-static Entity* first;
-static Entity* second;
-static Entity* third;
 
 static Bitmap image;
 static Bitmap ship;
@@ -75,20 +91,6 @@ static Bitmap tree;
 static Bitmap circle;
 static Bitmap bullet;
 static Bitmap test;
-
-//#include "d3d11_init.h"
-//#include "d3d11_render.h"
-//#include "font.h"
-#include "d3d11_init.h"
-#include "font.h"
-#include "d3d11_render.hpp"
-#include "console.h"
-
-#include "d3d11_init.cpp"
-#include "d3d11_render.cpp"
-#include "font.cpp"
-#include "console.cpp"
-#include "game.h"
 
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
     begin_profiler();

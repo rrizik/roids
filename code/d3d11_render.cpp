@@ -1,5 +1,5 @@
-#ifndef D3D11_RENDER_CPP
-#define D3D11_RENDER_CPP
+#ifndef D3D11_RENDER_C
+#define D3D11_RENDER_C
 
 static RGBA
 srgb_to_linear_approx(RGBA value){

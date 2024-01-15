@@ -46,30 +46,15 @@ typedef struct Entity{
     bool render;
 } Entity;
 
-static bool
-has_flags(u32 flags, u32 flags_set){
-    return((flags & flags_set) == flags_set);
-}
-
-static void
-set_flags(u32* flags, u32 flags_set){
-    *flags |= flags_set;
-}
-
-static void
-clear_flags(u32* flags, u32 flags_set){
-    *flags &= ~flags_set;
-}
+static bool has_flags(u32 flags, u32 flags_set);
+static void set_flags(u32* flags, u32 flags_set);
+static void clear_flags(u32* flags, u32 flags_set);
 
 typedef struct EntityHandle{
     u32 index;
     u32 generation;
 } EntityHandle;
 
-static EntityHandle
-zero_entity_handle(){
-    EntityHandle result = {0};
-    return(result);
-}
+static EntityHandle zero_entity_handle();
 
 #endif
