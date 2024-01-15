@@ -68,6 +68,20 @@ console_cursor_reset(){
 }
 
 static void
+console_cursor_update_width(){
+    s32 advance_width, lsb;
+    u8 curr_c;
+    if(console.cursor_index == console.input.count){
+        curr_c = 'a';
+    }
+    else{
+        curr_c = console.input.array[console.cursor_index];
+    }
+    stbtt_GetCodepointHMetrics(&console.input_font.info, curr_c, &advance_width, &lsb);
+    console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
+}
+
+static void
 console_clear_input(){
     console.input.count = 0;
 }
@@ -104,8 +118,7 @@ input_add_char(u8 c){
             s32 advance_width, lsb;
             stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
             console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
-            console.cursor_rect.x1 += ((f32)advance_width * console.input_font.scale);
-            console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
+            console_cursor_update_width();
 
             end_scratch(scratch);
         }
@@ -116,8 +129,7 @@ input_add_char(u8 c){
             s32 advance_width, lsb;
             stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
             console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
-            console.cursor_rect.x1 += ((f32)advance_width * console.input_font.scale);
-            console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
+            console_cursor_update_width();
         }
     }
 }
@@ -152,7 +164,6 @@ input_remove_char(){
             s32 advance_width, lsb;
             stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
             console.cursor_rect.x0 -= ((f32)advance_width * console.input_font.scale);
-            console.cursor_rect.x1 -= ((f32)advance_width * console.input_font.scale);
             console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
 
             end_scratch(scratch);
@@ -164,7 +175,6 @@ input_remove_char(){
             s32 advance_width, lsb;
             stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
             console.cursor_rect.x0 -= ((f32)advance_width * console.input_font.scale);
-            console.cursor_rect.x1 -= ((f32)advance_width * console.input_font.scale);
             console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
         }
     }
@@ -202,6 +212,7 @@ draw_console(){
 
 static void
 update_console(){
+    print("cursor_index: %i - input_count: %i\n", console.cursor_index, console.input.count);
     // lerp to appropriate position based on state. Everything is positioned based on output_rect.
     f32 output_rect_bottom = 0;
     switch(console.state){
@@ -247,6 +258,7 @@ handle_console_event(Event event){
         if(event.key_pressed){
             if(event.keycode == HOME){
                 console_cursor_reset();
+                console_cursor_update_width();
             }
             if(event.keycode == END){
                 for(u32 i=console.cursor_index; i < console.input.count; ++i){
@@ -254,20 +266,21 @@ handle_console_event(Event event){
                     s32 advance_width, lsb;
                     stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
                     console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
-                    console.cursor_rect.x1 += ((f32)advance_width * console.input_font.scale);
                     console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
                     console.cursor_index++;
+
+                    console_cursor_update_width();
                 }
             }
             if(event.keycode == ARROW_RIGHT){
+                s32 advance_width, lsb;
                 if(console.cursor_index < console.input.count){
-                    u8 c = console.input.array[console.cursor_index];
-                    s32 advance_width, lsb;
-                    stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
+                    u8 prev_c = console.input.array[console.cursor_index];
+                    stbtt_GetCodepointHMetrics(&console.input_font.info, prev_c, &advance_width, &lsb);
                     console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
-                    console.cursor_rect.x1 += ((f32)advance_width * console.input_font.scale);
-                    console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
                     console.cursor_index++;
+
+                    console_cursor_update_width();
                 }
             }
             if(event.keycode == ARROW_LEFT){
@@ -277,8 +290,7 @@ handle_console_event(Event event){
                     s32 advance_width, lsb;
                     stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
                     console.cursor_rect.x0 -= ((f32)advance_width * console.input_font.scale);
-                    //console.cursor_rect.x1 -= ((f32)advance_width * console.input_font.scale);
-                    console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
+                    console_cursor_update_width();
                 }
             }
             if(event.keycode == ARROW_UP){
