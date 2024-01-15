@@ -257,13 +257,16 @@ d3d_init(Window window){
         assert_hr(hr);
     };
 
+    // ---------------------------------------------------------------------------------
+    // White Texture
+    // ---------------------------------------------------------------------------------
     {
         D3D11_TEXTURE2D_DESC desc = {
             .Width = (u32)1,
             .Height = (u32)1,
             .MipLevels = 1,
             .ArraySize = 1,
-            .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
+            .Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
             .SampleDesc = {1, 0},
             .Usage = D3D11_USAGE_IMMUTABLE,
             .BindFlags = D3D11_BIND_SHADER_RESOURCE,

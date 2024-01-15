@@ -1,6 +1,55 @@
 #ifndef D3D11_RENDER_CPP
 #define D3D11_RENDER_CPP
 
+static RGBA
+srgb_to_linear_approx(RGBA value){
+    RGBA result = {
+        .r = square_f32(value.r),
+        .g = square_f32(value.g),
+        .b = square_f32(value.b),
+        .a = value.a,
+    };
+    return(result);
+}
+
+static RGBA
+linear_to_srgb_approx(RGBA value){
+    RGBA result = {
+        .r = sqrt_f32(value.r),
+        .g = sqrt_f32(value.g),
+        .b = sqrt_f32(value.b),
+        .a = value.a,
+    };
+    return(result);
+}
+
+static RGBA
+srgb_to_linear(RGBA value){
+    RGBA result = {0};
+    result.a = value.a;
+    if(value.r < 0.04045f){
+        result.r = value.r / 12.92f;
+    }
+    else{
+        result.r = powf(((value.r + 0.055f) / (1.055f)), 2.4f);
+    }
+
+    if(value.g < 0.04045f){
+        result.g = value.g / 12.92f;
+    }
+    else{
+        result.g = powf(((value.g + 0.055f) / (1.055f)), 2.4f);
+    }
+
+    if(value.b < 0.04045f){
+        result.b = value.b / 12.92f;
+    }
+    else{
+        result.b = powf(((value.b + 0.055f) / (1.055f)), 2.4f);
+    }
+    return(result);
+}
+
 static void
 d3d_clear_color(RGBA color){
     begin_timed_function();
@@ -18,11 +67,12 @@ static void
 d3d_draw_quad_textured(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color, ID3D11ShaderResourceView** shader_resource){
     begin_timed_function();
 
+    RGBA linear_color = srgb_to_linear(color);
     Vertex vertices[] = {
-        { make_v3(x0, y0, 0.0f), color, make_v2(0.0f, 0.0f)},
-        { make_v3(x1, y0, 0.0f), color, make_v2(1.0f, 0.0f)},
-        { make_v3(x0, y1, 0.0f), color, make_v2(0.0f, 1.0f)},
-        { make_v3(x1, y1, 0.0f), color, make_v2(1.0f, 1.0f)},
+        { make_v3(x0, y0, 0.0f), linear_color, make_v2(0.0f, 0.0f)},
+        { make_v3(x1, y0, 0.0f), linear_color, make_v2(1.0f, 0.0f)},
+        { make_v3(x0, y1, 0.0f), linear_color, make_v2(0.0f, 1.0f)},
+        { make_v3(x1, y1, 0.0f), linear_color, make_v2(1.0f, 1.0f)},
     };
 
     s32 indices[] = {
@@ -90,6 +140,7 @@ d3d_draw_quad_textured(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color, ID3D11ShaderR
 }
 
 static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
+    RGBA linear_color = srgb_to_linear(color);
 
     ScratchArena scratch = begin_scratch(0);
     u64 allocation_size = text.size * 6;
@@ -103,12 +154,12 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
         Rect rect = make_rect(quad.x0, quad.y0, quad.x1, quad.y1);
         Rect clip_rect = rect_pixel_to_clip_inverted(rect, resolution);
 
-        *vertex++ = { make_v3(clip_rect.x0, clip_rect.y1, 0.0f), color, make_v2(quad.s0, quad.t1) };
-        *vertex++ = { make_v3(clip_rect.x1, clip_rect.y1, 0.0f), color, make_v2(quad.s1, quad.t1) };
-        *vertex++ = { make_v3(clip_rect.x0, clip_rect.y0, 0.0f), color, make_v2(quad.s0, quad.t0) };
-        *vertex++ = { make_v3(clip_rect.x0, clip_rect.y0, 0.0f), color, make_v2(quad.s0, quad.t0) };
-        *vertex++ = { make_v3(clip_rect.x1, clip_rect.y1, 0.0f), color, make_v2(quad.s1, quad.t1) };
-        *vertex++ = { make_v3(clip_rect.x1, clip_rect.y0, 0.0f), color, make_v2(quad.s1, quad.t0) };
+        *vertex++ = { make_v3(clip_rect.x0, clip_rect.y1, 0.0f), linear_color, make_v2(quad.s0, quad.t1) };
+        *vertex++ = { make_v3(clip_rect.x1, clip_rect.y1, 0.0f), linear_color, make_v2(quad.s1, quad.t1) };
+        *vertex++ = { make_v3(clip_rect.x0, clip_rect.y0, 0.0f), linear_color, make_v2(quad.s0, quad.t0) };
+        *vertex++ = { make_v3(clip_rect.x0, clip_rect.y0, 0.0f), linear_color, make_v2(quad.s0, quad.t0) };
+        *vertex++ = { make_v3(clip_rect.x1, clip_rect.y1, 0.0f), linear_color, make_v2(quad.s1, quad.t1) };
+        *vertex++ = { make_v3(clip_rect.x1, clip_rect.y0, 0.0f), linear_color, make_v2(quad.s1, quad.t0) };
     }
 
     //----vertex buffer----
@@ -164,36 +215,37 @@ static void
 d3d_draw_textured_cube_instanced(ID3D11ShaderResourceView** shader_resource){
     begin_timed_function();
 
+    RGBA linear_color = srgb_to_linear(WHITE);
     static Vertex vertices[] = {
-        { make_v3(-20.0f, -20.0f,  20.0f), WHITE, make_v2(0.0f, 0.0f) },
-        { make_v3( 20.0f, -20.0f,  20.0f), WHITE, make_v2(0.0f, 1.0f) },
-        { make_v3(-20.0f,  20.0f,  20.0f), WHITE, make_v2(1.0f, 0.0f) },
-        { make_v3( 20.0f,  20.0f,  20.0f), WHITE, make_v2(1.0f, 1.0f) },
+        { make_v3(-20.0f, -20.0f,  20.0f), linear_color, make_v2(0.0f, 0.0f) },
+        { make_v3( 20.0f, -20.0f,  20.0f), linear_color, make_v2(0.0f, 1.0f) },
+        { make_v3(-20.0f,  20.0f,  20.0f), linear_color, make_v2(1.0f, 0.0f) },
+        { make_v3( 20.0f,  20.0f,  20.0f), linear_color, make_v2(1.0f, 1.0f) },
 
-        { make_v3(-20.0f, -20.0f, -20.0f), WHITE, make_v2(0.0f, 0.0f) },
-        { make_v3(-20.0f,  20.0f, -20.0f), WHITE, make_v2(0.0f, 1.0f) },
-        { make_v3( 20.0f, -20.0f, -20.0f), WHITE, make_v2(1.0f, 0.0f) },
-        { make_v3( 20.0f,  20.0f, -20.0f), WHITE, make_v2(1.0f, 1.0f) },
+        { make_v3(-20.0f, -20.0f, -20.0f), linear_color, make_v2(0.0f, 0.0f) },
+        { make_v3(-20.0f,  20.0f, -20.0f), linear_color, make_v2(0.0f, 1.0f) },
+        { make_v3( 20.0f, -20.0f, -20.0f), linear_color, make_v2(1.0f, 0.0f) },
+        { make_v3( 20.0f,  20.0f, -20.0f), linear_color, make_v2(1.0f, 1.0f) },
 
-        { make_v3(-20.0f,  20.0f, -20.0f), WHITE, make_v2(0.0f, 0.0f) },
-        { make_v3(-20.0f,  20.0f,  20.0f), WHITE, make_v2(0.0f, 1.0f) },
-        { make_v3( 20.0f,  20.0f, -20.0f), WHITE, make_v2(1.0f, 0.0f) },
-        { make_v3( 20.0f,  20.0f,  20.0f), WHITE, make_v2(1.0f, 1.0f) },
+        { make_v3(-20.0f,  20.0f, -20.0f), linear_color, make_v2(0.0f, 0.0f) },
+        { make_v3(-20.0f,  20.0f,  20.0f), linear_color, make_v2(0.0f, 1.0f) },
+        { make_v3( 20.0f,  20.0f, -20.0f), linear_color, make_v2(1.0f, 0.0f) },
+        { make_v3( 20.0f,  20.0f,  20.0f), linear_color, make_v2(1.0f, 1.0f) },
 
-        { make_v3(-20.0f, -20.0f, -20.0f), WHITE, make_v2(0.0f, 0.0f) },
-        { make_v3( 20.0f, -20.0f, -20.0f), WHITE, make_v2(0.0f, 1.0f) },
-        { make_v3(-20.0f, -20.0f,  20.0f), WHITE, make_v2(1.0f, 0.0f) },
-        { make_v3( 20.0f, -20.0f,  20.0f), WHITE, make_v2(1.0f, 1.0f) },
+        { make_v3(-20.0f, -20.0f, -20.0f), linear_color, make_v2(0.0f, 0.0f) },
+        { make_v3( 20.0f, -20.0f, -20.0f), linear_color, make_v2(0.0f, 1.0f) },
+        { make_v3(-20.0f, -20.0f,  20.0f), linear_color, make_v2(1.0f, 0.0f) },
+        { make_v3( 20.0f, -20.0f,  20.0f), linear_color, make_v2(1.0f, 1.0f) },
 
-        { make_v3( 20.0f, -20.0f, -20.0f), WHITE, make_v2(0.0f, 0.0f) },
-        { make_v3( 20.0f,  20.0f, -20.0f), WHITE, make_v2(0.0f, 1.0f) },
-        { make_v3( 20.0f, -20.0f,  20.0f), WHITE, make_v2(1.0f, 0.0f) },
-        { make_v3( 20.0f,  20.0f,  20.0f), WHITE, make_v2(1.0f, 1.0f) },
+        { make_v3( 20.0f, -20.0f, -20.0f), linear_color, make_v2(0.0f, 0.0f) },
+        { make_v3( 20.0f,  20.0f, -20.0f), linear_color, make_v2(0.0f, 1.0f) },
+        { make_v3( 20.0f, -20.0f,  20.0f), linear_color, make_v2(1.0f, 0.0f) },
+        { make_v3( 20.0f,  20.0f,  20.0f), linear_color, make_v2(1.0f, 1.0f) },
 
-        { make_v3(-20.0f, -20.0f, -20.0f), WHITE, make_v2(0.0f, 0.0f) },
-        { make_v3(-20.0f, -20.0f,  20.0f), WHITE, make_v2(0.0f, 1.0f) },
-        { make_v3(-20.0f,  20.0f, -20.0f), WHITE, make_v2(1.0f, 0.0f) },
-        { make_v3(-20.0f,  20.0f,  20.0f), WHITE, make_v2(1.0f, 1.0f) },
+        { make_v3(-20.0f, -20.0f, -20.0f), linear_color, make_v2(0.0f, 0.0f) },
+        { make_v3(-20.0f, -20.0f,  20.0f), linear_color, make_v2(0.0f, 1.0f) },
+        { make_v3(-20.0f,  20.0f, -20.0f), linear_color, make_v2(1.0f, 0.0f) },
+        { make_v3(-20.0f,  20.0f,  20.0f), linear_color, make_v2(1.0f, 1.0f) },
     };
 
     static u32 indices[] = {

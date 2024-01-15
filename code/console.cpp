@@ -39,7 +39,8 @@ init_console(Arena* arena){
 
     // init and load fonts
     bool succeed;
-    succeed = load_font_ttf(arena, str8_literal("fonts/consola.ttf"), &console.input_font, 24);
+    succeed = load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), &console.input_font, 24);
+    //succeed = load_font_ttf(arena, str8_literal("fonts/consola.ttf"), &console.input_font, 24);
     assert(succeed);
 
     succeed = load_font_ttf(arena, str8_literal("fonts/Inconsolata-Regular.ttf"), &console.output_font, 24);
@@ -104,6 +105,7 @@ input_add_char(u8 c){
             stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
             console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
             console.cursor_rect.x1 += ((f32)advance_width * console.input_font.scale);
+            console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
 
             end_scratch(scratch);
         }
@@ -115,6 +117,7 @@ input_add_char(u8 c){
             stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
             console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
             console.cursor_rect.x1 += ((f32)advance_width * console.input_font.scale);
+            console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
         }
     }
 }
@@ -150,6 +153,7 @@ input_remove_char(){
             stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
             console.cursor_rect.x0 -= ((f32)advance_width * console.input_font.scale);
             console.cursor_rect.x1 -= ((f32)advance_width * console.input_font.scale);
+            console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
 
             end_scratch(scratch);
         }
@@ -161,6 +165,7 @@ input_remove_char(){
             stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
             console.cursor_rect.x0 -= ((f32)advance_width * console.input_font.scale);
             console.cursor_rect.x1 -= ((f32)advance_width * console.input_font.scale);
+            console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
         }
     }
 }
@@ -250,6 +255,7 @@ handle_console_event(Event event){
                     stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
                     console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
                     console.cursor_rect.x1 += ((f32)advance_width * console.input_font.scale);
+                    console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
                     console.cursor_index++;
                 }
             }
@@ -260,6 +266,7 @@ handle_console_event(Event event){
                     stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
                     console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
                     console.cursor_rect.x1 += ((f32)advance_width * console.input_font.scale);
+                    console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
                     console.cursor_index++;
                 }
             }
@@ -270,7 +277,8 @@ handle_console_event(Event event){
                     s32 advance_width, lsb;
                     stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
                     console.cursor_rect.x0 -= ((f32)advance_width * console.input_font.scale);
-                    console.cursor_rect.x1 -= ((f32)advance_width * console.input_font.scale);
+                    //console.cursor_rect.x1 -= ((f32)advance_width * console.input_font.scale);
+                    console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
                 }
             }
             if(event.keycode == ARROW_UP){

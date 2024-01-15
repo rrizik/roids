@@ -137,10 +137,11 @@ static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
 static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
 static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
 static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
+
+static RGBA CONSOLE_INPUT_COLOR = {20/255.0f, 20/255.0f, 20/255.0f, 1.0f};
 static RGBA CONSOLE_BACKGROUND_COLOR = {29/255.0f, 29/255.0f, 29/255.0f, 1.0f};
-static RGBA CONSOLE_INPUT_COLOR = {18/255.0f, 18/255.0f, 18/255.0f, 1.0f};
-static RGBA CONSOLE_CURSOR_COLOR = {125/255.0f, 125/255.0f, 125/255.0f, 1.0f};
-static RGBA CONSOLE_TEXT_COLOR = {200/255.0f, 160/255.0f, 120/255.0f, 1.0f};
+static RGBA CONSOLE_TEXT_COLOR = {215/255.0f, 175/255.0f, 135/255.0f, 1.0f};
+static RGBA CONSOLE_CURSOR_COLOR = {226/255.0f, 226/255.0f, 226/255.0f, 1.0f};
 static RGBA CONSOLE_HISTORY_COLOR = {125/255.0f, 125/255.0f, 125/255.0f, 1.0f};
 
 static void d3d_init_debug_stuff();
