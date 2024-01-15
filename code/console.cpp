@@ -2,14 +2,19 @@
 #define CONSOLE_CPP
 
 static void
-init_console(Arena* arena){
-    //note: everything is positioned relative to the output_rect
+init_console(Arena* arena){ //note: everything is positioned relative to the output_rect
     console.state = CLOSED;
+
+    // init and load fonts
+    bool succeed;
+    succeed = load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), &console.input_font, 24);
+    assert(succeed);
+    succeed = load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), &console.output_font, 24);
+    assert(succeed);
 
     // some size constraints
     input_height  = 28;
     cursor_height = 24;
-    cursor_width  = 10;
     cursor_vertical_padding = 2;
 
     // how much/fast to open
@@ -19,35 +24,26 @@ init_console(Arena* arena){
     y_open     = .7f;
     y_open_big = .2f;
 
+    // rect initialization
     f32 x0 = 0;
     f32 x1 = (f32)resolution.w;
     f32 y0 = (f32)resolution.h;
     f32 y1 = (f32)resolution.h;
     console.output_rect = make_rect(x0, y0, x1, y1);
     console.input_rect  = make_rect(x0, y0, x1, y1 + input_height);
-    console.cursor_rect = make_rect(x0 + 25, y0 + cursor_vertical_padding, x0 + 25 + cursor_width, y0 + cursor_height);
+    console.cursor_rect = make_rect(x0 + 25, y0 + cursor_vertical_padding, 0, y0 + cursor_height);
+    console_cursor_update_width();
     console.history_pos = make_v2(x0 + 10, y0 + 40);
 
-    prefix_char = GREATER_THAN;
+    // input prefix
+    input_prefix_char = GREATER_THAN;
 
     // some colors
-    console.output_background_color = CONSOLE_BACKGROUND_COLOR;
-    console.input_background_color = CONSOLE_INPUT_COLOR;
-    console.input_color = CONSOLE_TEXT_COLOR;
-    console.output_color = CONSOLE_TEXT_COLOR;
+    console.output_background_color = CONSOLE_OUTPUT_BACKGROUND_COLOR;
+    console.input_background_color = CONSOLE_INPUT_BACKGROUND_COLOR;
+    console.input_color = CONSOLE_TEXT_INPUT_COLOR;
+    console.output_color = CONSOLE_TEXT_OUTPUT_COLOR;
     console.cursor_color = CONSOLE_CURSOR_COLOR;
-
-    // init and load fonts
-    bool succeed;
-    succeed = load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), &console.input_font, 24);
-    //succeed = load_font_ttf(arena, str8_literal("fonts/consola.ttf"), &console.input_font, 24);
-    assert(succeed);
-
-    succeed = load_font_ttf(arena, str8_literal("fonts/Inconsolata-Regular.ttf"), &console.output_font, 24);
-    assert(succeed);
-
-    succeed = load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), &console.command_history_font, 24);
-    assert(succeed);
 }
 
 static bool
@@ -63,7 +59,6 @@ console_is_visible(){
 static void
 console_cursor_reset(){
     console.cursor_rect.x0 = console.output_rect.x0 + 25;
-    console.cursor_rect.x1 = console.output_rect.x0 + 25 + cursor_width;
     console.cursor_index = 0;
 }
 
@@ -115,27 +110,18 @@ input_add_char(u8 c){
             console.cursor_index++;
             console.input.count++;
 
-            s32 advance_width, lsb;
-            stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
-            console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
-            console_cursor_update_width();
-
             end_scratch(scratch);
         }
         else{
             console.input.array[console.input.count++] = c;
             console.cursor_index++;
-
-            s32 advance_width, lsb;
-            stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
-            console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
-            console_cursor_update_width();
         }
     }
 }
 
-static void
+static u8
 input_remove_char(){
+    u8 c = 0;
     if(console.input.count > 0 && console.cursor_index > 0){
         if(console.cursor_index < console.input.count){
             ScratchArena scratch = begin_scratch(0);
@@ -152,7 +138,7 @@ input_remove_char(){
             mem_copy(right.str, console.input.array + console.cursor_index, right.size);
 
             console.input.count--;
-            u8 c = console.input.array[--console.cursor_index];
+            c = console.input.array[--console.cursor_index];
             u32 index = 0;
             for(u32 i=0; i < left.size; ++i){
                 console.input.array[index++] = left.str[i];
@@ -161,33 +147,21 @@ input_remove_char(){
                 console.input.array[index++] = right.str[i];
             }
 
-            s32 advance_width, lsb;
-            stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
-            console.cursor_rect.x0 -= ((f32)advance_width * console.input_font.scale);
-            console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
-
             end_scratch(scratch);
         }
         else{
-            u8 c = console.input.array[--console.input.count];
+            c = console.input.array[--console.input.count];
             console.cursor_index--;
-
-            s32 advance_width, lsb;
-            stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
-            console.cursor_rect.x0 -= ((f32)advance_width * console.input_font.scale);
-            console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
         }
     }
+    return(c);
 }
 
 static void
 draw_console(){
-    Rect output = rect_pixel_to_clip(console.output_rect, resolution);
-    Rect input = rect_pixel_to_clip(console.input_rect, resolution);
-    Rect cursor = rect_pixel_to_clip(console.cursor_rect, resolution);
-    d3d_draw_quad(output.x0, output.y0, output.x1, output.y1, console.output_background_color);
-    d3d_draw_quad(input.x0, input.y0, input.x1, input.y1, console.input_background_color);
-    d3d_draw_quad(cursor.x0, cursor.y0, cursor.x1, cursor.y1, console.cursor_color);
+    d3d_draw_quad(console.output_rect, console.output_background_color);
+    d3d_draw_quad(console.input_rect, console.input_background_color);
+    d3d_draw_quad(console.cursor_rect, console.cursor_color);
 
     // draw input string
     d3d_draw_text(console.input_font, console.input_rect.x0 + 10, (f32)resolution.h - (console.input_rect.y0 + 6), console.input_color, str8_literal(">"));
@@ -247,10 +221,16 @@ update_console(){
 }
 
 static bool
-handle_console_event(Event event){
+handle_console_events(Event event){
     if(event.type == TEXT_INPUT){
         if(event.keycode != '`' && event.keycode != '~'){
-            input_add_char((u8)event.keycode);
+            u8 c = (u8)event.keycode;
+            input_add_char(c);
+
+            s32 advance_width, lsb;
+            stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
+            console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
+            console_cursor_update_width();
             return(true);
         }
     }
@@ -266,7 +246,6 @@ handle_console_event(Event event){
                     s32 advance_width, lsb;
                     stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
                     console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
-                    console.cursor_rect.x1 = console.cursor_rect.x0 + ((f32)advance_width * console.input_font.scale);
                     console.cursor_index++;
 
                     console_cursor_update_width();
@@ -293,35 +272,53 @@ handle_console_event(Event event){
                     console_cursor_update_width();
                 }
             }
+            if(event.keycode == BACKSPACE){
+                u8 c = input_remove_char();
+                s32 advance_width, lsb;
+                stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
+                console.cursor_rect.x0 -= ((f32)advance_width * console.input_font.scale);
+                console_cursor_update_width();
+                return(true);
+            }
             if(event.keycode == ARROW_UP){
-                if(console.input_history_at < console.input_history.count){
+                if(console.input_history_index < console.input_history.count){
                     console_cursor_reset();
+                    console_cursor_update_width();
+
                     console_clear_input();
-                    console.input_history_at++;
-                    String8 command = console.input_history.array[console.input_history.count - console.input_history_at];
+                    console.input_history_index++;
+                    String8 command = console.input_history.array[console.input_history.count - console.input_history_index];
                     for(u32 i=0; i < command.size; ++i){
                         u8 c = command.str[i];
                         input_add_char(c);
+
+                        s32 advance_width, lsb;
+                        stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
+                        console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
+                        console_cursor_update_width();
                     }
                     console.input.count = (u32)command.size;
                 }
             }
             if(event.keycode == ARROW_DOWN){
-                if(console.input_history_at > 0){
+                if(console.input_history_index > 0){
                     console_cursor_reset();
+                    console_cursor_update_width();
+
                     console_clear_input();
-                    console.input_history_at--;
-                    String8 command = console.input_history.array[console.input_history.count - console.input_history_at];
+                    console.input_history_index--;
+                    String8 command = console.input_history.array[console.input_history.count - console.input_history_index];
                     for(u32 i=0; i < command.size; ++i){
                         u8 c = command.str[i];
                         input_add_char(c);
+
+                        s32 advance_width, lsb;
+                        stbtt_GetCodepointHMetrics(&console.input_font.info, c, &advance_width, &lsb);
+                        console.cursor_rect.x0 += ((f32)advance_width * console.input_font.scale);
+                        console_cursor_update_width();
                     }
                     console.input.count = (u32)command.size;
                 }
-            }
-            if(event.keycode == BACKSPACE){
-                input_remove_char();
-                return(true);
             }
             if(event.keycode == ENTER){
                 u8* line_u8 = (u8*)push_array(global_arena, u8, console.input.count + 1);
@@ -337,8 +334,10 @@ handle_console_event(Event event){
                 run_command(line_str8);
 
                 console_cursor_reset();
+                console_cursor_update_width();
+
                 console_clear_input();
-                console.input_history_at = 0;
+                console.input_history_index = 0;
 
                 return(true);
             }

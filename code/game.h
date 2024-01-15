@@ -368,14 +368,10 @@ deserialize_data(PermanentMemory* pm, String8 filename){
 }
 
 static bool
-handle_global_event(Event event){
-    if(event.type == MOUSE){
-        controller.mouse.pos = event.mouse_pos;
-        controller.mouse.dx = event.mouse_dx;
-        controller.mouse.dy = event.mouse_dy;
-    }
+handle_global_events(Event event){
     if(event.type == QUIT){
         should_quit = true;
+        return(true);
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
@@ -400,6 +396,21 @@ handle_global_event(Event event){
                 }
                 return(true);
             }
+        }
+    }
+    return(false);
+}
+
+static bool
+handle_camera_events(Event event){
+    if(event.type == MOUSE){
+        controller.mouse.pos = event.mouse_pos;
+        controller.mouse.dx = event.mouse_dx;
+        controller.mouse.dy = event.mouse_dy;
+        return(true);
+    }
+    if(event.type == KEYBOARD){
+        if(event.key_pressed){
             // TODO: log to screen these changes
             if(event.keycode == ONE){
                 if(pm->game_mode != GameMode_FirstPerson){
@@ -430,7 +441,6 @@ handle_global_event(Event event){
     }
     return(false);
 }
-
 
 static bool
 handle_controller_events(Event event){
@@ -614,12 +624,13 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         Event event = events_next(events);
 
         bool handled;
-        handled = handle_global_event(event);
+        handled = handle_global_events(event);
 
         if(console_is_open()){
-            handled = handle_console_event(event);
+            handled = handle_console_events(event);
         }
         else{
+            handled = handle_camera_events(event);
             handled = handle_controller_events(event);
         }
     }

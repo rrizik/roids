@@ -27,6 +27,7 @@ static RGBA
 srgb_to_linear(RGBA value){
     RGBA result = {0};
     result.a = value.a;
+
     if(value.r < 0.04045f){
         result.r = value.r / 12.92f;
     }
@@ -58,21 +59,22 @@ d3d_clear_color(RGBA color){
 }
 
 static void
-d3d_draw_quad(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color){
-    d3d_draw_quad_textured(x0, y0, x1, y1, color, &white_shader_resource);
+d3d_draw_quad(Rect rect, RGBA color){
+    d3d_draw_quad_textured(rect, color, &white_shader_resource);
 }
 
 // todo: pass in optional UV (x, y) that is added to each UV xy
 static void
-d3d_draw_quad_textured(f32 x0, f32 y0, f32 x1, f32 y1, RGBA color, ID3D11ShaderResourceView** shader_resource){
+d3d_draw_quad_textured(Rect rect, RGBA color, ID3D11ShaderResourceView** shader_resource){
     begin_timed_function();
 
+    Rect clip_rect = rect_clip_from_pixel(rect, resolution);
     RGBA linear_color = srgb_to_linear(color);
     Vertex vertices[] = {
-        { make_v3(x0, y0, 0.0f), linear_color, make_v2(0.0f, 0.0f)},
-        { make_v3(x1, y0, 0.0f), linear_color, make_v2(1.0f, 0.0f)},
-        { make_v3(x0, y1, 0.0f), linear_color, make_v2(0.0f, 1.0f)},
-        { make_v3(x1, y1, 0.0f), linear_color, make_v2(1.0f, 1.0f)},
+        { make_v3(clip_rect.x0, clip_rect.y0, 0.0f), linear_color, make_v2(0.0f, 0.0f)},
+        { make_v3(clip_rect.x1, clip_rect.y0, 0.0f), linear_color, make_v2(1.0f, 0.0f)},
+        { make_v3(clip_rect.x0, clip_rect.y1, 0.0f), linear_color, make_v2(0.0f, 1.0f)},
+        { make_v3(clip_rect.x1, clip_rect.y1, 0.0f), linear_color, make_v2(1.0f, 1.0f)},
     };
 
     s32 indices[] = {
@@ -152,7 +154,7 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
         u8* character = text.str + i;
         stbtt_GetPackedQuad(font.packed_chars, font.texture_w, font.texture_h, (*character) - font.first_char, &x, &y, &quad, 1);
         Rect rect = make_rect(quad.x0, quad.y0, quad.x1, quad.y1);
-        Rect clip_rect = rect_pixel_to_clip_inverted(rect, resolution);
+        Rect clip_rect = rect_clip_from_pixel_inverted(rect, resolution);
 
         *vertex++ = { make_v3(clip_rect.x0, clip_rect.y1, 0.0f), linear_color, make_v2(quad.s0, quad.t1) };
         *vertex++ = { make_v3(clip_rect.x1, clip_rect.y1, 0.0f), linear_color, make_v2(quad.s1, quad.t1) };

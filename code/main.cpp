@@ -38,7 +38,6 @@ win32_window_create(const wchar* window_name, s32 width, s32 height){
     resolution.w = width;
     resolution.h = height;
 
-
     result.width = width;
     result.height = height;
     result.aspect_ratio = (f32)width / (f32)height;
@@ -176,12 +175,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             d3d_draw_textured_cube_instanced(&image_shader_resource);
 
 
-            d3d_draw_quad_textured(0.0f, 0.0f, 0.5f, 0.5f, RED, &white_shader_resource);
-            d3d_draw_quad_textured(0.0f, 0.0f, 0.4f, 0.4f, BLUE, &ship_shader_resource);
-            d3d_draw_quad_textured(0.0f, 0.0f, 0.2f, 0.2f, GREEN, &white_shader_resource);
-            d3d_draw_quad_textured(-0.5f, -0.5f, 0.0f, 0.0f, RED, &ship_shader_resource);
-            d3d_draw_quad_textured(-0.5f, -0.5f, -0.2f, -0.2f, BLUE, &ship_shader_resource);
-            d3d_draw_quad_textured(-0.5f, -0.5f, -0.4f, -0.4f, GREEN, &ship_shader_resource);
+            d3d_draw_quad_textured(make_rect(400, 400, 700, 700), RED, &white_shader_resource);
+            d3d_draw_quad_textured(make_rect(400, 400, 600, 600), BLUE, &ship_shader_resource);
+            d3d_draw_quad_textured(make_rect(400, 400, 500, 500), GREEN, &white_shader_resource);
+            d3d_draw_quad_textured(make_rect(50, 50, 500, 500), RED, &ship_shader_resource);
+            d3d_draw_quad_textured(make_rect(50, 50, 400, 400), BLUE, &ship_shader_resource);
+            d3d_draw_quad_textured(make_rect(50, 50, 300, 300), GREEN, &ship_shader_resource);
             if(console_is_visible()){
                 draw_console();
             }

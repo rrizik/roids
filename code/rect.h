@@ -37,7 +37,7 @@ make_rect(v2 min, v2 max){
 }
 
 static Rect
-rect_clip_to_pixel(Rect r, v2s32 res){
+rect_pixel_from_clip(Rect r, v2s32 res){
     Rect result = {
         ((r.x0  + 1.0f) / 2.0f) * (f32)res.w,
         ((r.y0  + 1.0f) / 2.0f) * (f32)res.h,
@@ -48,7 +48,7 @@ rect_clip_to_pixel(Rect r, v2s32 res){
 }
 
 static Rect
-rect_pixel_to_clip(Rect r, v2s32 res){
+rect_clip_from_pixel(Rect r, v2s32 res){
     Rect result = {
         ((r.x0 / (f32)res.w) * 2.0f) - 1.0f,
         ((r.y0 / (f32)res.h) * 2.0f) - 1.0f,
@@ -59,7 +59,7 @@ rect_pixel_to_clip(Rect r, v2s32 res){
 }
 
 static Rect
-rect_pixel_to_clip_inverted(Rect r, v2s32 res){
+rect_clip_from_pixel_inverted(Rect r, v2s32 res){
     Rect result = {
        (((r.x0 / (f32)res.w) * 2.0f) - 1.0f),
       -(((r.y0 / (f32)res.h) * 2.0f) - 1.0f),
