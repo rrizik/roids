@@ -100,16 +100,22 @@ global D3D11_INPUT_ELEMENT_DESC input_layout_2dui_textured[] = {
         {"TEX",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 };
 
-struct ConstantBuffer{
+typedef struct ConstantBuffer{
     XMMATRIX view;
     XMMATRIX projection;
-};
+} ConstantBuffer;
 
 typedef struct InstanceData {
     XMMATRIX transform;
 } InstanceData;
 global u32 instance_count = 3;
 global InstanceData cube_instances[3];
+
+typedef struct Transform2D{
+    DirectX::XMFLOAT2 translate;
+    float rotate;
+    DirectX::XMFLOAT2 scale;
+} Transform2D;
 
 typedef struct Texture2D{
     ID3D11ShaderResourceView* view;

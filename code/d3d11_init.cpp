@@ -368,12 +368,15 @@ d3d_release(){
     if(circle_shader_resource) circle_shader_resource->Release();
     if(bullet_shader_resource) bullet_shader_resource->Release();
     if(test_shader_resource)   test_shader_resource->Release();
+    if(white_shader_resource) white_shader_resource->Release();
 
+#ifdef DEBUG
     IDXGIDebug1* pDxgiDebug;
     if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&pDxgiDebug)))) {
         pDxgiDebug->ReportLiveObjects(DXGI_DEBUG_ALL, DXGI_DEBUG_RLO_ALL);
         pDxgiDebug->Release();
     }
+#endif
 }
 
 

@@ -11,9 +11,9 @@ static bool load_font_ttf(Arena* arena, String8 path, Font* font, f32 size){
     if(!stbtt_InitFont(&font->info, (u8*)file_data.str, 0)){
         return(false);
     }
+    font->scale = stbtt_ScaleForPixelHeight(&font->info, size);
     stbtt_GetFontVMetrics(&font->info, &font->ascent, &font->descent, &font->line_gap);
     font->vertical_offset = font->ascent - font->descent + font->line_gap;
-    font->scale = stbtt_ScaleForPixelHeight(&font->info, size);
 
     font->texture_w = 1024;
     font->texture_h = 1024;
@@ -74,6 +74,27 @@ static bool load_font_ttf(Arena* arena, String8 path, Font* font, f32 size){
     os_file_close(file);
     end_scratch(scratch);
     return(true);
+}
+
+static f32
+font_char_width(Font font, u8 c){
+    f32 result = 0;
+    s32 advance_width, lsb;
+    stbtt_GetCodepointHMetrics(&font.info, c, &advance_width, &lsb);
+    result = (f32)advance_width * font.scale;
+    return(result);
+}
+
+static f32
+font_string_width(Font font, String8 str){
+    f32 result = 0;
+    s32 advance_width, lsb;
+    for(s32 i=0; i < str.size; ++i){
+        u8 c = str.str[i];
+        stbtt_GetCodepointHMetrics(&font.info, c, &advance_width, &lsb);
+        result += (f32)advance_width * font.scale;
+    }
+    return(result);
 }
 
 #endif

@@ -319,19 +319,23 @@ handle_global_events(Event event){
                 should_quit = true;
             }
             if(event.keycode == TILDE && !event.repeat){
-                console_t = 0;
+                //console_t = 0;
 
                 if(event.shift_pressed){
                     if(console.state == OPEN_BIG){
-                        console.state = CLOSED;
+                        console_set_state(CLOSED);
                     }
-                    else{ console.state = OPEN_BIG; }
+                    else{
+                        console_set_state(OPEN_BIG);
+                    }
                 }
                 else{
                     if(console.state == OPEN || console.state == OPEN_BIG){
-                        console.state = CLOSED;
+                        console_set_state(CLOSED);
                     }
-                    else{ console.state = OPEN; }
+                    else{
+                        console_set_state(OPEN);
+                    }
 
                 }
                 return(true);
@@ -531,23 +535,6 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         first = add_cube(pm, get_bitmap(&tm->assets, AssetID_Test), make_v3(40.0f, 0.0f, 200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.5f, 0.5f, 0.5f), 120);
         second = add_player(pm, get_bitmap(&tm->assets, AssetID_Ship), make_v3(-40.0f, 0.0f, 200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
         third = add_player(pm, get_bitmap(&tm->assets, AssetID_Ship), make_v3(0.0f, 0.0f, -200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
-        //Inconsolata-Regular
-        Bitmap inconsolate[128];
-
-        //String8 incon = str8_literal("MatrixSans-Regular.ttf");
-        //String8 incon = str8_literal("MatrixSans-Video.ttf");
-        //String8 incon = str8_literal("Rock Jack Writing.ttf");
-        //String8 incon = str8_literal("Inconsolata-Regular.ttf");
-        String8 roboto = str8_literal("fonts\\Roboto-Regular.ttf");
-        String8 golos = str8_literal("fonts\\GolosText-Regular.ttf");
-        String8 arial = str8_literal("fonts\\arial.ttf");
-        String8 incon = str8_literal("fonts\\consola.ttf");
-        //global_font.name = str8_literal("fonts\\GolosText-Regular.ttf");
-        global_font.size = 24;
-        //global_font.color = WHITE;
-        bool succeed = load_font_ttf(&pm->arena, str8_literal("fonts\\GolosText-Regular.ttf"), &global_font, 24);
-        assert(succeed);
-        //load_font_glyphs(&pm->arena, &global_font, RED, 24);
 
         init_console(&pm->arena);
         init_commands();
@@ -660,7 +647,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     //    ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * (f32)clock->dt;
     //    //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
     //}
-    update_console();
+    console_update_openess();
 
     XMVECTOR camera_pos = {camera.pos.x, camera.pos.y, camera.pos.z};
     XMVECTOR camera_forward = {camera.forward.x, camera.forward.y, camera.forward.z};
@@ -670,15 +657,11 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
 
     D3D11_MAPPED_SUBRESOURCE mapped_subresource;
     d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
-
     ConstantBuffer* constants = (ConstantBuffer*)mapped_subresource.pData;
     constants->view = view_matrix;
     constants->projection = perspective_matrix;
     d3d_context->Unmap(d3d_constant_buffer, 0);
-
     d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
-
-
 
     f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
     u32 c = array_count(pm->entities) - 1;
@@ -712,49 +695,6 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
             } break;
         }
     }
-
-    if(console_is_visible()){
-        //draw_console();
-        //push_console(tm->render_command_arena);
-    }
-    String8 text = str8_literal("get! This is my program.\nIt renders fonts.\nHere is some dummy text 123.\nMore Dummy Text ONETWOTHREE\nEND OF DUMMY_TEXT_TEST.H OK");
-    //String8 text   = str8_literal("g");
-    String8 strings[] = {
-        str8_literal("Console:"),
-        str8_literal("  - Cursor - left/right movement. up/down through history. home/end."),
-        str8_literal("  - Editing - start, middle, end of cursor pos"),
-        str8_literal("  - Commands - console commands like (help, exit, add, save, load)"),
-        str8_literal("                           - save/load will serialize/deserialize entity data"),
-    };
-    //push_text_array(render_command_arena, make_v2(((f32)resolution.x/2.0f) - 50, ((f32)resolution.h/2.0f) -250), &global_font, strings, array_count(strings));
-    //push_text(render_command_arena, make_v2(100, 200), &global_font, text);
-
-    //String8 one   = str8_literal("get! This is my program.");
-    //String8 two   = str8_literal("It renders fonts.");
-    //String8 three = str8_literal("Here is some dummy text 123.");
-    //String8 four  = str8_literal("More Dummy Text ONETWOTHREE");
-    //String8 five  = str8_literal("END OF DUMMY_TEXT_TEST.H OK");
-    //push_text(render_command_arena, make_v2(0, resolution.h - 50), &global_font, one);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 100), &global_font, two);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 150), &global_font, three);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 200), &global_font, four);
-    //push_text(render_command_arena, make_v2(0, resolution.h - 250), &global_font, five);
-    //push_segment(render_command_arena, make_v2(0, resolution.h - 50), make_v2(700, resolution.h - 50), RED);
-    //push_segment(render_command_arena, make_v2(0, resolution.h - 100), make_v2(700, resolution.h - 100), RED);
-    //push_segment(render_command_arena, make_v2(0, resolution.h - 150), make_v2(700, resolution.h - 150), RED);
-    //push_segment(render_command_arena, make_v2(0, resolution.h - 200), make_v2(700, resolution.h - 200), RED);
-    //push_segment(render_command_arena, make_v2(0, resolution.h - 250), make_v2(700, resolution.h - 250), RED);
-
-
-    //draw_pixel(render_buffer, make_v2(1, 1), RED);
-    //draw_pixel(render_buffer, make_v2(0, 0), RED);
-    //push_rect(render_command_arena, make_rect(20, 20, render_buffer->width + 10, render_buffer->height + 10), RED);
-    //push_rect(render_command_arena, Rect rect, RGBA color, s32 border_size = 0, RGBA border_color = {0, 0, 0, 0}){
-    //draw_rect_slow(render_buffer, make_v2(50, 50), make_v2(100, 0), make_v2(0, 100), GREEN);
-    //draw_rect_slow2(render_buffer, make_v2(50, 50), make_v2(100, 0), make_v2(0, 100), YELLOW);
-    String8 s = str8_literal("Rafik hahahah LOLOLOLOL");
-    //draw_string(render_buffer, make_v2(500, 300), s, 0xF8DB5E);
-    //draw_bitmap(render_buffer, make_v2(100, 100), &pm->tree);
 
     clear_controller_pressed(&controller);
     arena_free(&tm->arena);

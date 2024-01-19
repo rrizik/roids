@@ -63,7 +63,7 @@ d3d_draw_quad(Rect rect, RGBA color){
     d3d_draw_quad_textured(rect, color, &white_shader_resource);
 }
 
-// todo: pass in optional UV (x, y) that is added to each UV xy
+// todo: pass in optional UV (x, y) that is added to each UV xy. Look at JB console videos as example
 static void
 d3d_draw_quad_textured(Rect rect, RGBA color, ID3D11ShaderResourceView** shader_resource){
     begin_timed_function();
@@ -185,7 +185,6 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
     d3d_context->PSSetShaderResources(0, 1, &font.atlas.view);
-
 
     D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
     depth_stencil_desc.DepthEnable = false;

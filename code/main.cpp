@@ -164,11 +164,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             clear_controller_pressed(&controller);
         }
 
+        //if(console.state == CLOSED) { print("CLOSED\n"); }
+        //if(console.state == OPEN) { print("OPEN\n"); }
+        //if(console.state == OPEN_BIG) { print("OPEN_BIG\n"); }
         // draw everything
         if(memory.initialized){
             //draw_everything();
             d3d_clear_color(BACKGROUND_COLOR);
-
 
             String8 text = str8_literal("! \"#$%'()*+,-x/0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghujklmnopqrstuvwxyz{|}~");
             f32 ypos = 0.2f * (f32)resolution.h;
@@ -176,13 +178,15 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
             d3d_draw_textured_cube_instanced(&image_shader_resource);
 
-
-            d3d_draw_quad_textured(make_rect(400, 400, 700, 700), RED, &white_shader_resource);
-            d3d_draw_quad_textured(make_rect(400, 400, 600, 600), BLUE, &ship_shader_resource);
-            d3d_draw_quad_textured(make_rect(400, 400, 500, 500), GREEN, &white_shader_resource);
-            d3d_draw_quad_textured(make_rect(50, 50, 500, 500), RED, &ship_shader_resource);
-            d3d_draw_quad_textured(make_rect(50, 50, 400, 400), BLUE, &ship_shader_resource);
-            d3d_draw_quad_textured(make_rect(50, 50, 300, 300), GREEN, &ship_shader_resource);
+            d3d_draw_quad_textured(make_rect(10, 10, 300, 300), GREEN, &white_shader_resource);
+            d3d_draw_quad_textured(make_rect(10, 10, 200, 200), RED, &white_shader_resource);
+            d3d_draw_quad_textured(make_rect(10, 10, 100, 100), BLUE, &white_shader_resource);
+            d3d_draw_quad_textured(make_rect(350, 10, 650, 300), GREEN, &ship_shader_resource);
+            d3d_draw_quad_textured(make_rect(350, 10, 550, 200), RED, &ship_shader_resource);
+            d3d_draw_quad_textured(make_rect(350, 10, 450, 100), WHITE, &ship_shader_resource);
+            d3d_draw_quad_textured(make_rect(700, 10, 1000, 300), GREEN, &white_shader_resource);
+            d3d_draw_quad_textured(make_rect(700, 10, 900, 200), RED, &ship_shader_resource);
+            d3d_draw_quad_textured(make_rect(700, 10, 800, 100), BLUE, &white_shader_resource);
             if(console_is_visible()){
                 draw_console();
             }
