@@ -68,7 +68,7 @@ static void
 d3d_draw_quad_textured(Rect rect, RGBA color, ID3D11ShaderResourceView** shader_resource){
     begin_timed_function();
 
-    Rect clip_rect = rect_clip_from_pixel(rect, resolution);
+    Rect clip_rect = rect_clip_from_pixel(rect, make_v2s32(window.width, window.height));
     RGBA linear_color = srgb_to_linear(color);
     Vertex vertices[] = {
         { make_v3(clip_rect.x0, clip_rect.y0, 0.0f), linear_color, make_v2(0.0f, 0.0f)},
@@ -154,7 +154,7 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
         u8* character = text.str + i;
         stbtt_GetPackedQuad(font.packed_chars, font.texture_w, font.texture_h, (*character) - font.first_char, &x, &y, &quad, 1);
         Rect rect = make_rect(quad.x0, quad.y0, quad.x1, quad.y1);
-        Rect clip_rect = rect_clip_from_pixel_inverted(rect, resolution);
+        Rect clip_rect = rect_clip_from_pixel_inverted(rect, make_v2s32(window.width, window.height));
 
         *vertex++ = { make_v3(clip_rect.x0, clip_rect.y1, 0.0f), linear_color, make_v2(quad.s0, quad.t1) };
         *vertex++ = { make_v3(clip_rect.x1, clip_rect.y1, 0.0f), linear_color, make_v2(quad.s1, quad.t1) };

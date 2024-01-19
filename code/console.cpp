@@ -5,11 +5,12 @@ static void
 init_console(Arena* arena){ //note: everything is positioned relative to the output_rect
     console.state = CLOSED;
 
-    // init and load fonts
+    // load fonts
     bool succeed;
     //succeed = load_font_ttf(arena, str8_literal("fonts/consola.ttf"), &console.font, 24);
     succeed = load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), &console.font, 24);
-    assert(succeed); // todo: replace assert with baked default font
+    if(!succeed) { } // incomplete: replace assert with baked default font
+    assert(succeed);
 
     // some size constraints
     console.text_left_pad = 10;
@@ -24,10 +25,16 @@ init_console(Arena* arena){ //note: everything is positioned relative to the out
 
     // some colors
     console.output_background_color = CONSOLE_OUTPUT_BACKGROUND_COLOR;
-    console.input_background_color = CONSOLE_INPUT_BACKGROUND_COLOR;
-    console.input_color = CONSOLE_TEXT_INPUT_COLOR;
+    console.input_background_color  = CONSOLE_INPUT_BACKGROUND_COLOR;
+    console.input_color  = CONSOLE_TEXT_INPUT_COLOR;
     console.output_color = CONSOLE_TEXT_OUTPUT_COLOR;
     console.cursor_color = CONSOLE_CURSOR_COLOR;
+
+    console.output_history_count = 0;
+    console.input_history_count = 0;
+    console.input_history_index = 0;
+    console.input_count = 0;
+    console.cursor_index = 0;
 }
 
 static bool
@@ -126,18 +133,18 @@ console_char_at_cursor(){
 }
 
 static void
-draw_console(){
+console_draw(){
     // rect setup
     Rect output_rect = {0};
     output_rect.x0 = 0;
-    output_rect.y0 = console.open_t * (f32)resolution.h;
-    output_rect.x1 = (f32)resolution.w;
-    output_rect.y1 = (f32)resolution.h;
+    output_rect.y0 = console.open_t * (f32)window.height;
+    output_rect.x1 = (f32)window.width;
+    output_rect.y1 = (f32)window.height;
 
     Rect input_rect = {0};
     input_rect.x0 = 0;
     input_rect.y0 = output_rect.y0 - (f32)console.font.vertical_offset * console.font.scale;
-    input_rect.x1 = (f32)resolution.w;
+    input_rect.x1 = (f32)window.width;
     input_rect.y1 = output_rect.y0;
 
     Rect cursor_rect = {0};
@@ -153,7 +160,7 @@ draw_console(){
     d3d_draw_quad(cursor_rect, console.cursor_color);
 
     // draw input
-    f32 input_pos_y = (f32)resolution.h - (input_rect.y0 - ((f32)console.font.descent * console.font.scale));
+    f32 input_pos_y = (f32)window.height - (input_rect.y0 - ((f32)console.font.descent * console.font.scale));
     d3d_draw_text(console.font, console.text_left_pad, input_pos_y, console.input_color, str8_literal(">"));
     if(console.input_count > 0){
         String8 input_str = str8(console.input, (u64)console.input_count);
@@ -162,9 +169,9 @@ draw_console(){
 
     // draw history in reverse order, but only if its on screen
     if(console.output_history_count > 0){
-        f32 output_pos_y = (f32)resolution.h - (output_rect.y0 - ((f32)console.font.descent * console.font.scale));
+        f32 output_pos_y = (f32)window.height - (output_rect.y0 - ((f32)console.font.descent * console.font.scale));
         for(s32 i=console.output_history_count-1; i >= 0; --i){
-            if(output_pos_y < (f32)resolution.h){
+            if(output_pos_y < (f32)window.height){
                 String8 next_string = console.output_history[i];
                 d3d_draw_text(console.font, console.text_left_pad, output_pos_y, console.output_color, next_string);
                 output_pos_y -= (f32)console.font.vertical_offset * console.font.scale;

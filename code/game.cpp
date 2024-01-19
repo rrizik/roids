@@ -516,7 +516,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         //Bitmap test_image1 = stb_load_image(pm->sprites_dir, test_str);
         //Bitmap test_image1 = load_bitmap(&pm->arena, pm->sprites_dir, test_str);
 
-		v2 origin = make_v2((f32)resolution.x/2, (f32)resolution.y/2);
+		v2 origin = make_v2((f32)window->width/2, (f32)window->height/2);
         v2 direction = make_v2(0, 1);
 		//v2 x_axis = 100.0f * make_v2(cos_f32(dir_to_rad(direction)), sin_f32(dir_to_rad(direction)));
 		v2 x_axis = make_v2(1, 1);

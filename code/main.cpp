@@ -61,8 +61,8 @@ win32_window_create(const wchar* window_name, s32 width, s32 height){
         return(result);
     }
 
-    resolution.w = width;
-    resolution.h = height;
+    //result.resolution.w = width;
+    //result.resolution.h = height;
 
     result.width = width;
     result.height = height;
@@ -95,7 +95,7 @@ static Bitmap test;
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
     begin_profiler();
 
-    Window window = win32_window_create(L"Roids", SCREEN_WIDTH, SCREEN_HEIGHT);
+    window = win32_window_create(L"Roids", SCREEN_WIDTH, SCREEN_HEIGHT);
     if(!window.handle){ return(0); }
 
     init_paths(global_arena);
@@ -173,7 +173,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             d3d_clear_color(BACKGROUND_COLOR);
 
             String8 text = str8_literal("! \"#$%'()*+,-x/0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghujklmnopqrstuvwxyz{|}~");
-            f32 ypos = 0.2f * (f32)resolution.h;
+            f32 ypos = 0.2f * (f32)window.height;
             d3d_draw_text(font, 10.0f, ypos, ORANGE, text);
 
             d3d_draw_textured_cube_instanced(&image_shader_resource);
@@ -188,7 +188,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             d3d_draw_quad_textured(make_rect(700, 10, 900, 200), RED, &ship_shader_resource);
             d3d_draw_quad_textured(make_rect(700, 10, 800, 100), BLUE, &white_shader_resource);
             if(console_is_visible()){
-                draw_console();
+                console_draw();
             }
         }
         d3d_present();
