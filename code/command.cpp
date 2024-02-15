@@ -65,7 +65,7 @@ command_saves(String8* args){
 }
 
 static void
-init_commands(){
+init_console_commands(){
     //add_command(str8_literal("load"), 1, 1, command_load);
     //add_command(str8_literal("save"), 1, 1, command_save);
     add_command(str8_literal("add"), 2, 2, command_add);

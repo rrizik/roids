@@ -200,6 +200,7 @@ d3d_init(Window window){
 
 	d3d_load_shader(str8_literal("shaders\\3d_shader.hlsl"), input_layout_3d, 7, &d3d_3d_vertex_shader, &d3d_3d_pixel_shader, &d3d_3d_input_layout);
 	d3d_load_shader(str8_literal("shaders\\2d_texture_shader.hlsl"), input_layout_2dui_textured, 3, &d3d_2d_textured_vertex_shader, &d3d_2d_textured_pixel_shader, &d3d_2d_textured_input_layout);
+	d3d_load_shader(str8_literal("shaders\\2d_quad_shader.hlsl"), il_2d_quad, 2, &d3d_2d_quad_vertex_shader, &d3d_2d_quad_pixel_shader, &d3d_2d_quad_input_layout);
 
     // ---------------------------------------------------------------------------------
     // Vertex Buffers
@@ -338,9 +339,9 @@ d3d_release(){
     if(d3d_3d_vertex_shader) d3d_3d_vertex_shader->Release();
     if(d3d_3d_pixel_shader)  d3d_3d_pixel_shader->Release();
     if(d3d_3d_input_layout)  d3d_3d_input_layout->Release();
-    if(d3d_2d_vertex_shader) d3d_2d_vertex_shader->Release();
-    if(d3d_2d_pixel_shader)  d3d_2d_pixel_shader->Release();
-    if(d3d_2d_input_layout)  d3d_2d_input_layout->Release();
+    if(d3d_2d_quad_vertex_shader) d3d_2d_quad_vertex_shader->Release();
+    if(d3d_2d_quad_pixel_shader)  d3d_2d_quad_pixel_shader->Release();
+    if(d3d_2d_quad_input_layout)  d3d_2d_quad_input_layout->Release();
     if(d3d_2d_textured_vertex_shader) d3d_2d_textured_vertex_shader->Release();
     if(d3d_2d_textured_pixel_shader)  d3d_2d_textured_pixel_shader->Release();
     if(d3d_2d_textured_input_layout)  d3d_2d_textured_input_layout->Release();

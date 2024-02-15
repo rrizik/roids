@@ -34,7 +34,7 @@ static Bitmap* get_bitmap(Assets* assets, AssetID id);
 
 //static ID3D11ShaderResourceView* get_shader_resource(Assets* assets, AssetID id);
 
-#define ENTITIES_MAX 100
+#define ENTITIES_MAX 4096
 typedef struct PermanentMemory{
     Arena arena;
     u32 game_mode;

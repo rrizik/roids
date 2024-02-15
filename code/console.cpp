@@ -120,66 +120,6 @@ input_remove_char(){
     return(c);
 }
 
-static u8
-console_char_at_cursor(){
-    u8 result = 0;
-    if(console.input_count == console.cursor_index){
-        result = 'a';
-    }
-    else{
-        result = console.input[console.cursor_index];
-    }
-    return(result);
-}
-
-static void
-console_draw(){
-    // rect setup
-    Rect output_rect = {0};
-    output_rect.x0 = 0;
-    output_rect.y0 = console.open_t * (f32)window.height;
-    output_rect.x1 = (f32)window.width;
-    output_rect.y1 = (f32)window.height;
-
-    Rect input_rect = {0};
-    input_rect.x0 = 0;
-    input_rect.y0 = output_rect.y0 - (f32)console.font.vertical_offset * console.font.scale;
-    input_rect.x1 = (f32)window.width;
-    input_rect.y1 = output_rect.y0;
-
-    Rect cursor_rect = {0};
-    String8 str = str8(console.input, (u64)console.cursor_index);
-    cursor_rect.x0 = console.text_left_pad + font_char_width(console.font, '>') + font_string_width(console.font, str);
-    cursor_rect.y0 = input_rect.y0;
-    cursor_rect.x1 = cursor_rect.x0 + font_char_width(console.font, console_char_at_cursor());
-    cursor_rect.y1 = input_rect.y1;
-
-    // draw regions
-    d3d_draw_quad(output_rect, console.output_background_color);
-    d3d_draw_quad(input_rect, console.input_background_color);
-    d3d_draw_quad(cursor_rect, console.cursor_color);
-
-    // draw input
-    f32 input_pos_y = (f32)window.height - (input_rect.y0 - ((f32)console.font.descent * console.font.scale));
-    d3d_draw_text(console.font, console.text_left_pad, input_pos_y, console.input_color, str8_literal(">"));
-    if(console.input_count > 0){
-        String8 input_str = str8(console.input, (u64)console.input_count);
-        d3d_draw_text(console.font, console.text_left_pad + font_char_width(console.font, '>'), input_pos_y, console.input_color, input_str);
-    }
-
-    // draw history in reverse order, but only if its on screen
-    if(console.output_history_count > 0){
-        f32 output_pos_y = (f32)window.height - (output_rect.y0 - ((f32)console.font.descent * console.font.scale));
-        for(s32 i=console.output_history_count-1; i >= 0; --i){
-            if(output_pos_y < (f32)window.height){
-                String8 next_string = console.output_history[i];
-                d3d_draw_text(console.font, console.text_left_pad, output_pos_y, console.output_color, next_string);
-                output_pos_y -= (f32)console.font.vertical_offset * console.font.scale;
-            }
-        }
-    }
-};
-
 static void
 console_set_state(ConsoleState state){
     console.state = state;
@@ -199,23 +139,6 @@ console_set_state(ConsoleState state){
     }
 
     console_update_openess();
-}
-
-static void
-console_update_openess(){
-    f32 open_d = console.open_dt * (f32)clock.dt;
-    if(console.open_t < console.open_t_target){
-        console.open_t += open_d;
-        if(console.open_t > console.open_t_target){
-            console.open_t = console.open_t_target;
-        }
-    }
-    else if(console.open_t > console.open_t_target){
-        console.open_t -= open_d;
-        if(console.open_t < 0){
-            console.open_t = 0;
-        }
-    }
 }
 
 static bool
@@ -313,5 +236,77 @@ handle_console_events(Event event){
     }
     return(false);
 }
+
+static void
+console_update_openess(){
+    f32 open_d = console.open_dt * (f32)clock.dt;
+    if(console.open_t < console.open_t_target){
+        console.open_t += open_d;
+        if(console.open_t > console.open_t_target){
+            console.open_t = console.open_t_target;
+        }
+    }
+    else if(console.open_t > console.open_t_target){
+        console.open_t -= open_d;
+        if(console.open_t < 0){
+            console.open_t = 0;
+        }
+    }
+}
+
+static void
+console_draw(){
+    // rect setup
+    Rect output_rect = {0};
+    output_rect.x0 = 0;
+    output_rect.y0 = console.open_t * (f32)window.height;
+    output_rect.x1 = (f32)window.width;
+    output_rect.y1 = (f32)window.height;
+
+    Rect input_rect = {0};
+    input_rect.x0 = 0;
+    input_rect.y0 = output_rect.y0 - (f32)console.font.vertical_offset * console.font.scale;
+    input_rect.x1 = (f32)window.width;
+    input_rect.y1 = output_rect.y0;
+
+    Rect cursor_rect = {0};
+    u8 char_at_cursor = 0; // note: defaults to 'a' when nothing is located at cursor_index
+    if(console.input_count == console.cursor_index){
+        char_at_cursor = 'a';
+    }
+    else{
+        char_at_cursor = console.input[console.cursor_index];
+    }
+    String8 str = str8(console.input, (u64)console.cursor_index);
+    cursor_rect.x0 = console.text_left_pad + font_char_width(console.font, '>') + font_string_width(console.font, str);
+    cursor_rect.y0 = input_rect.y0;
+    cursor_rect.x1 = cursor_rect.x0 + font_char_width(console.font, char_at_cursor);
+    cursor_rect.y1 = input_rect.y1;
+
+    // draw regions
+    push_quad(render_command_arena, output_rect, console.output_background_color);
+    push_quad(render_command_arena, input_rect, console.input_background_color);
+    push_quad(render_command_arena, cursor_rect, console.cursor_color);
+
+    // draw input
+    f32 input_pos_y = (f32)window.height - (input_rect.y0 - ((f32)console.font.descent * console.font.scale));
+    push_text(render_command_arena, console.font, console.text_left_pad, input_pos_y, console.input_color, str8_literal(">"));
+    if(console.input_count > 0){
+        String8 input_str = str8(console.input, (u64)console.input_count);
+        push_text(render_command_arena, console.font, console.text_left_pad + font_char_width(console.font, '>'), input_pos_y, console.input_color, input_str);
+    }
+
+    // draw history in reverse order, but only if its on screen
+    if(console.output_history_count > 0){
+        f32 output_pos_y = (f32)window.height - (output_rect.y0 - ((f32)console.font.descent * console.font.scale));
+        for(s32 i=console.output_history_count-1; i >= 0; --i){
+            if(output_pos_y < (f32)window.height){
+                String8 next_string = console.output_history[i];
+                push_text(render_command_arena, console.font, console.text_left_pad, output_pos_y, console.output_color, next_string);
+                output_pos_y -= (f32)console.font.vertical_offset * console.font.scale;
+            }
+        }
+    }
+};
 
 #endif

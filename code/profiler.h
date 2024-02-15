@@ -147,6 +147,7 @@ static Profiler profiler;
 static void
 begin_profiler(void){
     profiler.start_tsc = PROFILER_TIMER;
+    u32 dummy = __COUNTER__; // note: just to ignore always true warning
 }
 
 static void

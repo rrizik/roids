@@ -50,9 +50,9 @@ global ID3D11InputLayout*  d3d_3d_input_layout;
 //global ID3D11ShaderResourceView* d3d_shader_resource;
 //global ID3D11Texture2D* d3d_texture;
 
-global ID3D11VertexShader* d3d_2d_vertex_shader;
-global ID3D11PixelShader*  d3d_2d_pixel_shader;
-global ID3D11InputLayout*  d3d_2d_input_layout;
+global ID3D11VertexShader* d3d_2d_quad_vertex_shader;
+global ID3D11PixelShader*  d3d_2d_quad_pixel_shader;
+global ID3D11InputLayout*  d3d_2d_quad_input_layout;
 
 global ID3D11VertexShader* d3d_2d_textured_vertex_shader;
 global ID3D11PixelShader*  d3d_2d_textured_pixel_shader;
@@ -98,6 +98,12 @@ global D3D11_INPUT_ELEMENT_DESC input_layout_2dui_textured[] = {
         {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TEX",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+};
+
+global D3D11_INPUT_ELEMENT_DESC il_2d_quad[] = {
+        // vertex data
+        {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 };
 
 typedef struct ConstantBuffer{

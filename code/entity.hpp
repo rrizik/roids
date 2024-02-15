@@ -2,13 +2,14 @@
 #define ENTITY_H
 
 typedef enum {EntityFlag_Movable} EntityFlags;
-typedef enum {EntityType_None, EntityType_Object, EntityType_Pixel, EntityType_Line, EntityType_Ray, EntityType_Segment, EntityType_Triangle, EntityType_Rect, EntityType_Quad, EntityType_Box, EntityType_Circle, EntityType_Bitmap, EntityType_Glyph, EntityType_Bases, EntityType_Ship, EntityType_Bullet, EntityType_Cube, EntityType_Player} EntityType;
+typedef enum {EntityType_None, EntityType_Object, EntityType_Pixel, EntityType_Line, EntityType_Ray, EntityType_Segment, EntityType_Triangle, EntityType_Rect, EntityType_Quad, EntityType_Texture, EntityType_Box, EntityType_Circle, EntityType_Bitmap, EntityType_Glyph, EntityType_Bases, EntityType_Ship, EntityType_Bullet, EntityType_Cube, EntityType_Player} EntityType;
 
 typedef struct Entity{
     u32 index;
     u32 generation;
 
     EntityType type;
+    Texture2D texture;
 
     u32 flags;
     Rect rect;
@@ -40,10 +41,6 @@ typedef struct Entity{
 
     bool draw;
     bool fill;
-
-    // QUESTION: Should this be a pointer
-    Bitmap* texture;
-    bool render;
 } Entity;
 
 static bool has_flags(u32 flags, u32 flags_set);

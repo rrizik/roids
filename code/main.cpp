@@ -152,6 +152,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
+//        push_clear_color(render_command_arena, BACKGROUND_COLOR);
+
         // simulation
         accumulator += frame_time;
         while(accumulator >= clock.dt){
@@ -164,32 +166,37 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             clear_controller_pressed(&controller);
         }
 
-        //if(console.state == CLOSED) { print("CLOSED\n"); }
-        //if(console.state == OPEN) { print("OPEN\n"); }
-        //if(console.state == OPEN_BIG) { print("OPEN_BIG\n"); }
         // draw everything
         if(memory.initialized){
             //draw_everything();
-            d3d_clear_color(BACKGROUND_COLOR);
+            //d3d_clear_color(BACKGROUND_COLOR);
 
             String8 text = str8_literal("! \"#$%'()*+,-x/0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghujklmnopqrstuvwxyz{|}~");
             f32 ypos = 0.2f * (f32)window.height;
-            d3d_draw_text(font, 10.0f, ypos, ORANGE, text);
+            push_text(render_command_arena, font, 10.0f, ypos, ORANGE, text);
 
-            d3d_draw_textured_cube_instanced(&image_shader_resource);
+            //push_quad(render_command_arena, make_rect(700, 10, 1000, 300), GREEN);
+            //push_quad(render_command_arena, make_rect(700, 10, 900, 200), RED);
+            //push_quad(render_command_arena, make_rect(700, 10, 800, 100), BLUE);
 
-            d3d_draw_quad_textured(make_rect(10, 10, 300, 300), GREEN, &white_shader_resource);
-            d3d_draw_quad_textured(make_rect(10, 10, 200, 200), RED, &white_shader_resource);
-            d3d_draw_quad_textured(make_rect(10, 10, 100, 100), BLUE, &white_shader_resource);
-            d3d_draw_quad_textured(make_rect(350, 10, 650, 300), GREEN, &ship_shader_resource);
-            d3d_draw_quad_textured(make_rect(350, 10, 550, 200), RED, &ship_shader_resource);
-            d3d_draw_quad_textured(make_rect(350, 10, 450, 100), WHITE, &ship_shader_resource);
-            d3d_draw_quad_textured(make_rect(700, 10, 1000, 300), GREEN, &white_shader_resource);
-            d3d_draw_quad_textured(make_rect(700, 10, 900, 200), RED, &ship_shader_resource);
-            d3d_draw_quad_textured(make_rect(700, 10, 800, 100), BLUE, &white_shader_resource);
+            //push_quad(render_command_arena, make_rect(10, 10, 300, 300), GREEN);
+            //push_quad(render_command_arena, make_rect(10, 10, 200, 200), RED);
+            //push_quad(render_command_arena, make_rect(10, 10, 100, 100), BLUE);
+
+
+            push_texture(render_command_arena, &ship_shader_resource, make_rect(350, 10, 650, 300),  GREEN);
+            push_texture(render_command_arena, &ship_shader_resource, make_rect(350, 10, 550, 200),  RED);
+            push_texture(render_command_arena, &ship_shader_resource, make_rect(350, 10, 450, 100));
+
             if(console_is_visible()){
                 console_draw();
             }
+
+            draw_commands(render_command_arena);
+
+            //d3d_draw_textured_cube_instanced(&image_shader_resource);
+
+            //arena_free(render_command_arena);
         }
         d3d_present();
 
