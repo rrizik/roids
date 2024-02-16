@@ -115,6 +115,20 @@ add_entity_quad(PermanentMemory* pm, Rect rect, RGBA color){
 }
 
 static Entity*
+add_entity_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, Rect rect, RGBA color=WHITE){
+    Entity* e = add_entity(pm, EntityType_Texture);
+    if(e){
+        e->texture = texture;
+        e->rect = rect;
+        e->color = color;
+    }
+    else{
+        print("Failed to add entity: Quad\n");
+    }
+    return(e);
+}
+
+static Entity*
 add_pixel(PermanentMemory* pm, Rect rect, RGBA color){
     Entity* e = add_entity(pm, EntityType_Pixel);
     e->rect = rect;
@@ -546,6 +560,10 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         add_entity_quad(pm, make_rect(10,  10, 300,  300), GREEN);
         add_entity_quad(pm, make_rect(10,  10, 200,  200), RED);
         add_entity_quad(pm, make_rect(10,  10, 100,  100), BLUE);
+
+        add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 650, 300),  GREEN);
+        add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 550, 200),  RED);
+        add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 450, 100));
 
         memory->initialized = true;
     }

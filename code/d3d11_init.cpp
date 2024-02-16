@@ -322,6 +322,31 @@ init_texture_resource(Bitmap* bitmap, ID3D11ShaderResourceView** shader_resource
 }
 
 static void
+init_texture(Bitmap* bitmap, Texture2D* texture){
+    D3D11_TEXTURE2D_DESC desc = {
+        .Width = (u32)bitmap->width,
+        .Height = (u32)bitmap->height,
+        .MipLevels = 1,
+        .ArraySize = 1,
+        .Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
+        .SampleDesc = {1, 0},
+        .Usage = D3D11_USAGE_IMMUTABLE,
+        .BindFlags = D3D11_BIND_SHADER_RESOURCE,
+    };
+
+    D3D11_SUBRESOURCE_DATA data = {
+        .pSysMem = bitmap->base,
+        .SysMemPitch = (u32)bitmap->stride,
+    };
+
+    hr = d3d_device->CreateTexture2D(&desc, &data, &texture->tex);
+    assert_hr(hr);
+
+    hr = d3d_device->CreateShaderResourceView(texture->tex, 0, &texture->view);
+    assert_hr(hr);
+}
+
+static void
 d3d_release(){
     if(d3d_device) d3d_device->Release();
     if(d3d_context) d3d_context->Release();

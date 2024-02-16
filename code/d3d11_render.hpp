@@ -24,19 +24,19 @@ typedef struct RenderCommand{
     Font font;
     String8 text;
 
-	Texture2D* texture;
+	ID3D11ShaderResourceView** texture;
 } RenderCommand;
 
 static void push_clear_color(Arena* arena, RGBA color);
 static void push_quad(Arena* arena, Rect rect, RGBA color);
 static void push_text(Arena* arena, Font font, f32 x, f32 y, RGBA color, String8 text);
-static void push_texture(Arena* arena, ID3D11ShaderResourceView** shader_resource, Rect rect, RGBA color=WHITE);
+static void push_texture(Arena* arena, ID3D11ShaderResourceView** texture, Rect rect, RGBA color=WHITE);
 static void draw_commands(Arena* commands);
 
 static void d3d_clear_color(RGBA color);
 static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text);
 static void d3d_draw_quad(Rect rect, RGBA color);
-static void d3d_draw_texture(Texture2D* texture, Rect rect, RGBA color=WHITE);
+static void d3d_draw_texture(ID3D11ShaderResourceView** texture, Rect rect, RGBA color=WHITE);
 
 static void d3d_draw_textured_cube_instanced(ID3D11ShaderResourceView** shader_resource);
 static void d3d_present();

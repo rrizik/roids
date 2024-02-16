@@ -5,10 +5,10 @@
 #include "camera.hpp"
 #include "rect.hpp"
 #include "bitmap.hpp"
-#include "entity.hpp"
 #include "d3d11_init.hpp"
 #include "font.hpp"
 #include "d3d11_render.hpp"
+#include "entity.hpp"
 #include "console.hpp"
 #include "command.hpp"
 #include "game.hpp"
@@ -168,25 +168,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         // draw everything
         if(memory.initialized){
-            //draw_everything();
-            //d3d_clear_color(BACKGROUND_COLOR);
 
-            String8 text = str8_literal("! \"#$%'()*+,-x/0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghujklmnopqrstuvwxyz{|}~");
+            String8 text = str8_literal("! \"#$%'()*+,-x/0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
             f32 ypos = 0.2f * (f32)window.height;
             push_text(render_command_arena, font, 10.0f, ypos, ORANGE, text);
-
-            //push_quad(render_command_arena, make_rect(700, 10, 1000, 300), GREEN);
-            //push_quad(render_command_arena, make_rect(700, 10, 900, 200), RED);
-            //push_quad(render_command_arena, make_rect(700, 10, 800, 100), BLUE);
-
-            //push_quad(render_command_arena, make_rect(10, 10, 300, 300), GREEN);
-            //push_quad(render_command_arena, make_rect(10, 10, 200, 200), RED);
-            //push_quad(render_command_arena, make_rect(10, 10, 100, 100), BLUE);
-
-
-            push_texture(render_command_arena, &ship_shader_resource, make_rect(350, 10, 650, 300),  GREEN);
-            push_texture(render_command_arena, &ship_shader_resource, make_rect(350, 10, 550, 200),  RED);
-            push_texture(render_command_arena, &ship_shader_resource, make_rect(350, 10, 450, 100));
 
             if(console_is_visible()){
                 console_draw();
@@ -195,8 +180,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             draw_commands(render_command_arena);
 
             //d3d_draw_textured_cube_instanced(&image_shader_resource);
-
-            //arena_free(render_command_arena);
         }
         d3d_present();
 

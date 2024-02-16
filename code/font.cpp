@@ -66,9 +66,9 @@ static bool load_font_ttf(Arena* arena, String8 path, Font* font, f32 size){
         .SysMemPitch = (u32)stride,
     };
 
-    hr = d3d_device->CreateTexture2D(&desc, &shader_data, &font->atlas.texture);
+    hr = d3d_device->CreateTexture2D(&desc, &shader_data, &font->atlas.tex);
     assert_hr(hr);
-    hr = d3d_device->CreateShaderResourceView(font->atlas.texture, 0, &font->atlas.view);
+    hr = d3d_device->CreateShaderResourceView(font->atlas.tex, 0, &font->atlas.view);
     assert_hr(hr);
 
     os_file_close(file);

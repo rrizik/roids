@@ -9,7 +9,7 @@ typedef struct Entity{
     u32 generation;
 
     EntityType type;
-    Texture2D texture;
+    ID3D11ShaderResourceView** texture;
 
     u32 flags;
     Rect rect;

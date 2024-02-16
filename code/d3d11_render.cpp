@@ -79,7 +79,7 @@ push_text(Arena* arena, Font font, f32 x, f32 y, RGBA color, String8 text){
 }
 
 static void
-push_texture(Arena* arena, Texture2D* texture, Rect rect, RGBA color){
+push_texture(Arena* arena, ID3D11ShaderResourceView** texture, Rect rect, RGBA color){
     RenderCommand* command = push_struct(arena, RenderCommand);
     command->type = RenderCommandType_Texture;
     command->texture = texture;
@@ -196,7 +196,7 @@ d3d_draw_quad(Rect rect, RGBA color){
 
 // todo: pass in optional UV (x, y) that is added to each UV xy. Look at JB image as example
 static void
-d3d_draw_texture(Texture2D* texture, Rect rect, RGBA color){
+d3d_draw_texture(ID3D11ShaderResourceView** texture, Rect rect, RGBA color){
 
     Rect clip_rect = rect_clip_from_pixel(rect, make_v2s32(window.width, window.height));
     RGBA linear_color = srgb_to_linear(color);
@@ -244,7 +244,7 @@ d3d_draw_texture(Texture2D* texture, Rect rect, RGBA color){
 
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
-    d3d_context->PSSetShaderResources(0, 1, &texture->view);
+    d3d_context->PSSetShaderResources(0, 1, texture);
 
     d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
 

@@ -125,7 +125,7 @@ typedef struct Transform2D{
 
 typedef struct Texture2D{
     ID3D11ShaderResourceView* view;
-    ID3D11Texture2D* texture;
+    ID3D11Texture2D* tex;
 } Texture2D;
 
 typedef struct Vertex{
@@ -160,6 +160,7 @@ static void d3d_init_debug_stuff();
 static void d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* input_layout, u32 layout_count, ID3D11VertexShader** d3d_vertex_shader, ID3D11PixelShader** d3d_pixel_shader, ID3D11InputLayout** d3d_input_layout);
 static void d3d_init(Window window);
 static void init_texture_resource(Bitmap* bitmap, ID3D11ShaderResourceView** shader_resource);
+static void init_texture(Bitmap* bitmap, Texture2D* texture);
 static void d3d_release();
 
 #endif
