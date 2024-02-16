@@ -115,11 +115,27 @@ add_entity_quad(PermanentMemory* pm, Rect rect, RGBA color){
 }
 
 static Entity*
-add_entity_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, Rect rect, RGBA color=WHITE){
+add_entity_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, Rect rect, RGBA color){
     Entity* e = add_entity(pm, EntityType_Texture);
     if(e){
         e->texture = texture;
         e->rect = rect;
+        e->color = color;
+    }
+    else{
+        print("Failed to add entity: Quad\n");
+    }
+    return(e);
+}
+
+static Entity*
+add_entity_text(PermanentMemory* pm, Font font, String8 text, f32 x, f32 y, RGBA color){
+    Entity* e = add_entity(pm, EntityType_Text);
+    if(e){
+        e->font = font;
+        e->text = text;
+        e->x = x;
+        e->y = y;
         e->color = color;
     }
     else{
@@ -565,6 +581,10 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 550, 200),  RED);
         add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 450, 100));
 
+        String8 text = str8_literal("! \"#$%'()*+,\n-x/0123456789:;<=>?@ABCD\nEFGHIJKLMNOPQRSTUVWXYZ[\n\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
+        f32 ypos = 0.2f * (f32)window->height;
+        add_entity_text(pm, global_font, text, 10.0f, ypos, ORANGE);
+
         memory->initialized = true;
     }
     angle += (f32)clock->dt;
@@ -734,6 +754,9 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
             } break;
             case EntityType_Texture:{
                 push_texture(render_command_arena, e->texture, e->rect, e->color);
+            } break;
+            case EntityType_Text:{
+                push_text(render_command_arena, e->font, e->text, e->x, e->y, e->color);
             } break;
         }
     }

@@ -29,7 +29,7 @@ typedef struct RenderCommand{
 
 static void push_clear_color(Arena* arena, RGBA color);
 static void push_quad(Arena* arena, Rect rect, RGBA color);
-static void push_text(Arena* arena, Font font, f32 x, f32 y, RGBA color, String8 text);
+static void push_text(Arena* arena, Font font, String8 text, f32 x, f32 y, RGBA color);
 static void push_texture(Arena* arena, ID3D11ShaderResourceView** texture, Rect rect, RGBA color=WHITE);
 static void draw_commands(Arena* commands);
 

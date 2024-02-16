@@ -68,7 +68,7 @@ push_quad(Arena* arena, Rect rect, RGBA color){
 }
 
 static void
-push_text(Arena* arena, Font font, f32 x, f32 y, RGBA color, String8 text){
+push_text(Arena* arena, Font font, String8 text, f32 x, f32 y, RGBA color){
     RenderCommand* command = push_struct(arena, RenderCommand);
     command->type = RenderCommandType_Text;
     command->x = x;
@@ -279,11 +279,17 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
     Vertex* buffer = push_array(scratch.arena, Vertex, allocation_size);
     Vertex* vertex = buffer;
 
+    f32 start_x = x;
+    f32 y_offset = 0;
     stbtt_aligned_quad quad;
     for(s32 i=0; i < text.size; ++i){
         u8* character = text.str + i;
+        if(*character == '\n'){
+            y_offset += (f32)font.vertical_offset * font.scale;
+            x = start_x;
+        }
         stbtt_GetPackedQuad(font.packed_chars, font.texture_w, font.texture_h, (*character) - font.first_char, &x, &y, &quad, 1);
-        Rect rect = make_rect(quad.x0, quad.y0, quad.x1, quad.y1);
+        Rect rect = make_rect(quad.x0, quad.y0 + y_offset, quad.x1, quad.y1 + y_offset);
         Rect clip_rect = rect_clip_from_pixel_inverted(rect, make_v2s32(window.width, window.height));
 
         *vertex++ = { make_v3(clip_rect.x0, clip_rect.y1, 0.0f), linear_color, make_v2(quad.s0, quad.t1) };

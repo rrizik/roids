@@ -1,8 +1,6 @@
 #ifndef GAME_H
 #define GAME_H
 
-static Font global_font = {0};
-
 typedef enum GameMode{
     GameMode_FirstPerson,
     GameMode_Editor,
@@ -67,8 +65,12 @@ global TransientMemory* tm;
 
 static Entity* entity_from_handle(PermanentMemory* pm, EntityHandle handle);
 static EntityHandle handle_from_entity(PermanentMemory* pm, Entity *e);
-static void remove_entity(PermanentMemory* pm, Entity* e);
+
+static void    remove_entity(PermanentMemory* pm, Entity* e);
 static Entity* add_entity(PermanentMemory *pm, EntityType type);
+static Entity* add_entity_quad(PermanentMemory* pm, Rect rect, RGBA color);
+static Entity* add_entity_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, Rect rect, RGBA color=WHITE);
+
 static Entity* add_pixel(PermanentMemory* pm, Rect rect, RGBA color);
 static Entity* add_segment(PermanentMemory* pm, v2 p0, v2 p1, RGBA color);
 static Entity* add_ray(PermanentMemory* pm, Rect rect, v2 direction, RGBA color);
@@ -84,6 +86,8 @@ static Entity* add_quad(PermanentMemory* pm, v2 p0, v2 p1, v2 p2, v2 p3, RGBA co
 static Entity* add_triangle(PermanentMemory *pm, v2 p0, v2 p1, v2 p2, RGBA color, bool fill);
 static Entity* add_circle(PermanentMemory *pm, Rect rect, u8 rad, RGBA color, bool fill);
 static Entity* add_bitmap(PermanentMemory* pm, v2 pos, Bitmap* texture);
+
+
 static void entities_clear(PermanentMemory* pm);
 static void serialize_data(PermanentMemory* pm, String8 filename);
 static void deserialize_data(PermanentMemory* pm, String8 filename);

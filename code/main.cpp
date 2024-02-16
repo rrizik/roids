@@ -1,17 +1,5 @@
 #include "main.hpp"
 
-#include "input.hpp"
-#include "clock.hpp"
-#include "camera.hpp"
-#include "rect.hpp"
-#include "bitmap.hpp"
-#include "d3d11_init.hpp"
-#include "font.hpp"
-#include "d3d11_render.hpp"
-#include "entity.hpp"
-#include "console.hpp"
-#include "command.hpp"
-#include "game.hpp"
 
 #include "input.cpp"
 #include "clock.cpp"
@@ -83,6 +71,7 @@ show_cursor(bool show){
     }
 }
 
+
 // todo(rr): get rid of these once your done settings things up
 
 static Bitmap image;
@@ -121,8 +110,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     init_texture_resource(&bullet, &bullet_shader_resource);
     init_texture_resource(&test, &test_shader_resource);
 
-    Font font;
-    load_font_ttf(global_arena, str8_literal("fonts/arial.ttf"), &font, 36);
+    load_font_ttf(global_arena, str8_literal("fonts/arial.ttf"), &global_font, 36);
 
     init_memory(&memory);
     init_clock(&clock);
@@ -152,8 +140,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
-//        push_clear_color(render_command_arena, BACKGROUND_COLOR);
-
         // simulation
         accumulator += frame_time;
         while(accumulator >= clock.dt){
@@ -169,9 +155,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         // draw everything
         if(memory.initialized){
 
-            String8 text = str8_literal("! \"#$%'()*+,-x/0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
-            f32 ypos = 0.2f * (f32)window.height;
-            push_text(render_command_arena, font, 10.0f, ypos, ORANGE, text);
+            //String8 text = str8_literal("! \"#$%'()*+,\n-x/0123456789:;<=>?@ABCD\nEFGHIJKLMNOPQRSTUVWXYZ[\n\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
+            //f32 ypos = 0.2f * (f32)window.height;
+            //push_text(render_command_arena, font, text, 10.0f, ypos, ORANGE);
 
             if(console_is_visible()){
                 console_draw();

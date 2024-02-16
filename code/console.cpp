@@ -290,10 +290,10 @@ console_draw(){
 
     // draw input
     f32 input_pos_y = (f32)window.height - (input_rect.y0 - ((f32)console.font.descent * console.font.scale));
-    push_text(render_command_arena, console.font, console.text_left_pad, input_pos_y, console.input_color, str8_literal(">"));
+    push_text(render_command_arena, console.font, str8_literal(">"), console.text_left_pad, input_pos_y, console.input_color);
     if(console.input_count > 0){
         String8 input_str = str8(console.input, (u64)console.input_count);
-        push_text(render_command_arena, console.font, console.text_left_pad + font_char_width(console.font, '>'), input_pos_y, console.input_color, input_str);
+        push_text(render_command_arena, console.font, input_str, console.text_left_pad + font_char_width(console.font, '>'), input_pos_y, console.input_color);
     }
 
     // draw history in reverse order, but only if its on screen
@@ -302,7 +302,7 @@ console_draw(){
         for(s32 i=console.output_history_count-1; i >= 0; --i){
             if(output_pos_y < (f32)window.height){
                 String8 next_string = console.output_history[i];
-                push_text(render_command_arena, console.font, console.text_left_pad, output_pos_y, console.output_color, next_string);
+                push_text(render_command_arena, console.font, next_string, console.text_left_pad, output_pos_y, console.output_color);
                 output_pos_y -= (f32)console.font.vertical_offset * console.font.scale;
             }
         }
