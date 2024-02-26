@@ -38,6 +38,8 @@ typedef struct Entity{
 
     String8 name;
     v2 direction;
+    v2 target_direction;
+    f32 rotation_percent;
     f32 rad;
 
     f32 speed;

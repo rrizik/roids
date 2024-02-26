@@ -102,7 +102,7 @@ d3d_init(Window window){
     swapChainDesc.BufferUsage        = DXGI_USAGE_RENDER_TARGET_OUTPUT;
     swapChainDesc.BufferCount        = 2;
     swapChainDesc.Scaling            = DXGI_SCALING_STRETCH;
-    swapChainDesc.SwapEffect         = DXGI_SWAP_EFFECT_DISCARD; // prefer DXGI_SWAP_EFFECT_FLIP_DISCARD, see Minimal D3D11 pt2
+    swapChainDesc.SwapEffect         = DXGI_SWAP_EFFECT_DISCARD;
     swapChainDesc.AlphaMode          = DXGI_ALPHA_MODE_UNSPECIFIED;
     swapChainDesc.Flags              = 0;
 

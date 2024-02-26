@@ -31,7 +31,7 @@ update_camera(f32 dx, f32 dy, f32 dt){
     forward_dir.z = cos_f32(deg_to_rad(camera.pitch)) * cos_f32(deg_to_rad(camera.yaw));
 
     // normalize and set forward dir
-    camera.forward = normalized_v3(forward_dir);
+    camera.forward = normalize_v3(forward_dir);
 }
 
 #endif

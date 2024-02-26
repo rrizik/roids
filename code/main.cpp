@@ -1,6 +1,5 @@
 #include "main.hpp"
 
-
 #include "input.cpp"
 #include "clock.cpp"
 #include "camera.cpp"
@@ -52,7 +51,15 @@ win32_window_create(const wchar* window_name, s32 width, s32 height){
     result.width = width;
     result.height = height;
     result.aspect_ratio = (f32)width / (f32)height;
-    result.handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, (s32)result.width, (s32)result.height, 0, 0, GetModuleHandle(0), 0);
+
+    DWORD style = WS_OVERLAPPEDWINDOW;
+    style &= ~WS_THICKFRAME & ~WS_MAXIMIZEBOX;
+    RECT rect = { 0, 0, 1280, 720 };
+    AdjustWindowRect(&rect, style, FALSE);
+    s32 adjusted_w = rect.right - rect.left;
+    s32 adjusted_h = rect.bottom - rect.top;
+
+    result.handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, adjusted_w, adjusted_h, 0, 0, GetModuleHandle(0), 0);
     assert(IsWindow(result.handle));
 
     return(result);
@@ -161,6 +168,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     return(0);
 }
 
+#include <Windowsx.h>
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
     LRESULT result = 0;
 
@@ -177,13 +185,14 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         case WM_MOUSEMOVE:{
             Event event;
             event.type = MOUSE; // TODO: maybe have this be a KEYBOARD event
-            event.mouse_pos.x = (s32)(l_param & 0xFFFF);
-            event.mouse_pos.y = (SCREEN_HEIGHT - (s32)(l_param >> 16));
+            event.mouse_pos.x = (s32)(s16)(l_param & 0xFFFF);
+            event.mouse_pos.y = (s32)(s16)(l_param >> 16);
 
             s32 dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
             s32 dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);
             event.mouse_dx = (f32)dx / (f32)(SCREEN_WIDTH/2);
             event.mouse_dy = (f32)dy / (f32)(SCREEN_HEIGHT/2);
+            //print("(%f, %f) - (%i, %i)\n", event.mouse_dx, event.mouse_dy, event.mouse_pos.x, event.mouse_pos.y);
 
             events_add(&events, event);
         } break;

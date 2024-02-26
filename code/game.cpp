@@ -69,6 +69,9 @@ add_entity_quad(PermanentMemory* pm, Rect rect, RGBA color){
         e->p1 = make_v2(rect.x0, rect.y1);
         e->p2 = rect.max;
         e->p3 = make_v2(rect.x1, rect.y0);
+        e->direction = make_v2(1, 0);
+        e->target_direction = make_v2(0, 0);
+        e->rotation_percent = 0;
         e->color = color;
         e->pos = make_v3(rect.x0, rect.y0, 0);
     }
@@ -260,6 +263,17 @@ handle_global_events(Event event){
     if(event.type == QUIT){
         should_quit = true;
         return(true);
+    }
+    if(event.type == MOUSE){
+        //f32 x = (f32)event.mouse_pos.x - SCREEN_WIDTH/2;
+        //f32 y = (f32)event.mouse_pos.y - SCREEN_HEIGHT/2;
+        f32 x = (f32)event.mouse_pos.x;
+        f32 y = (f32)event.mouse_pos.y;
+        //x = normalize_f32(x);
+        //y = normalize_f32(y);
+        f32 angle = angle_from_dir(make_v2(event.mouse_dx, event.mouse_dy));
+        print("(%f, %f)\n", x, y);
+        //print("(%f, %f) - %f\n", angle, event.mouse_dx, event.mouse_dy);
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
@@ -463,7 +477,9 @@ update_game(Window* window, Memory* memory, Events* events){
         init_console(&pm->arena);
         init_console_commands();
 
-        add_entity_quad(pm, make_rect(700, 200, 1000, 500), GREEN);
+        v2 pos = make_v2(1179, 619);
+        v2 dim = make_v2(100, 100);
+        add_entity_quad(pm, make_rect(pos.x, pos.y, pos.x + dim.w, pos.y + dim.h), GREEN);
         //add_entity_quad(pm, make_rect(700, 10, 900,  200), RED);
         //add_entity_quad(pm, make_rect(700, 10, 800,  100), BLUE);
 
@@ -545,11 +561,11 @@ update_game(Window* window, Memory* memory, Events* events){
             camera.pos = camera.pos - result;
         }
         if(controller.left.held){
-            v3 result = (normalized_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock.dt);
+            v3 result = (normalize_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock.dt);
             camera.pos = camera.pos + result;
         }
         if(controller.right.held){
-            v3 result = (normalized_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock.dt);
+            v3 result = (normalize_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock.dt);
             camera.pos = camera.pos - result;
         }
 
@@ -586,6 +602,7 @@ update_game(Window* window, Memory* memory, Events* events){
     //    ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * (f32)clock.dt;
     //    //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
     //}
+
     console_update_openess();
 
     XMVECTOR camera_pos = {camera.pos.x, camera.pos.y, camera.pos.z};
@@ -610,15 +627,31 @@ update_game(Window* window, Memory* memory, Events* events){
 
         switch(e->type){
             case EntityType_Quad:{
-                //e->angle.z += 1.0f * (f32)clock.dt;
-                e->angle.z = 0.1f;
-                print("%i - %f\n", index, e->angle.z);
+                //f32 rad = dir_to_rad(e->direction);
+                //f32 t_rad = dir_to_rad(e->target_direction);
 
-                v2 center = quad_center(e->p0, e->p2);
-                e->p0 = rotate_point(e->p0, e->angle.z, center);
-                e->p1 = rotate_point(e->p1, e->angle.z, center);
-                e->p2 = rotate_point(e->p2, e->angle.z, center);
-                e->p3 = rotate_point(e->p3, e->angle.z, center);
+                //f32 test1 = dir_to_rad(make_v2(1, 1));
+                //f32 test2 = dir_to_rad(make_v2(0, 1));
+                //f32 test3 = dir_to_rad(make_v2(1, 0));
+                //f32 test4 = dir_to_rad(make_v2(0, 0));
+                //print("(%f, %f, %f, %f)\n", test1, test2, test3, test4);
+
+                e->rotation_percent += (f32)clock.dt;
+                if(e->rotation_percent > 1.0f){
+                    e->rotation_percent = 1.0f;
+                }
+                //print("(%f)\n", e->rotation_percent);
+
+                if(e->direction != e->target_direction){
+                    //print("%f(%f, %f) %f(%f, %f)\n", rad, e->direction.x, e->direction.y, t_rad, e->target_direction.x, e->target_direction.y);
+                    e->direction = slerp_v2(e->direction, e->rotation_percent, e->target_direction);
+                }
+
+                //v2 center = quad_center(e->p0, e->p2);
+                //e->p0 = rotate_point(e->p0, angle, center);
+                //e->p1 = rotate_point(e->p1, angle, center);
+                //e->p2 = rotate_point(e->p2, angle, center);
+                //e->p3 = rotate_point(e->p3, angle, center);
             } break;
             //case EntityType_Cube:{
             //    e->angle.z += (f32)clock.dt;
