@@ -200,7 +200,7 @@ d3d_init(Window window){
 
 	d3d_load_shader(str8_literal("shaders\\3d_shader.hlsl"), input_layout_3d, 7, &d3d_3d_vertex_shader, &d3d_3d_pixel_shader, &d3d_3d_input_layout);
 	d3d_load_shader(str8_literal("shaders\\2d_texture_shader.hlsl"), input_layout_2dui_textured, 3, &d3d_2d_textured_vertex_shader, &d3d_2d_textured_pixel_shader, &d3d_2d_textured_input_layout);
-	d3d_load_shader(str8_literal("shaders\\2d_quad_shader.hlsl"), il_2d_quad, 2, &d3d_2d_quad_vertex_shader, &d3d_2d_quad_pixel_shader, &d3d_2d_quad_input_layout);
+	d3d_load_shader(str8_literal("shaders\\2d_quad_shader.hlsl"), layout_2d_quad, 2, &d3d_2d_quad_vertex_shader, &d3d_2d_quad_pixel_shader, &d3d_2d_quad_input_layout);
 
     // ---------------------------------------------------------------------------------
     // Vertex Buffers
@@ -319,31 +319,6 @@ init_texture_resource(Bitmap* bitmap, ID3D11ShaderResourceView** shader_resource
     hr = d3d_device->CreateShaderResourceView(texture, 0, shader_resource);
     assert_hr(hr);
     texture->Release();
-}
-
-static void
-init_texture(Bitmap* bitmap, Texture2D* texture){
-    D3D11_TEXTURE2D_DESC desc = {
-        .Width = (u32)bitmap->width,
-        .Height = (u32)bitmap->height,
-        .MipLevels = 1,
-        .ArraySize = 1,
-        .Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
-        .SampleDesc = {1, 0},
-        .Usage = D3D11_USAGE_IMMUTABLE,
-        .BindFlags = D3D11_BIND_SHADER_RESOURCE,
-    };
-
-    D3D11_SUBRESOURCE_DATA data = {
-        .pSysMem = bitmap->base,
-        .SysMemPitch = (u32)bitmap->stride,
-    };
-
-    hr = d3d_device->CreateTexture2D(&desc, &data, &texture->tex);
-    assert_hr(hr);
-
-    hr = d3d_device->CreateShaderResourceView(texture->tex, 0, &texture->view);
-    assert_hr(hr);
 }
 
 static void

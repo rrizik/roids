@@ -49,9 +49,6 @@ win32_window_create(const wchar* window_name, s32 width, s32 height){
         return(result);
     }
 
-    //result.resolution.w = width;
-    //result.resolution.h = height;
-
     result.width = width;
     result.height = height;
     result.aspect_ratio = (f32)width / (f32)height;
@@ -71,21 +68,14 @@ show_cursor(bool show){
     }
 }
 
-
-// todo(rr): get rid of these once your done settings things up
-
-static Bitmap image;
-static Bitmap ship;
-static Bitmap tree;
-static Bitmap circle;
-static Bitmap bullet;
-static Bitmap test;
-
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
     begin_profiler();
 
     window = win32_window_create(L"Roids", SCREEN_WIDTH, SCREEN_HEIGHT);
-    if(!window.handle){ return(0); }
+    if(!window.handle){
+        print("Error: Could not create window\n");
+        return(0);
+    }
 
     init_paths(global_arena);
     random_seed(0, 1);
@@ -95,20 +85,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 #if DEBUG
     d3d_init_debug_stuff();
 #endif
-
-    image  = load_bitmap(global_arena, str8_literal("sprites\\image.bmp"));
-    ship   = load_bitmap(global_arena, str8_literal("sprites\\ship.bmp"));
-    tree   = load_bitmap(global_arena, str8_literal("sprites\\tree00.bmp"));
-    circle = load_bitmap(global_arena, str8_literal("sprites\\circle.bmp"));
-    bullet = load_bitmap(global_arena, str8_literal("sprites\\bullet4.bmp"));
-    test   = load_bitmap(global_arena, str8_literal("sprites\\test.bmp"));
-
-    init_texture_resource(&image, &image_shader_resource);
-    init_texture_resource(&ship, &ship_shader_resource);
-    init_texture_resource(&tree, &tree_shader_resource);
-    init_texture_resource(&circle, &circle_shader_resource);
-    init_texture_resource(&bullet, &bullet_shader_resource);
-    init_texture_resource(&test, &test_shader_resource);
 
     load_font_ttf(global_arena, str8_literal("fonts/arial.ttf"), &global_font, 36);
 
@@ -143,7 +119,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         // simulation
         accumulator += frame_time;
         while(accumulator >= clock.dt){
-            update_game(&window, &memory, &events, &clock);
+            update_game(&window, &memory, &events);
 
             accumulator -= clock.dt;
             time_elapsed += clock.dt;
@@ -152,12 +128,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             clear_controller_pressed(&controller);
         }
 
+        // Prepare command buffer
+        // Prepare command buffer
+        // Prepare command buffer
+
         // draw everything
         if(memory.initialized){
-
-            //String8 text = str8_literal("! \"#$%'()*+,\n-x/0123456789:;<=>?@ABCD\nEFGHIJKLMNOPQRSTUVWXYZ[\n\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
-            //f32 ypos = 0.2f * (f32)window.height;
-            //push_text(render_command_arena, font, text, 10.0f, ypos, ORANGE);
 
             if(console_is_visible()){
                 console_draw();
@@ -284,7 +260,6 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             if(w_param == VK_MENU)    { alt_pressed   = true; }
             if(w_param == VK_SHIFT)   { shift_pressed = true; }
             if(w_param == VK_CONTROL) { ctrl_pressed  = true; }
-            //print("keycode: %i, repeat: %i, pressed: %i, s: %i, c: %i, a: %i\n", event.keycode, event.repeat, event.key_pressed, event.shift_pressed, event.ctrl_pressed, event.alt_pressed);
         } break;
         case WM_SYSKEYUP:
         case WM_KEYUP:{
@@ -302,7 +277,6 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             if(w_param == VK_MENU)    { alt_pressed   = false; }
             if(w_param == VK_SHIFT)   { shift_pressed = false; }
             if(w_param == VK_CONTROL) { ctrl_pressed  = false; }
-            //print("keycode: %i, repeat: %i, pressed: %i, s: %i, c: %i, a: %i\n", event.keycode, event.repeat, event.key_pressed, event.shift_pressed, event.ctrl_pressed, event.alt_pressed);
         } break;
         default:{
             result = DefWindowProcW(hwnd, message, w_param, l_param);

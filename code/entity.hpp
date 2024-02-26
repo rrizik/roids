@@ -11,11 +11,13 @@ typedef struct Entity{
     EntityType type;
     ID3D11ShaderResourceView** texture;
 
+    // TODO: Remove this
     f32 x;
     f32 y;
     String8 text;
     Font font;
 
+    // TODO: Review this
     u32 flags;
     Rect rect;
     v2 origin;
@@ -29,18 +31,16 @@ typedef struct Entity{
     v3 pos;
     v3 angle;
     v3 scale;
-
+    v2 p0;
+    v2 p1;
+    v2 p2;
+    v2 p3;
 
     String8 name;
     v2 direction;
     f32 rad;
 
     f32 speed;
-
-    v2 p0 = p0;
-    v2 p1 = p1;
-    v2 p2 = p2;
-    v2 p3 = p3;
 
     f32 velocity;
 

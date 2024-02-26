@@ -43,6 +43,8 @@ static void init_paths(Arena* arena);
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type);
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param);
 
+global f32 g_angle = 0;
+
 #include "input.hpp"
 #include "clock.hpp"
 #include "camera.hpp"

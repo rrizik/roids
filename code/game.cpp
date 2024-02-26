@@ -3,56 +3,15 @@
 
 static void
 load_assets(Arena* arena, Assets* assets){
-    assets->bitmaps[AssetID_Image] = load_bitmap(arena, str8_literal("sprites\\image.bmp"));
-    assets->bitmaps[AssetID_Ship] = load_bitmap(arena, str8_literal("sprites\\ship.bmp"));
-    assets->bitmaps[AssetID_Tree] = load_bitmap(arena, str8_literal("sprites\\tree00.bmp"));
+    assets->bitmaps[AssetID_Image] =  load_bitmap(arena, str8_literal("sprites\\image.bmp"));
+    assets->bitmaps[AssetID_Ship] =   load_bitmap(arena, str8_literal("sprites\\ship.bmp"));
+    assets->bitmaps[AssetID_Tree] =   load_bitmap(arena, str8_literal("sprites\\tree00.bmp"));
     assets->bitmaps[AssetID_Circle] = load_bitmap(arena, str8_literal("sprites\\circle.bmp"));
     assets->bitmaps[AssetID_Bullet] = load_bitmap(arena, str8_literal("sprites\\bullet4.bmp"));
-    assets->bitmaps[AssetID_Test] = load_bitmap(arena, str8_literal("sprites\\test.bmp"));
+    assets->bitmaps[AssetID_Test] =   load_bitmap(arena, str8_literal("sprites\\test.bmp"));
 }
 
-//static void
-//load_textures_from_assets(Assets* assets){
-//    for(s32 i=0; i < AssetID_Count; ++i){
-//        Bitmap* bitmap = assets->bitmaps + i;
-//
-//        D3D11_TEXTURE2D_DESC desc = {
-//            .Width = (u32)bitmap->width,
-//            .Height = (u32)bitmap->height,
-//            .MipLevels = 1, // mip levels to use. Set to 0 for mips
-//            .ArraySize = 1,
-//            .Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
-//            .SampleDesc = {1, 0},
-//            .Usage = D3D11_USAGE_IMMUTABLE,
-//            .BindFlags = D3D11_BIND_SHADER_RESOURCE,
-//        };
-//
-//        D3D11_SUBRESOURCE_DATA data = {
-//            .pSysMem = bitmap->base,
-//            .SysMemPitch = (u32)bitmap->stride,
-//        };
-//        ID3D11Texture2D* texture = assets->textures[i];
-//        ID3D11ShaderResourceView* shader_resource = assets->shader_resources[i];
-//
-//        hr = d3d_device->CreateTexture2D(&desc, &data, &texture);
-//        assert_hr(hr);
-//        hr = d3d_device->CreateShaderResourceView(texture, 0, &shader_resource);
-//        assert_hr(hr);
-//    }
-//}
-
-static Bitmap*
-get_bitmap(Assets* assets, AssetID id){
-    Bitmap* result = assets->bitmaps + id;
-    return(result);
-}
-
-//static ID3D11ShaderResourceView*
-//get_shader_resource(Assets* assets, AssetID id){
-//    ID3D11ShaderResourceView* result = *assets->shader_resources + id;
-//    return(result);
-//}
-
+// todo: Move these to entity once you move PermanentMemory further up in the tool chain
 static Entity*
 entity_from_handle(PermanentMemory* pm, EntityHandle handle){
     Entity *result = 0;
@@ -106,7 +65,12 @@ add_entity_quad(PermanentMemory* pm, Rect rect, RGBA color){
     Entity* e = add_entity(pm, EntityType_Quad);
     if(e){
         e->rect = rect;
+        e->p0 = rect.min;
+        e->p1 = make_v2(rect.x0, rect.y1);
+        e->p2 = rect.max;
+        e->p3 = make_v2(rect.x1, rect.y0);
         e->color = color;
+        e->pos = make_v3(rect.x0, rect.y0, 0);
     }
     else{
         print("Failed to add entity: Quad\n");
@@ -141,41 +105,6 @@ add_entity_text(PermanentMemory* pm, Font font, String8 text, f32 x, f32 y, RGBA
     else{
         print("Failed to add entity: Quad\n");
     }
-    return(e);
-}
-
-static Entity*
-add_pixel(PermanentMemory* pm, Rect rect, RGBA color){
-    Entity* e = add_entity(pm, EntityType_Pixel);
-    e->rect = rect;
-    e->color = color;
-    return(e);
-}
-
-static Entity*
-add_segment(PermanentMemory* pm, v2 p0, v2 p1, RGBA color){
-    Entity* e = add_entity(pm, EntityType_Segment);
-    e->color = color;
-    e->p0 = p0;
-    e->p1 = p1;
-    return(e);
-}
-
-static Entity*
-add_ray(PermanentMemory* pm, Rect rect, v2 direction, RGBA color){
-    Entity* e = add_entity(pm, EntityType_Ray);
-    e->rect = rect;
-    e->color = color;
-    e->direction = direction;
-    return(e);
-}
-
-static Entity*
-add_line(PermanentMemory* pm, Rect rect, v2 direction, RGBA color){
-    Entity* e = add_entity(pm, EntityType_Line);
-    e->rect = rect;
-    e->color = color;
-    e->direction = direction;
     return(e);
 }
 
@@ -256,17 +185,6 @@ add_box(PermanentMemory* pm, Rect rect, RGBA color){
     Entity* e = add_entity(pm, EntityType_Box);
     e->rect = rect;
     e->color = color;
-    return(e);
-}
-
-static Entity*
-add_triangle(PermanentMemory *pm, v2 p0, v2 p1, v2 p2, RGBA color, bool fill){
-    Entity* e = add_entity(pm, EntityType_Triangle);
-    e->p0 = p0;
-    e->p1 = p1;
-    e->p2 = p2;
-    e->color = color;
-    e->fill = fill;
     return(e);
 }
 
@@ -504,7 +422,7 @@ static Entity* first;
 static Entity* second;
 static Entity* third;
 static void
-update_game(Window* window, Memory* memory, Events* events, Clock* clock){
+update_game(Window* window, Memory* memory, Events* events){
     assert(sizeof(PermanentMemory) < memory->permanent_size);
     assert(sizeof(TransientMemory) < memory->transient_size);
     pm = (PermanentMemory*)memory->permanent_base;
@@ -515,8 +433,8 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     //push_clear_color(render_buffer->render_command_arena, BLACK);
     //Arena* render_command_arena = render_buffer->render_command_arena;
     if(!memory->initialized){
-        pm->game_mode = GameMode_Game;
-        show_cursor(false);
+        pm->game_mode = GameMode_Editor;
+        show_cursor(true);
 
         init_camera();
 
@@ -529,38 +447,14 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         // setup free entities array in reverse order
         entities_clear(pm);
 
-        //pm->sprites_dir = str8_path_append(&pm->arena, path_data, str8_literal("sprites"));
-        //pm->fonts_dir   = str8_path_append(&pm->arena, path_data, str8_literal("fonts"));
-        //pm->saves_dir   = str8_path_append(&pm->arena, path_data, str8_literal("saves"));
-
-        // basis test
-        //d3d_init_texture(ship_image);
-
-
         load_assets(&tm->arena, &tm->assets);
-        //load_textures_from_assets(&tm->assets);
-        //Bitmap ship_image = load_bitmap(&pm->arena, pm->sprites_dir, ship_str);
-        //Bitmap aa = stb_load_image(pm->sprites_dir, circle_str);
-        //Bitmap ship_image = stb_load_image(pm->sprites_dir, ship_str);
-        //Bitmap test_image0 = stb_load_image(pm->sprites_dir, test_str);
-        //Bitmap test_image1 = stb_load_image(pm->sprites_dir, test_str);
-        //Bitmap test_image1 = load_bitmap(&pm->arena, pm->sprites_dir, test_str);
 
-		v2 origin = make_v2((f32)window->width/2, (f32)window->height/2);
-        v2 direction = make_v2(0, 1);
-		//v2 x_axis = 100.0f * make_v2(cos_f32(dir_to_rad(direction)), sin_f32(dir_to_rad(direction)));
-		v2 x_axis = make_v2(1, 1);
-		v2 y_axis = make_v2(-x_axis.y, x_axis.x);
-        //pm->ship = add_basis(pm, origin, x_axis, y_axis, ship_image, {0, 0, 0, 0});
-        //add_basis(pm, origin, x_axis, y_axis, tree_image, {0, 0, 0, 0});
-        //add_basis(pm, origin, x_axis, y_axis, circle_image, {0, 0, 0, 0});
-        //add_basis(pm, origin, x_axis, y_axis, test_image0, {0, 0, 0, 0});
-        //pm->ship = add_ship(pm, make_v2(100, 100), x_axis, y_axis, ship_image, {0, 0, 0, 0});
-        //Entity* bullet = add_bullet(pm, origin, x_axis, y_axis, get_bitmap(&tm->assets, AssetID_Bullet), {0, 0, 0, 0});
-        //add_rect(pm, rect_screen_to_pixel(make_rect(.1, .5f, .2, .6), resolution), MAGENTA);
-        //add_rect(pm, rect_screen_to_pixel(make_rect(.3, .5f, .4, .6), resolution), MAGENTA, 4, GREEN);
-        //add_rect(pm, rect_screen_to_pixel(make_rect(.5, .5f, .6, .6), resolution), MAGENTA, 0, BLUE);
-        //add_rect(pm, rect_screen_to_pixel(make_rect(.7, .5f, .8, .6), resolution), MAGENTA, -20000, TEAL);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Image],  &image_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Ship],   &ship_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Tree],   &tree_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Circle], &circle_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Bullet], &bullet_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Test],   &test_shader_resource);
 
         //first = add_cube(pm, get_bitmap(&tm->assets, AssetID_Test), make_v3(40.0f, 0.0f, 200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.5f, 0.5f, 0.5f), 120);
         //second = add_player(pm, get_bitmap(&tm->assets, AssetID_Ship), make_v3(-40.0f, 0.0f, 200.0f), make_v3(0.0f, 0.0f, 0.0f), make_v3(0.2f, 0.2f, 0.2f), 121);
@@ -569,25 +463,24 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
         init_console(&pm->arena);
         init_console_commands();
 
-        add_entity_quad(pm, make_rect(700, 10, 1000, 300), GREEN);
-        add_entity_quad(pm, make_rect(700, 10, 900,  200), RED);
-        add_entity_quad(pm, make_rect(700, 10, 800,  100), BLUE);
+        add_entity_quad(pm, make_rect(700, 200, 1000, 500), GREEN);
+        //add_entity_quad(pm, make_rect(700, 10, 900,  200), RED);
+        //add_entity_quad(pm, make_rect(700, 10, 800,  100), BLUE);
 
-        add_entity_quad(pm, make_rect(10,  10, 300,  300), GREEN);
-        add_entity_quad(pm, make_rect(10,  10, 200,  200), RED);
-        add_entity_quad(pm, make_rect(10,  10, 100,  100), BLUE);
+        //add_entity_quad(pm, make_rect(10,  10, 300,  300), GREEN);
+        //add_entity_quad(pm, make_rect(10,  10, 200,  200), RED);
+        //add_entity_quad(pm, make_rect(10,  10, 100,  100), BLUE);
 
-        add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 650, 300),  GREEN);
-        add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 550, 200),  RED);
-        add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 450, 100));
+        //add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 650, 300),  GREEN);
+        //add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 550, 200),  RED);
+        //add_entity_texture(pm, &ship_shader_resource, make_rect(350, 10, 450, 100));
 
         String8 text = str8_literal("! \"#$%'()*+,\n-x/0123456789:;<=>?@ABCD\nEFGHIJKLMNOPQRSTUVWXYZ[\n\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
         f32 ypos = 0.2f * (f32)window->height;
-        add_entity_text(pm, global_font, text, 10.0f, ypos, ORANGE);
+        //add_entity_text(pm, global_font, text, 10.0f, ypos, ORANGE);
 
         memory->initialized = true;
     }
-    angle += (f32)clock->dt;
     //second->pos.z = cos_f32(angle);
 
 
@@ -612,85 +505,85 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     f32 move_speed = 40;
     if(pm->game_mode == GameMode_Editor){
         if(controller.right.held){
-            second->pos.x += move_speed * (f32)clock->dt;
+            second->pos.x += move_speed * (f32)clock.dt;
         }
         if(controller.left.held){
-            second->pos.x -= move_speed * (f32)clock->dt;
+            second->pos.x -= move_speed * (f32)clock.dt;
         }
         if(controller.e.held){
-            second->pos.y += move_speed * (f32)clock->dt;
+            second->pos.y += move_speed * (f32)clock.dt;
         }
         if(controller.q.held){
-            second->pos.y -= move_speed * (f32)clock->dt;
+            second->pos.y -= move_speed * (f32)clock.dt;
         }
         if(controller.up.held){
-            second->pos.z += move_speed * (f32)clock->dt;
+            second->pos.z += move_speed * (f32)clock.dt;
         }
         if(controller.down.held){
-            second->pos.z -= move_speed * (f32)clock->dt;
+            second->pos.z -= move_speed * (f32)clock.dt;
         }
     }
     if(pm->game_mode == GameMode_FirstPerson){
 
         // up down
         if(controller.e.held){
-            f32 dy = (f32)(camera.move_speed * clock->dt);
+            f32 dy = (f32)(camera.move_speed * clock.dt);
             camera.pos.y += dy;
         }
         if(controller.q.held){
-            f32 dy = (f32)(camera.move_speed * clock->dt);
+            f32 dy = (f32)(camera.move_speed * clock.dt);
             camera.pos.y -= dy;
         }
 
         // wasd
         if(controller.up.held){
-            v3 result = (camera.forward  * camera.move_speed * (f32)clock->dt);
+            v3 result = (camera.forward  * camera.move_speed * (f32)clock.dt);
             camera.pos = camera.pos + result;
         }
         if(controller.down.held){
-            v3 result = (camera.forward  * camera.move_speed * (f32)clock->dt);
+            v3 result = (camera.forward  * camera.move_speed * (f32)clock.dt);
             camera.pos = camera.pos - result;
         }
         if(controller.left.held){
-            v3 result = (normalized_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock->dt);
+            v3 result = (normalized_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock.dt);
             camera.pos = camera.pos + result;
         }
         if(controller.right.held){
-            v3 result = (normalized_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock->dt);
+            v3 result = (normalized_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock.dt);
             camera.pos = camera.pos - result;
         }
 
         POINT center = {(SCREEN_WIDTH/2), (SCREEN_HEIGHT/2)};
         ClientToScreen(window->handle, &center);
         SetCursorPos(center.x, center.y);
-        update_camera(controller.mouse.dx, controller.mouse.dy, (f32)clock->dt);
+        update_camera(controller.mouse.dx, controller.mouse.dy, (f32)clock.dt);
     }
 
     //if(pm->ship_loaded){
     //    Entity* ship = pm->ship;
     //    // rotate ship
     //    if(controller.right.held){
-    //        ship->rad -= 2 * (f32)clock->dt;
-    //        second->pos.x += 1 * (f32)clock->dt;
+    //        ship->rad -= 2 * (f32)clock.dt;
+    //        second->pos.x += 1 * (f32)clock.dt;
     //    }
     //    if(controller.left.held){
-    //        ship->rad += 2 * (f32)clock->dt;
-    //        second->pos.x -= 1 * (f32)clock->dt;
+    //        ship->rad += 2 * (f32)clock.dt;
+    //        second->pos.x -= 1 * (f32)clock.dt;
     //    }
 
     //    // increase ship velocity
     //    if(controller.up.held){
-    //        ship->velocity += (f32)clock->dt;
+    //        ship->velocity += (f32)clock.dt;
     //    }
     //    if(controller.down.held){
-    //        ship->velocity -= (f32)clock->dt;
+    //        ship->velocity -= (f32)clock.dt;
     //    }
     //    clamp_f32(0, 1, &ship->velocity);
 
     //    // move ship
     //    ship->direction = rad_to_dir(ship->rad);
-    //    ship->origin.x += (ship->direction.x * ship->velocity * ship->speed) * (f32)clock->dt;
-    //    ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * (f32)clock->dt;
+    //    ship->origin.x += (ship->direction.x * ship->velocity * ship->speed) * (f32)clock.dt;
+    //    ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * (f32)clock.dt;
     //    //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
     //}
     console_update_openess();
@@ -710,39 +603,51 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
     //d3d_context->Unmap(d3d_constant_buffer, 0);
     //d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
 
-    f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
-    u32 c = array_count(pm->entities) - 1;
-    for(u32 entity_index = pm->free_entities_at; entity_index < array_count(pm->entities); ++entity_index){
-        Entity *e = pm->entities + pm->free_entities[entity_index];
+    //u32 c = array_count(pm->entities) - 1;
+
+    for(s32 index = 0; index < array_count(pm->entities); ++index){
+        Entity *e = pm->entities + index;
 
         switch(e->type){
-            case EntityType_Cube:{
-                e->angle.z += (f32)clock->dt;
-                e->angle.y += (f32)clock->dt;
+            case EntityType_Quad:{
+                //e->angle.z += 1.0f * (f32)clock.dt;
+                e->angle.z = 0.1f;
+                print("%i - %f\n", index, e->angle.z);
 
-                InstanceData* instance = cube_instances + ((c - 1) - entity_index);
-                instance->transform =
-                    XMMatrixRotationX(e->angle.x) *
-                    XMMatrixRotationY(e->angle.y) *
-                    XMMatrixRotationZ(e->angle.z) *
-                    XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
-                    XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z);
+                v2 center = quad_center(e->p0, e->p2);
+                e->p0 = rotate_point(e->p0, e->angle.z, center);
+                e->p1 = rotate_point(e->p1, e->angle.z, center);
+                e->p2 = rotate_point(e->p2, e->angle.z, center);
+                e->p3 = rotate_point(e->p3, e->angle.z, center);
             } break;
-            case EntityType_Player:{
-                e->angle.z += (f32)clock->dt;
-                e->angle.x += (f32)clock->dt;
+            //case EntityType_Cube:{
+            //    e->angle.z += (f32)clock.dt;
+            //    e->angle.y += (f32)clock.dt;
 
-                InstanceData* instance = cube_instances + ((c - 1) - entity_index);
-                instance->transform =
-                    XMMatrixRotationX(e->angle.x) *
-                    XMMatrixRotationY(e->angle.y) *
-                    XMMatrixRotationZ(e->angle.z) *
-                    XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
-                    XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z);
-            } break;
+            //    InstanceData* instance = cube_instances + ((c - 1) - entity_index);
+            //    instance->transform =
+            //        XMMatrixRotationX(e->angle.x) *
+            //        XMMatrixRotationY(e->angle.y) *
+            //        XMMatrixRotationZ(e->angle.z) *
+            //        XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
+            //        XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z);
+            //} break;
+            //case EntityType_Player:{
+            //    e->angle.z += (f32)clock.dt;
+            //    e->angle.x += (f32)clock.dt;
+
+            //    InstanceData* instance = cube_instances + ((c - 1) - entity_index);
+            //    instance->transform =
+            //        XMMatrixRotationX(e->angle.x) *
+            //        XMMatrixRotationY(e->angle.y) *
+            //        XMMatrixRotationZ(e->angle.z) *
+            //        XMMatrixScaling(e->scale.x, e->scale.y, e->scale.z) *
+            //        XMMatrixTranslation(e->pos.x, e->pos.y, e->pos.z);
+            //} break;
         }
     }
 
+    // TODO: move this out of simulation and have it before the render call
     arena_free(render_command_arena);
     push_clear_color(render_command_arena, BACKGROUND_COLOR);
     for(s32 index = 0; index < array_count(pm->entities); ++index){
@@ -750,7 +655,7 @@ update_game(Window* window, Memory* memory, Events* events, Clock* clock){
 
         switch(e->type){
             case EntityType_Quad:{
-                push_quad(render_command_arena, e->rect, e->color);
+                push_quad(render_command_arena, e->p0, e->p1, e->p2, e->p3, e->color);
             } break;
             case EntityType_Texture:{
                 push_texture(render_command_arena, e->texture, e->rect, e->color);

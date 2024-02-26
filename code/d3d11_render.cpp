@@ -60,11 +60,14 @@ push_clear_color(Arena* arena, RGBA color){
 }
 
 static void
-push_quad(Arena* arena, Rect rect, RGBA color){
+push_quad(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
     RenderCommand* command = push_struct(arena, RenderCommand);
     command->type = RenderCommandType_Quad;
     command->color = color;
-    command->rect = rect;
+    command->p0 = p0;
+    command->p1 = p1;
+    command->p2 = p2;
+    command->p3 = p3;
 }
 
 static void
@@ -83,7 +86,6 @@ push_texture(Arena* arena, ID3D11ShaderResourceView** texture, Rect rect, RGBA c
     RenderCommand* command = push_struct(arena, RenderCommand);
     command->type = RenderCommandType_Texture;
     command->texture = texture;
-    command->rect = rect;
     command->color = color;
 }
 
@@ -100,13 +102,13 @@ draw_commands(Arena* commands){
                 d3d_clear_color(command->color);
             } break;
             case RenderCommandType_Quad:{
-                d3d_draw_quad(command->rect, command->color);
+                d3d_draw_quad(command->p0, command->p1, command->p2, command->p3, command->color);
             } break;
             case RenderCommandType_Text:{
                 d3d_draw_text(command->font, command->x, command->y, command->color, command->text);
             } break;
             case RenderCommandType_Texture:{
-                d3d_draw_texture(command->texture, command->rect, command->color);
+                //d3d_draw_texture(command->texture, command->rect, command->color);
             } break;
         }
 		at = (u8*)at + sizeof(RenderCommand);
@@ -120,20 +122,17 @@ d3d_clear_color(RGBA color){
 }
 
 static void
-d3d_draw_quad(Rect rect, RGBA color){
+d3d_draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
 
     RGBA linear_color = srgb_to_linear(color); // gamma correction
-    Rect clip_rect = rect_clip_from_pixel(rect, make_v2s32(window.width, window.height));
-    Vertex vertices[] = {
-        { make_v3(clip_rect.x0, clip_rect.y0, 0.0f), linear_color, make_v2(0.0f, 0.0f)},
-        { make_v3(clip_rect.x1, clip_rect.y0, 0.0f), linear_color, make_v2(1.0f, 0.0f)},
-        { make_v3(clip_rect.x0, clip_rect.y1, 0.0f), linear_color, make_v2(0.0f, 1.0f)},
-        { make_v3(clip_rect.x1, clip_rect.y1, 0.0f), linear_color, make_v2(1.0f, 1.0f)},
-    };
+    Vertex2 vertices[] = {
+        { p0, linear_color },
+        { p1, linear_color },
+        { p2, linear_color },
 
-    s32 indices[] = {
-        2, 3, 0, // top left
-        0, 3, 1, // bottom right
+        { p0, linear_color },
+        { p2, linear_color },
+        { p3, linear_color },
     };
 
     //----vertex buffer----
@@ -142,34 +141,31 @@ d3d_draw_quad(Rect rect, RGBA color){
         hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
         assert_hr(hr);
 
-        memcpy(resource.pData, vertices, sizeof(Vertex) * array_count(vertices));
+        memcpy(resource.pData, vertices, sizeof(Vertex2) * array_count(vertices));
         d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
 
         ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
-        u32 strides[] = {sizeof(Vertex)};
+        u32 strides[] = {sizeof(Vertex2)};
         u32 offset[] = {0};
 
         d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
     }
 
-    //----index buffer----
-    {
-        D3D11_MAPPED_SUBRESOURCE resource;
-        hr = d3d_context->Map(d3d_index_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
-        assert_hr(hr);
-
-        memcpy(resource.pData, indices, sizeof(s32) * array_count(indices));
-        d3d_context->Unmap(d3d_index_buffer, 0);
-
-        d3d_context->IASetIndexBuffer(d3d_index_buffer, DXGI_FORMAT_R32_UINT, 0);
-    }
+    //----constant buffer----
+    D3D11_MAPPED_SUBRESOURCE mapped_subresource;
+    d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+    ConstantBuffer2D* constants = (ConstantBuffer2D*)mapped_subresource.pData;
+    constants->screen_res = make_v2s32(window.width, window.height);
+    d3d_context->Unmap(d3d_constant_buffer, 0);
 
     //-------------------------------------------------------------------
+
 
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
 
     d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
+    d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
 
     D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
     depth_stencil_desc.DepthEnable = false;
@@ -178,20 +174,21 @@ d3d_draw_quad(Rect rect, RGBA color){
     hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
     d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
 
-    d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
-
     D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
     rasterizer_desc.FillMode = D3D11_FILL_SOLID;
     rasterizer_desc.CullMode = D3D11_CULL_BACK;
     hr = d3d_device->CreateRasterizerState1(&rasterizer_desc, &d3d_rasterizer_state);
+
     d3d_context->RSSetState(d3d_rasterizer_state);
+    d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
 
     d3d_context->RSSetViewports(1, &d3d_viewport);
     d3d_context->IASetInputLayout(d3d_2d_quad_input_layout);
     d3d_context->VSSetShader(d3d_2d_quad_vertex_shader, 0, 0);
     d3d_context->PSSetShader(d3d_2d_quad_pixel_shader, 0, 0);
 
-    d3d_context->DrawIndexed(array_count(indices), 0, 0);
+    //d3d_context->DrawIndexed(array_count(indices), 0, 0);
+    d3d_context->Draw(6, 0);
 }
 
 // todo: pass in optional UV (x, y) that is added to each UV xy. Look at JB image as example
@@ -200,7 +197,7 @@ d3d_draw_texture(ID3D11ShaderResourceView** texture, Rect rect, RGBA color){
 
     Rect clip_rect = rect_clip_from_pixel(rect, make_v2s32(window.width, window.height));
     RGBA linear_color = srgb_to_linear(color);
-    Vertex vertices[] = {
+    Vertex3 vertices[] = {
         { make_v3(clip_rect.x0, clip_rect.y0, 0.0f), linear_color, make_v2(0.0f, 0.0f)},
         { make_v3(clip_rect.x1, clip_rect.y0, 0.0f), linear_color, make_v2(1.0f, 0.0f)},
         { make_v3(clip_rect.x0, clip_rect.y1, 0.0f), linear_color, make_v2(0.0f, 1.0f)},
@@ -218,11 +215,11 @@ d3d_draw_texture(ID3D11ShaderResourceView** texture, Rect rect, RGBA color){
         hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
         assert_hr(hr);
 
-        memcpy(resource.pData, vertices, sizeof(Vertex) * array_count(vertices));
+        memcpy(resource.pData, vertices, sizeof(Vertex3) * array_count(vertices));
         d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
 
         ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
-        u32 strides[] = {sizeof(Vertex)};
+        u32 strides[] = {sizeof(Vertex3)};
         u32 offset[] = {0};
 
         d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
@@ -276,8 +273,8 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
 
     ScratchArena scratch = begin_scratch(0);
     u64 allocation_size = text.size * 6;
-    Vertex* buffer = push_array(scratch.arena, Vertex, allocation_size);
-    Vertex* vertex = buffer;
+    Vertex3* buffer = push_array(scratch.arena, Vertex3, allocation_size);
+    Vertex3* vertex = buffer;
 
     f32 start_x = x;
     f32 y_offset = 0;
@@ -306,11 +303,11 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
         hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
         assert_hr(hr);
 
-        memcpy(resource.pData, buffer, sizeof(Vertex) * allocation_size);
+        memcpy(resource.pData, buffer, sizeof(Vertex3) * allocation_size);
         d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
 
         ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
-        u32 strides[] = {sizeof(Vertex)};
+        u32 strides[] = {sizeof(Vertex3)};
         u32 offset[] = {0};
 
         d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
@@ -352,7 +349,7 @@ static void
 d3d_draw_textured_cube_instanced(ID3D11ShaderResourceView** shader_resource){
 
     RGBA linear_color = srgb_to_linear(WHITE);
-    static Vertex vertices[] = {
+    static Vertex3 vertices[] = {
         { make_v3(-20.0f, -20.0f,  20.0f), linear_color, make_v2(0.0f, 0.0f) },
         { make_v3( 20.0f, -20.0f,  20.0f), linear_color, make_v2(0.0f, 1.0f) },
         { make_v3(-20.0f,  20.0f,  20.0f), linear_color, make_v2(1.0f, 0.0f) },
@@ -416,11 +413,11 @@ d3d_draw_textured_cube_instanced(ID3D11ShaderResourceView** shader_resource){
         hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
         assert_hr(hr);
 
-        memcpy(resource.pData, vertices, sizeof(Vertex) * array_count(vertices));
+        memcpy(resource.pData, vertices, sizeof(Vertex3) * array_count(vertices));
         d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
 
         ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb, d3d_instance_buffer};
-        u32 strides[] = {sizeof(Vertex), sizeof(InstanceData)};
+        u32 strides[] = {sizeof(Vertex3), sizeof(InstanceData)};
         u32 offset[] = {0, 0};
 
         d3d_context->IASetVertexBuffers(0, 2, buffers, strides, offset);

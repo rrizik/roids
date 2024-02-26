@@ -47,6 +47,18 @@ console_is_visible(){
     return(console.open_t < 1);
 }
 
+static u8
+console_char_at_cursor(){
+    u8 result = 0;
+    if(console.input_count == console.cursor_index){
+        result = 'a';
+    }
+    else{
+        result = console.input[console.cursor_index];
+    }
+    return(result);
+}
+
 static void
 input_add_char(u8 c){
     if(console.input_count < INPUT_COUNT_MAX){
@@ -257,48 +269,39 @@ console_update_openess(){
 static void
 console_draw(){
     // rect setup
-    Rect output_rect = {0};
-    output_rect.x0 = 0;
-    output_rect.y0 = console.open_t * (f32)window.height;
-    output_rect.x1 = (f32)window.width;
-    output_rect.y1 = (f32)window.height;
+    v2 output_p0 = make_v2(0, console.open_t * (f32)window.height);
+    v2 output_p1 = make_v2(0, (f32)window.height);
+    v2 output_p2 = make_v2((f32)window.width, (f32)window.height);
+    v2 output_p3 = make_v2((f32)window.width, console.open_t * (f32)window.height);
 
-    Rect input_rect = {0};
-    input_rect.x0 = 0;
-    input_rect.y0 = output_rect.y0 - (f32)console.font.vertical_offset * console.font.scale;
-    input_rect.x1 = (f32)window.width;
-    input_rect.y1 = output_rect.y0;
+    v2 input_p0 = make_v2(0, output_p0.y - (f32)console.font.vertical_offset * console.font.scale);
+    v2 input_p1 = make_v2(0, output_p0.y);
+    v2 input_p2 = make_v2((f32)window.width, output_p0.y);
+    v2 input_p3 = make_v2((f32)window.width, output_p0.y - (f32)console.font.vertical_offset * console.font.scale);
 
-    Rect cursor_rect = {0};
-    u8 char_at_cursor = 0; // note: defaults to 'a' when nothing is located at cursor_index
-    if(console.input_count == console.cursor_index){
-        char_at_cursor = 'a';
-    }
-    else{
-        char_at_cursor = console.input[console.cursor_index];
-    }
     String8 str = str8(console.input, (u64)console.cursor_index);
-    cursor_rect.x0 = console.text_left_pad + font_char_width(console.font, '>') + font_string_width(console.font, str);
-    cursor_rect.y0 = input_rect.y0;
-    cursor_rect.x1 = cursor_rect.x0 + font_char_width(console.font, char_at_cursor);
-    cursor_rect.y1 = input_rect.y1;
+
+    v2 cursor_p0 = make_v2(console.text_left_pad + font_char_width(console.font, '>') + font_string_width(console.font, str), input_p0.y);
+    v2 cursor_p1 = make_v2(console.text_left_pad + font_char_width(console.font, '>') + font_string_width(console.font, str) , input_p2.y);
+    v2 cursor_p2 = make_v2(cursor_p0.x + font_char_width(console.font, console_char_at_cursor()), input_p2.y);
+    v2 cursor_p3 = make_v2(cursor_p0.x + font_char_width(console.font, console_char_at_cursor()), input_p0.y);
 
     // draw regions
-    push_quad(render_command_arena, output_rect, console.output_background_color);
-    push_quad(render_command_arena, input_rect, console.input_background_color);
-    push_quad(render_command_arena, cursor_rect, console.cursor_color);
+    push_quad(render_command_arena, output_p0, output_p1, output_p2, output_p3, console.output_background_color);
+    push_quad(render_command_arena, input_p0, input_p1, input_p2, input_p3, console.input_background_color);
+    push_quad(render_command_arena, cursor_p0, cursor_p1, cursor_p2, cursor_p3, console.cursor_color);
 
     // draw input
-    f32 input_pos_y = (f32)window.height - (input_rect.y0 - ((f32)console.font.descent * console.font.scale));
+    f32 input_pos_y = (f32)window.height - (input_p0.y - ((f32)console.font.descent * console.font.scale));
     push_text(render_command_arena, console.font, str8_literal(">"), console.text_left_pad, input_pos_y, console.input_color);
     if(console.input_count > 0){
         String8 input_str = str8(console.input, (u64)console.input_count);
         push_text(render_command_arena, console.font, input_str, console.text_left_pad + font_char_width(console.font, '>'), input_pos_y, console.input_color);
     }
 
-    // draw history in reverse order, but only if its on screen
+    // draw history (in reverse order and only if its on screen)
     if(console.output_history_count > 0){
-        f32 output_pos_y = (f32)window.height - (output_rect.y0 - ((f32)console.font.descent * console.font.scale));
+        f32 output_pos_y = (f32)window.height - (output_p0.y - ((f32)console.font.descent * console.font.scale));
         for(s32 i=console.output_history_count-1; i >= 0; --i){
             if(output_pos_y < (f32)window.height){
                 String8 next_string = console.output_history[i];

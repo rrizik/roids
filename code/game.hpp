@@ -20,29 +20,23 @@ typedef enum AssetID{
 
 typedef struct Assets{
     Bitmap bitmaps[AssetID_Count];
-    //ID3D11Texture2D* textures[AssetID_Count];
-    //ID3D11ShaderResourceView* shader_resources[AssetID_Count];
 } Assets;
 
 static void load_assets(Arena* arena, Assets* assets);
 
-//static void load_textures_from_assets(Assets* assets);
-
 static Bitmap* get_bitmap(Assets* assets, AssetID id);
 
-//static ID3D11ShaderResourceView* get_shader_resource(Assets* assets, AssetID id);
-
-#define ENTITIES_MAX 4096
+#define ENTITIES_MAX 1
 typedef struct PermanentMemory{
     Arena arena;
     u32 game_mode;
 
+    Entity entities[ENTITIES_MAX];
+    u32 entities_count;
+
     u32 generation[ENTITIES_MAX];
     u32 free_entities[ENTITIES_MAX];
     u32 free_entities_at;
-
-    Entity entities[ENTITIES_MAX];
-    u32 entities_count;
 
     Entity* texture;
     Entity* circle;
@@ -102,8 +96,9 @@ static bool handle_controller_events(Event event);
 //static String8 ship_str   = str8_literal("ship_simple.bmp");
 //static String8 bullet_str = str8_literal("bullet4.bmp");
 
-static f32 angle = 0;
-static void update_game(Window* window, Memory* memory, Events* events, Clock* clock);
+static void update_game(Window* window, Memory* memory, Events* events);
+
+static v3 angle1 = make_v3(0, 0, 0);
 
 #endif
 

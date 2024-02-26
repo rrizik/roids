@@ -41,6 +41,27 @@ rect_clip_from_pixel(Rect r, v2s32 res){
     return(result);
 }
 
+static Quad
+make_quad(v2 p0, v2 p1, v2 p2, v2 p3){
+    Quad result;
+    result.p0 = p0;
+    result.p1 = p1;
+    result.p2 = p2;
+    result.p3 = p3;
+    return(result);
+}
+
+static Quad
+quad_clip_from_pixel(Quad q, v2s32 res){
+    v2 p0 = {((q.p0.x / (f32)res.w) * 2.0f) - 1.0f, ((q.p0.y / (f32)res.h) * 2.0f) - 1.0f};
+    v2 p1 = {((q.p1.x / (f32)res.w) * 2.0f) - 1.0f, ((q.p1.y / (f32)res.h) * 2.0f) - 1.0f};
+    v2 p2 = {((q.p2.x / (f32)res.w) * 2.0f) - 1.0f, ((q.p2.y / (f32)res.h) * 2.0f) - 1.0f};
+    v2 p3 = {((q.p3.x / (f32)res.w) * 2.0f) - 1.0f, ((q.p3.y / (f32)res.h) * 2.0f) - 1.0f};
+
+    Quad result = make_quad(p0, p1, p2, p3);
+    return(result);
+}
+
 static Rect
 rect_clip_from_pixel_inverted(Rect r, v2s32 res){
     Rect result = {

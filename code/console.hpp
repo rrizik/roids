@@ -49,6 +49,8 @@ global Console console;
 static void init_console(Arena* arena);
 static bool console_is_open();
 static bool console_is_visible();
+static   u8 console_char_at_cursor();
+static   u8 console_char_at_cursor();
 
 static void input_add_char(u8 c);
 static   u8 input_remove_char();
