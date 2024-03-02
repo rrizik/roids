@@ -37,29 +37,21 @@ global ID3D11RenderTargetView* d3d_framebuffer_view;
 global ID3D11Texture2D*        d3d_depthbuffer;
 global ID3D11DepthStencilView* d3d_depthbuffer_view;
 
-
 global ID3D11DepthStencilState* d3d_depthstencil_state;
 global ID3D11RasterizerState1*  d3d_rasterizer_state;
 global ID3D11SamplerState*      d3d_sampler_state;
 global ID3D11BlendState*        d3d_blend_state; // note: maybe use BlendState1 later
 
+global ID3D11VertexShader* d3d_2d_quad_vs;
+global ID3D11PixelShader*  d3d_2d_quad_ps;
+global ID3D11InputLayout*  d3d_2d_quad_il;
 
-global ID3D11VertexShader* d3d_3d_vertex_shader;
-global ID3D11PixelShader*  d3d_3d_pixel_shader;
-global ID3D11InputLayout*  d3d_3d_input_layout;
-//global ID3D11ShaderResourceView* d3d_shader_resource;
-//global ID3D11Texture2D* d3d_texture;
+global ID3D11VertexShader* d3d_2d_textured_vs;
+global ID3D11PixelShader*  d3d_2d_textured_ps;
+global ID3D11InputLayout*  d3d_2d_textured_il;
 
-global ID3D11VertexShader* d3d_2d_quad_vertex_shader;
-global ID3D11PixelShader*  d3d_2d_quad_pixel_shader;
-global ID3D11InputLayout*  d3d_2d_quad_input_layout;
-
-global ID3D11VertexShader* d3d_2d_textured_vertex_shader;
-global ID3D11PixelShader*  d3d_2d_textured_pixel_shader;
-global ID3D11InputLayout*  d3d_2d_textured_input_layout;
-
-global ID3D11VertexShader* d3d_d7_sprite_vertex_shader;
-global ID3D11PixelShader*  d3d_d7_sprite_pixel_shader;
+global ID3D11VertexShader* d3d_d7_sprite_vs;
+global ID3D11PixelShader*  d3d_d7_sprite_ps;
 
 global ID3D11Buffer* d3d_vertex_buffer_8mb;
 global ID3D11Buffer* d3d_vertex_buffer;
@@ -84,21 +76,9 @@ global ID3D11ShaderResourceView* test_shader_resource;
 global ID3D11Texture2D* white_texture;
 global ID3D11ShaderResourceView* white_shader_resource;
 
-global D3D11_INPUT_ELEMENT_DESC input_layout_3d[] = {
+global D3D11_INPUT_ELEMENT_DESC il_2d_textured[] = {
         // vertex data
-        {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"TEX",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        // instance data
-        {"TRANSFORM", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 0,                            D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"TRANSFORM", 1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"TRANSFORM", 2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
-        {"TRANSFORM", 3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48,                           D3D11_INPUT_PER_INSTANCE_DATA, 1},
-};
-
-global D3D11_INPUT_ELEMENT_DESC input_layout_2dui_textured[] = {
-        // vertex data
-        {"POS",  0, DXGI_FORMAT_R32G32B32_FLOAT,    0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"POS",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TEX",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 };
@@ -136,7 +116,7 @@ typedef struct Texture2D{
 } Texture2D;
 
 typedef struct Vertex3{
-    v3 position;
+    v2 position;
     RGBA color;
     v2 uv;
 } Vertex3;
@@ -169,8 +149,8 @@ static RGBA CONSOLE_TEXT_OUTPUT_COLOR = {215/255.0f, 175/255.0f, 135/255.0f, 1.0
 static RGBA CONSOLE_CURSOR_COLOR = {226/255.0f, 226/255.0f, 226/255.0f, 1.0f};
 
 static void d3d_init_debug_stuff();
-static void d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* input_layout, u32 layout_count, ID3D11VertexShader** d3d_vertex_shader, ID3D11PixelShader** d3d_pixel_shader, ID3D11InputLayout** d3d_input_layout);
-static void d3d_load_shader2(String8 shader_path, ID3D11VertexShader** d3d_vertex_shader, ID3D11PixelShader** d3d_pixel_shader);
+static void d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_count, ID3D11VertexShader** d3d_vs, ID3D11PixelShader** d3d_ps, ID3D11InputLayout** d3d_il);
+static void d3d_load_shader2(String8 shader_path, ID3D11VertexShader** d3d_vs, ID3D11PixelShader** d3d_ps);
 static void d3d_init(Window window);
 static void init_texture_resource(Bitmap* bitmap, ID3D11ShaderResourceView** shader_resource);
 static void d3d_release();

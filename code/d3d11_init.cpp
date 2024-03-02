@@ -11,7 +11,7 @@ d3d_init_debug_stuff(){
 }
 
 static void
-d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* input_layout, u32 layout_count, ID3D11VertexShader** d3d_vertex_shader, ID3D11PixelShader** d3d_pixel_shader, ID3D11InputLayout** d3d_input_layout){
+d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_count, ID3D11VertexShader** d3d_vs, ID3D11PixelShader** d3d_ps, ID3D11InputLayout** d3d_il){
     // ---------------------------------------------------------------------------------
     // Vertex/Pixel Shader
     // ---------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* input_layout, u32
         print("\tMessage: %s\n", (char*)error->GetBufferPointer());
         assert_hr(hr);
     }
-    hr = d3d_device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, d3d_vertex_shader);
+    hr = d3d_device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, d3d_vs);
     assert_hr(hr);
 
     hr = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "ps_main", "ps_5_0", shader_compile_flags, 0, &ps_blob, &error);
@@ -42,13 +42,13 @@ d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* input_layout, u32
         assert_hr(hr);
     }
 
-    hr = d3d_device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, d3d_pixel_shader);
+    hr = d3d_device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, d3d_ps);
     assert_hr(hr);
 
     // ---------------------------------------------------------------------------------
     // Input Layout
     // ---------------------------------------------------------------------------------
-    hr = d3d_device->CreateInputLayout(input_layout, layout_count, vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), d3d_input_layout);
+    hr = d3d_device->CreateInputLayout(il, layout_count, vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), d3d_il);
     assert_hr(hr);
 
     end_scratch(scratch);
@@ -121,7 +121,7 @@ d3d_init(Window window){
     // Depth Buffer
     // ---------------------------------------------------------------------------------
     D3D11_TEXTURE2D_DESC depthbuffer_desc = {0};
-    d3d_framebuffer->GetDesc(&depthbuffer_desc); // copy from framebuffer properties
+    d3d_framebuffer->GetDesc(&depthbuffer_desc);
     depthbuffer_desc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
     depthbuffer_desc.Format    = DXGI_FORMAT_D32_FLOAT;
     depthbuffer_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
@@ -136,12 +136,18 @@ d3d_init(Window window){
     // Depth Stencil
     // ---------------------------------------------------------------------------------
     D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
-    depth_stencil_desc.DepthEnable = true;
+    depth_stencil_desc.DepthEnable = false;
     depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
     depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
 
     hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
     assert_hr(hr);
+    //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
+    //depth_stencil_desc.DepthEnable = false;
+    //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    //depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
+    //hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
+    //d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
 
     // ---------------------------------------------------------------------------------
     // Rasterizer State
@@ -198,9 +204,8 @@ d3d_init(Window window){
     d3d_viewport.MinDepth = 0;
     d3d_viewport.MaxDepth = 1.0;
 
-	d3d_load_shader(str8_literal("shaders\\3d_shader.hlsl"), input_layout_3d, 7, &d3d_3d_vertex_shader, &d3d_3d_pixel_shader, &d3d_3d_input_layout);
-	d3d_load_shader(str8_literal("shaders\\2d_texture_shader.hlsl"), input_layout_2dui_textured, 3, &d3d_2d_textured_vertex_shader, &d3d_2d_textured_pixel_shader, &d3d_2d_textured_input_layout);
-	d3d_load_shader(str8_literal("shaders\\2d_quad_shader.hlsl"), layout_2d_quad, 2, &d3d_2d_quad_vertex_shader, &d3d_2d_quad_pixel_shader, &d3d_2d_quad_input_layout);
+	d3d_load_shader(str8_literal("shaders\\2d_texture_shader.hlsl"), il_2d_textured, 3, &d3d_2d_textured_vs, &d3d_2d_textured_ps, &d3d_2d_textured_il);
+	d3d_load_shader(str8_literal("shaders\\2d_quad_shader.hlsl"), layout_2d_quad, 2, &d3d_2d_quad_vs, &d3d_2d_quad_ps, &d3d_2d_quad_il);
 
     // ---------------------------------------------------------------------------------
     // Vertex Buffers
@@ -336,15 +341,12 @@ d3d_release(){
     //d3d_texture->Release();
     //d3d_shader_resource->Release();
 
-    if(d3d_3d_vertex_shader) d3d_3d_vertex_shader->Release();
-    if(d3d_3d_pixel_shader)  d3d_3d_pixel_shader->Release();
-    if(d3d_3d_input_layout)  d3d_3d_input_layout->Release();
-    if(d3d_2d_quad_vertex_shader) d3d_2d_quad_vertex_shader->Release();
-    if(d3d_2d_quad_pixel_shader)  d3d_2d_quad_pixel_shader->Release();
-    if(d3d_2d_quad_input_layout)  d3d_2d_quad_input_layout->Release();
-    if(d3d_2d_textured_vertex_shader) d3d_2d_textured_vertex_shader->Release();
-    if(d3d_2d_textured_pixel_shader)  d3d_2d_textured_pixel_shader->Release();
-    if(d3d_2d_textured_input_layout)  d3d_2d_textured_input_layout->Release();
+    if(d3d_2d_quad_vs) d3d_2d_quad_vs->Release();
+    if(d3d_2d_quad_ps)  d3d_2d_quad_ps->Release();
+    if(d3d_2d_quad_il)  d3d_2d_quad_il->Release();
+    if(d3d_2d_textured_vs) d3d_2d_textured_vs->Release();
+    if(d3d_2d_textured_ps)  d3d_2d_textured_ps->Release();
+    if(d3d_2d_textured_il)  d3d_2d_textured_il->Release();
 
     if(d3d_vertex_buffer_8mb) d3d_vertex_buffer_8mb->Release();
     if(d3d_index_buffer)      d3d_index_buffer->Release();

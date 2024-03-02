@@ -13,7 +13,7 @@ typedef struct Mouse{
     f32 wheel_direction;
     bool tracking_leave;
 } Mouse;
-global Mouse mouse;
+//global Mouse mouse;
 
 typedef struct Controller{
     Mouse mouse;

@@ -186,7 +186,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             Event event;
             event.type = MOUSE; // TODO: maybe have this be a KEYBOARD event
             event.mouse_pos.x = (s32)(s16)(l_param & 0xFFFF);
-            event.mouse_pos.y = (s32)(s16)(l_param >> 16);
+            event.mouse_pos.y = SCREEN_HEIGHT - (s32)(s16)(l_param >> 16);
 
             s32 dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
             s32 dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);

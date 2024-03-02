@@ -26,7 +26,7 @@ static void load_assets(Arena* arena, Assets* assets);
 
 static Bitmap* get_bitmap(Assets* assets, AssetID id);
 
-#define ENTITIES_MAX 1
+#define ENTITIES_MAX 4096
 typedef struct PermanentMemory{
     Arena arena;
     u32 game_mode;
@@ -62,24 +62,18 @@ static EntityHandle handle_from_entity(PermanentMemory* pm, Entity *e);
 
 static void    remove_entity(PermanentMemory* pm, Entity* e);
 static Entity* add_entity(PermanentMemory *pm, EntityType type);
-static Entity* add_entity_quad(PermanentMemory* pm, Rect rect, RGBA color);
-static Entity* add_entity_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, Rect rect, RGBA color=WHITE);
+static Entity* add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color);
+static Entity* add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color=WHITE);
 
-static Entity* add_pixel(PermanentMemory* pm, Rect rect, RGBA color);
+static Entity* add_pixel(PermanentMemory* pm, RGBA color);
 static Entity* add_segment(PermanentMemory* pm, v2 p0, v2 p1, RGBA color);
-static Entity* add_ray(PermanentMemory* pm, Rect rect, v2 direction, RGBA color);
-static Entity* add_line(PermanentMemory* pm, Rect rect, v2 direction, RGBA color);
-//static Entity* add_rect(PermanentMemory* pm, Rect rect, RGBA color, s32 bsize = 0, RGBA bcolor = {0, 0, 0, 0});
-static Entity* add_basis(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1});
+static Entity* add_ray(PermanentMemory* pm, v2 direction, RGBA color);
+static Entity* add_line(PermanentMemory* pm, v2 direction, RGBA color);
+
 static Entity* add_ship(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1});
 static Entity* add_bullet(PermanentMemory* pm, v2 origin, v2 x_axis, v2 y_axis, Bitmap* texture, RGBA color = {0, 0, 0, 1});
-static Entity* add_cube(PermanentMemory* pm, Bitmap* texture, v3 pos, v3 angle, v3 scale, u32 index);
-static Entity* add_player(PermanentMemory* pm, Bitmap* texture, v3 pos, v3 angle, v3 scale, u32 index);
-static Entity* add_box(PermanentMemory* pm, Rect rect, RGBA color);
+static Entity* add_player(PermanentMemory* pm, Bitmap* texture, v2 pos, f32 angle, v2 scale, u32 index);
 static Entity* add_quad(PermanentMemory* pm, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, bool fill);
-static Entity* add_triangle(PermanentMemory *pm, v2 p0, v2 p1, v2 p2, RGBA color, bool fill);
-static Entity* add_circle(PermanentMemory *pm, Rect rect, u8 rad, RGBA color, bool fill);
-static Entity* add_bitmap(PermanentMemory* pm, v2 pos, Bitmap* texture);
 
 
 static void entities_clear(PermanentMemory* pm);
