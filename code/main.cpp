@@ -110,6 +110,54 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     u64 last_ticks = clock.get_os_timer();
     u64 frame_tick_start = clock.get_os_timer();
 
+    assert(sizeof(PermanentMemory) < memory.permanent_size);
+    assert(sizeof(TransientMemory) < memory.transient_size);
+    pm = (PermanentMemory*)memory.permanent_base;
+    tm = (TransientMemory*)memory.transient_base;
+
+    if(!memory.initialized){
+        pm->game_mode = GameMode_Editor;
+        show_cursor(true);
+
+        init_camera();
+
+        init_arena(&pm->arena, (u8*)memory.permanent_base + sizeof(PermanentMemory), memory.permanent_size - sizeof(PermanentMemory));
+        init_arena(&tm->arena, (u8*)memory.transient_base + sizeof(TransientMemory), memory.transient_size - sizeof(TransientMemory));
+
+        tm->render_command_arena = push_arena(&tm->arena, MB(16));
+        tm->frame_arena = push_arena(&tm->arena, MB(100));
+
+        // setup free entities array in reverse order
+        entities_clear(pm);
+
+        load_assets(&tm->arena, &tm->assets);
+
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Image],  &image_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Ship],   &ship_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Tree],   &tree_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Circle], &circle_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Bullet], &bullet_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Test],   &test_shader_resource);
+
+        init_console(&pm->arena);
+        init_console_commands();
+
+        add_quad(pm, make_v2(SCREEN_WIDTH/2 - 100, SCREEN_HEIGHT/2 - 100), make_v2(200, 300), BLUE);
+        add_quad(pm, make_v2(SCREEN_WIDTH/2 + 200, SCREEN_HEIGHT/2 + 200), make_v2(100, 100), GREEN);
+        add_quad(pm, make_v2(100, 100), make_v2(250, 200), RED);
+
+        add_texture(pm, &ship_shader_resource, make_v2(100, SCREEN_HEIGHT - 300), make_v2(200, 200));
+        add_texture(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH - 200, SCREEN_HEIGHT/2 + 100), make_v2(100, 200), GREEN);
+        add_texture(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH - 200, 200), make_v2(100, 150), RED);
+
+        String8 text = str8_literal("! \"#$%'()*+,\n-x/0123456789:;<=>?@ABCD\nEFGHIJKLMNOPQRSTUVWXYZ[\n\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
+        f32 ypos = 0.2f * (f32)window.height;
+        //add_entity_text(pm, global_font, text, 10.0f, ypos, ORANGE);
+
+        memory.initialized = true;
+    }
+
+
     should_quit = false;
     while(!should_quit){
         MSG message;
@@ -135,21 +183,58 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             clear_controller_pressed(&controller);
         }
 
-        // Prepare command buffer
-        // Prepare command buffer
-        // Prepare command buffer
+        // command arena
+        arena_free(render_command_arena);
+        push_clear_color(render_command_arena, BACKGROUND_COLOR);
+        for(s32 index = 0; index < array_count(pm->entities); ++index){
+            Entity *e = pm->entities + index;
+
+            switch(e->type){
+                case EntityType_Quad:{
+                    v2 p0 = e->pos;
+                    v2 p1 = make_v2(e->pos.x, e->pos.y + e->dim.h);
+                    v2 p2 = make_v2(e->pos.x + e->dim.w, e->pos.y + e->dim.h);
+                    v2 p3 = make_v2(e->pos.x + e->dim.w, e->pos.y);
+
+                    v2 direction = direction_v2(e->origin, v2_from_v2s32(controller.mouse.pos));
+                    direction = normalize_v2(direction);
+                    f32 deg = deg_from_dir(direction);
+
+                    p0 = rotate_point_deg(p0, deg, e->origin);
+                    p1 = rotate_point_deg(p1, deg, e->origin);
+                    p2 = rotate_point_deg(p2, deg, e->origin);
+                    p3 = rotate_point_deg(p3, deg, e->origin);
+
+                    push_quad(render_command_arena, p0, p1, p2, p3, e->color);
+                } break;
+                case EntityType_Texture:{
+                    v2 p0 = e->pos;
+                    v2 p1 = make_v2(e->pos.x, e->pos.y + e->dim.h);
+                    v2 p2 = make_v2(e->pos.x + e->dim.w, e->pos.y + e->dim.h);
+                    v2 p3 = make_v2(e->pos.x + e->dim.w, e->pos.y);
+
+                    v2 direction = direction_v2(e->origin, v2_from_v2s32(controller.mouse.pos));
+                    direction = normalize_v2(direction);
+                    f32 deg = deg_from_dir(direction);
+
+                    p0 = rotate_point_deg(p0, deg, e->origin);
+                    p1 = rotate_point_deg(p1, deg, e->origin);
+                    p2 = rotate_point_deg(p2, deg, e->origin);
+                    p3 = rotate_point_deg(p3, deg, e->origin);
+
+                    push_texture(render_command_arena, p0, p1, p2, p3, e->color, e->texture);
+                } break;
+                case EntityType_Text:{
+                    push_text(render_command_arena, e->font, e->text, e->x, e->y, e->color);
+                } break;
+            }
+        }
+
 
         // draw everything
-        if(memory.initialized){
-
-            if(console_is_visible()){
-                console_draw();
-            }
-
-            draw_commands(render_command_arena);
-
-            //d3d_draw_textured_cube_instanced(&image_shader_resource);
-        }
+        draw_commands(render_command_arena);
+        console_draw();
+        //d3d_draw_textured_cube_instanced(&image_shader_resource);
         d3d_present();
 
         frame_count++;

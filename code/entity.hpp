@@ -41,5 +41,8 @@ typedef struct EntityHandle{
 } EntityHandle;
 
 static EntityHandle zero_entity_handle();
+//static Entity* entity_from_handle(PermanentMemory* pm, EntityHandle handle);
+//static EntityHandle handle_from_entity(PermanentMemory* pm, Entity *e);
+
 
 #endif

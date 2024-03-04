@@ -56,6 +56,53 @@ global f32 g_angle = 0;
 #include "entity.hpp"
 #include "console.hpp"
 #include "command.hpp"
+
+typedef enum AssetID{
+    AssetID_Image,
+    AssetID_Ship,
+    AssetID_Tree,
+    AssetID_Circle,
+    AssetID_Bullet,
+    AssetID_Test,
+
+    AssetID_Count,
+} AssetID;
+
+typedef struct Assets{
+    Bitmap bitmaps[AssetID_Count];
+} Assets;
+
+#define ENTITIES_MAX 4096
+typedef struct PermanentMemory{
+    Arena arena;
+    u32 game_mode; // GameMode
+
+    Entity entities[ENTITIES_MAX];
+    u32 entities_count;
+
+    u32 generation[ENTITIES_MAX];
+    u32 free_entities[ENTITIES_MAX];
+    u32 free_entities_at;
+
+    Entity* texture;
+    Entity* circle;
+    Entity* basis;
+    Entity* ship;
+    Bitmap tree;
+    bool ship_loaded;
+
+} PermanentMemory, State;
+global PermanentMemory* pm;
+
+typedef struct TransientMemory{
+    Arena arena;
+    Arena *frame_arena;
+    Arena *render_command_arena;
+
+    Assets assets;
+} TransientMemory;
+global TransientMemory* tm;
+
 #include "game.hpp"
 
 static Font global_font;

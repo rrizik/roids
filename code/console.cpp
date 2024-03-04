@@ -268,45 +268,48 @@ console_update_openess(){
 
 static void
 console_draw(){
-    // rect setup
-    v2 output_p0 = make_v2(0, console.open_t * (f32)window.height);
-    v2 output_p1 = make_v2(0, (f32)window.height);
-    v2 output_p2 = make_v2((f32)window.width, (f32)window.height);
-    v2 output_p3 = make_v2((f32)window.width, console.open_t * (f32)window.height);
+    if(console_is_visible()){
+        print("%i\n", __COUNTER__);
+        // rect setup
+        v2 output_p0 = make_v2(0, console.open_t * (f32)window.height);
+        v2 output_p1 = make_v2(0, (f32)window.height);
+        v2 output_p2 = make_v2((f32)window.width, (f32)window.height);
+        v2 output_p3 = make_v2((f32)window.width, console.open_t * (f32)window.height);
 
-    v2 input_p0 = make_v2(0, output_p0.y - (f32)console.font.vertical_offset * console.font.scale);
-    v2 input_p1 = make_v2(0, output_p0.y);
-    v2 input_p2 = make_v2((f32)window.width, output_p0.y);
-    v2 input_p3 = make_v2((f32)window.width, output_p0.y - (f32)console.font.vertical_offset * console.font.scale);
+        v2 input_p0 = make_v2(0, output_p0.y - (f32)console.font.vertical_offset * console.font.scale);
+        v2 input_p1 = make_v2(0, output_p0.y);
+        v2 input_p2 = make_v2((f32)window.width, output_p0.y);
+        v2 input_p3 = make_v2((f32)window.width, output_p0.y - (f32)console.font.vertical_offset * console.font.scale);
 
-    String8 str = str8(console.input, (u64)console.cursor_index);
+        String8 str = str8(console.input, (u64)console.cursor_index);
 
-    v2 cursor_p0 = make_v2(console.text_left_pad + font_char_width(console.font, '>') + font_string_width(console.font, str), input_p0.y);
-    v2 cursor_p1 = make_v2(console.text_left_pad + font_char_width(console.font, '>') + font_string_width(console.font, str) , input_p2.y);
-    v2 cursor_p2 = make_v2(cursor_p0.x + font_char_width(console.font, console_char_at_cursor()), input_p2.y);
-    v2 cursor_p3 = make_v2(cursor_p0.x + font_char_width(console.font, console_char_at_cursor()), input_p0.y);
+        v2 cursor_p0 = make_v2(console.text_left_pad + font_char_width(console.font, '>') + font_string_width(console.font, str), input_p0.y);
+        v2 cursor_p1 = make_v2(console.text_left_pad + font_char_width(console.font, '>') + font_string_width(console.font, str) , input_p2.y);
+        v2 cursor_p2 = make_v2(cursor_p0.x + font_char_width(console.font, console_char_at_cursor()), input_p2.y);
+        v2 cursor_p3 = make_v2(cursor_p0.x + font_char_width(console.font, console_char_at_cursor()), input_p0.y);
 
-    // draw regions
-    push_quad(render_command_arena, output_p0, output_p1, output_p2, output_p3, console.output_background_color);
-    push_quad(render_command_arena, input_p0, input_p1, input_p2, input_p3, console.input_background_color);
-    push_quad(render_command_arena, cursor_p0, cursor_p1, cursor_p2, cursor_p3, console.cursor_color);
+        // draw regions
+        push_quad(render_command_arena, output_p0, output_p1, output_p2, output_p3, console.output_background_color);
+        push_quad(render_command_arena, input_p0, input_p1, input_p2, input_p3, console.input_background_color);
+        push_quad(render_command_arena, cursor_p0, cursor_p1, cursor_p2, cursor_p3, console.cursor_color);
 
-    // draw input
-    f32 input_pos_y = (f32)window.height - (input_p0.y - ((f32)console.font.descent * console.font.scale));
-    push_text(render_command_arena, console.font, str8_literal(">"), console.text_left_pad, input_pos_y, console.input_color);
-    if(console.input_count > 0){
-        String8 input_str = str8(console.input, (u64)console.input_count);
-        push_text(render_command_arena, console.font, input_str, console.text_left_pad + font_char_width(console.font, '>'), input_pos_y, console.input_color);
-    }
+        // draw input
+        f32 input_pos_y = (f32)window.height - (input_p0.y - ((f32)console.font.descent * console.font.scale));
+        push_text(render_command_arena, console.font, str8_literal(">"), console.text_left_pad, input_pos_y, console.input_color);
+        if(console.input_count > 0){
+            String8 input_str = str8(console.input, (u64)console.input_count);
+            push_text(render_command_arena, console.font, input_str, console.text_left_pad + font_char_width(console.font, '>'), input_pos_y, console.input_color);
+        }
 
-    // draw history (in reverse order and only if its on screen)
-    if(console.output_history_count > 0){
-        f32 output_pos_y = (f32)window.height - (output_p0.y - ((f32)console.font.descent * console.font.scale));
-        for(s32 i=console.output_history_count-1; i >= 0; --i){
-            if(output_pos_y < (f32)window.height){
-                String8 next_string = console.output_history[i];
-                push_text(render_command_arena, console.font, next_string, console.text_left_pad, output_pos_y, console.output_color);
-                output_pos_y -= (f32)console.font.vertical_offset * console.font.scale;
+        // draw history (in reverse order and only if its on screen)
+        if(console.output_history_count > 0){
+            f32 output_pos_y = (f32)window.height - (output_p0.y - ((f32)console.font.descent * console.font.scale));
+            for(s32 i=console.output_history_count-1; i >= 0; --i){
+                if(output_pos_y < (f32)window.height){
+                    String8 next_string = console.output_history[i];
+                    push_text(render_command_arena, console.font, next_string, console.text_left_pad, output_pos_y, console.output_color);
+                    output_pos_y -= (f32)console.font.vertical_offset * console.font.scale;
+                }
             }
         }
     }

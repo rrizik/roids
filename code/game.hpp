@@ -7,55 +7,9 @@ typedef enum GameMode{
     GameMode_Game,
 } GameMode;
 
-typedef enum AssetID{
-    AssetID_Image,
-    AssetID_Ship,
-    AssetID_Tree,
-    AssetID_Circle,
-    AssetID_Bullet,
-    AssetID_Test,
-
-    AssetID_Count,
-} AssetID;
-
-typedef struct Assets{
-    Bitmap bitmaps[AssetID_Count];
-} Assets;
-
 static void load_assets(Arena* arena, Assets* assets);
 
 static Bitmap* get_bitmap(Assets* assets, AssetID id);
-
-#define ENTITIES_MAX 4096
-typedef struct PermanentMemory{
-    Arena arena;
-    u32 game_mode;
-
-    Entity entities[ENTITIES_MAX];
-    u32 entities_count;
-
-    u32 generation[ENTITIES_MAX];
-    u32 free_entities[ENTITIES_MAX];
-    u32 free_entities_at;
-
-    Entity* texture;
-    Entity* circle;
-    Entity* basis;
-    Entity* ship;
-    Bitmap tree;
-    bool ship_loaded;
-
-} PermanentMemory, State;
-global PermanentMemory* pm;
-
-typedef struct TransientMemory{
-    Arena arena;
-    Arena *frame_arena;
-    Arena *render_command_arena;
-
-    Assets assets;
-} TransientMemory;
-global TransientMemory* tm;
 
 static Entity* entity_from_handle(PermanentMemory* pm, EntityHandle handle);
 static EntityHandle handle_from_entity(PermanentMemory* pm, Entity *e);

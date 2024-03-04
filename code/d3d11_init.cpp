@@ -120,28 +120,28 @@ d3d_init(Window window){
     // ---------------------------------------------------------------------------------
     // Depth Buffer
     // ---------------------------------------------------------------------------------
-    D3D11_TEXTURE2D_DESC depthbuffer_desc = {0};
-    d3d_framebuffer->GetDesc(&depthbuffer_desc);
-    depthbuffer_desc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    depthbuffer_desc.Format    = DXGI_FORMAT_D32_FLOAT;
-    depthbuffer_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    //D3D11_TEXTURE2D_DESC depthbuffer_desc = {0};
+    //d3d_framebuffer->GetDesc(&depthbuffer_desc);
+    //depthbuffer_desc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    //depthbuffer_desc.Format    = DXGI_FORMAT_D32_FLOAT;
+    //depthbuffer_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
 
-    hr = d3d_device->CreateTexture2D(&depthbuffer_desc, 0, &d3d_depthbuffer);
-    assert_hr(hr);
+    //hr = d3d_device->CreateTexture2D(&depthbuffer_desc, 0, &d3d_depthbuffer);
+    //assert_hr(hr);
 
-    hr = d3d_device->CreateDepthStencilView(d3d_depthbuffer, 0, &d3d_depthbuffer_view);
-    assert_hr(hr);
+    //hr = d3d_device->CreateDepthStencilView(d3d_depthbuffer, 0, &d3d_depthbuffer_view);
+    //assert_hr(hr);
 
-    // ---------------------------------------------------------------------------------
-    // Depth Stencil
-    // ---------------------------------------------------------------------------------
-    D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
-    depth_stencil_desc.DepthEnable = false;
-    depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
+    //// ---------------------------------------------------------------------------------
+    //// Depth Stencil
+    //// ---------------------------------------------------------------------------------
+    //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
+    //depth_stencil_desc.DepthEnable = false;
+    //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    //depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
 
-    hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
-    assert_hr(hr);
+    //hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
+    //assert_hr(hr);
     //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
     //depth_stencil_desc.DepthEnable = false;
     //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;

@@ -122,7 +122,7 @@ draw_commands(Arena* commands){
 static void
 d3d_clear_color(RGBA color){
     d3d_context->ClearRenderTargetView(d3d_framebuffer_view, color.e);
-    d3d_context->ClearDepthStencilView(d3d_depthbuffer_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
+    //d3d_context->ClearDepthStencilView(d3d_depthbuffer_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
 static void
@@ -160,15 +160,16 @@ d3d_draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
     d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
 
-    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
+    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
     d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
 
-    D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
-    depth_stencil_desc.DepthEnable = false;
-    depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
-    hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
-    d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
+    //d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
+    //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
+    //depth_stencil_desc.DepthEnable = false;
+    //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    //depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
+    //hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
+    //d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
 
     D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
     rasterizer_desc.FillMode = D3D11_FILL_SOLID;
@@ -223,15 +224,16 @@ d3d_draw_texture(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, ID3D11ShaderResourceVie
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
     d3d_context->PSSetShaderResources(0, 1, texture);
 
-    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
+    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
     d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
 
-    D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
-    depth_stencil_desc.DepthEnable = false;
-    depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
-    hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
-    d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
+    //d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
+    //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
+    //depth_stencil_desc.DepthEnable = false;
+    //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    //depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
+    //hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
+    //d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
 
     D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
     rasterizer_desc.FillMode = D3D11_FILL_SOLID;
@@ -300,15 +302,16 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
     d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
     d3d_context->PSSetShaderResources(0, 1, &font.atlas.view);
 
-    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
+    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
     d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
 
-    D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
-    depth_stencil_desc.DepthEnable = false;
-    depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
-    hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
-    d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
+    //d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
+    //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
+    //depth_stencil_desc.DepthEnable = false;
+    //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+    //depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
+    //hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
+    //d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
 
     D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
     rasterizer_desc.FillMode = D3D11_FILL_SOLID;
