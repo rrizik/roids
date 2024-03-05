@@ -215,7 +215,7 @@ handle_global_events(Event event){
         dir_normalized = normalize_v2(dir);
         f32 rad = rad_from_dir(dir_normalized);
         f32 deg = deg_from_rad(rad);
-        //print("d(%f, %f) - dn(%f, %f) - r(%f) - d(%f)\n", dir.x, dir.y, dir_normalized.x, dir_normalized.y, rad, deg);
+        print("pos(%i, %i) - dir(%f, %f) - dirn(%f, %f) - r(%f) - d(%f)\n", event.mouse_pos.x, event.mouse_pos.y, dir.x, dir.y, dir_normalized.x, dir_normalized.y, rad, deg);
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){

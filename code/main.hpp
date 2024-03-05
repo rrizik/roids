@@ -2,6 +2,7 @@
 #define MAIN_H
 
 #pragma comment(lib, "user32")
+#pragma comment(lib, "ole32")
 
 #include "base_inc.h"
 #include "win32_base_inc.h"

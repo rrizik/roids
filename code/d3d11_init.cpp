@@ -118,49 +118,18 @@ d3d_init(Window window){
     assert_hr(hr);
 
     // ---------------------------------------------------------------------------------
-    // Depth Buffer
-    // ---------------------------------------------------------------------------------
-    //D3D11_TEXTURE2D_DESC depthbuffer_desc = {0};
-    //d3d_framebuffer->GetDesc(&depthbuffer_desc);
-    //depthbuffer_desc.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
-    //depthbuffer_desc.Format    = DXGI_FORMAT_D32_FLOAT;
-    //depthbuffer_desc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
-
-    //hr = d3d_device->CreateTexture2D(&depthbuffer_desc, 0, &d3d_depthbuffer);
-    //assert_hr(hr);
-
-    //hr = d3d_device->CreateDepthStencilView(d3d_depthbuffer, 0, &d3d_depthbuffer_view);
-    //assert_hr(hr);
-
-    //// ---------------------------------------------------------------------------------
-    //// Depth Stencil
-    //// ---------------------------------------------------------------------------------
-    //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
-    //depth_stencil_desc.DepthEnable = false;
-    //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    //depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
-
-    //hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
-    //assert_hr(hr);
-    //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
-    //depth_stencil_desc.DepthEnable = false;
-    //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    //depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
-    //hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
-    //d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
-
-    // ---------------------------------------------------------------------------------
     // Rasterizer State
     // ---------------------------------------------------------------------------------
     D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
     rasterizer_desc.FillMode = D3D11_FILL_SOLID;
-    rasterizer_desc.CullMode = D3D11_CULL_BACK;
+    rasterizer_desc.CullMode = D3D11_CULL_NONE;
+    rasterizer_desc.FrontCounterClockwise = false;
 
     hr = d3d_device->CreateRasterizerState1(&rasterizer_desc, &d3d_rasterizer_state);
     assert_hr(hr);
 
     // ---------------------------------------------------------------------------------
-    // Sampler State
+    // Sampler State for textures
     // ---------------------------------------------------------------------------------
     D3D11_SAMPLER_DESC sampler_desc = {
         .Filter = D3D11_FILTER_MIN_MAG_MIP_POINT,
@@ -204,6 +173,7 @@ d3d_init(Window window){
     d3d_viewport.MinDepth = 0;
     d3d_viewport.MaxDepth = 1.0;
 
+    // todo: move these up or down
 	d3d_load_shader(str8_literal("shaders\\2d_texture_shader.hlsl"), il_2d_textured, 3, &d3d_2d_textured_vs, &d3d_2d_textured_ps, &d3d_2d_textured_il);
 	d3d_load_shader(str8_literal("shaders\\2d_quad_shader.hlsl"), layout_2d_quad, 2, &d3d_2d_quad_vs, &d3d_2d_quad_ps, &d3d_2d_quad_il);
 
@@ -402,5 +372,6 @@ d3d_release(){
 //
 //    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
 //}
+
 
 #endif

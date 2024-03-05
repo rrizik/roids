@@ -60,6 +60,9 @@ win32_window_create(const wchar* window_name, s32 width, s32 height){
     s32 adjusted_h = rect.bottom - rect.top;
 
     result.handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, adjusted_w, adjusted_h, 0, 0, GetModuleHandle(0), 0);
+    if(!IsWindow(result.handle)){
+        // todo: log error
+    }
     assert(IsWindow(result.handle));
 
     return(result);
@@ -93,7 +96,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     d3d_init_debug_stuff();
 #endif
 
-    load_font_ttf(global_arena, str8_literal("fonts/arial.ttf"), &global_font, 36);
 
     init_memory(&memory);
     init_clock(&clock);
@@ -121,6 +123,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         init_camera();
 
+        // consider: maybe move this memory stuff to init_memory()
         init_arena(&pm->arena, (u8*)memory.permanent_base + sizeof(PermanentMemory), memory.permanent_size - sizeof(PermanentMemory));
         init_arena(&tm->arena, (u8*)memory.transient_base + sizeof(TransientMemory), memory.transient_size - sizeof(TransientMemory));
 
@@ -130,6 +133,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         // setup free entities array in reverse order
         entities_clear(pm);
 
+        load_font_ttf(global_arena, str8_literal("fonts/arial.ttf"), &global_font, 36);
         load_assets(&tm->arena, &tm->assets);
 
         init_texture_resource(&tm->assets.bitmaps[AssetID_Image],  &image_shader_resource);
@@ -142,16 +146,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_console(&pm->arena);
         init_console_commands();
 
+        add_quad(pm, make_v2(100, 100), make_v2(250, 200), RED);
         add_quad(pm, make_v2(SCREEN_WIDTH/2 - 100, SCREEN_HEIGHT/2 - 100), make_v2(200, 300), BLUE);
         add_quad(pm, make_v2(SCREEN_WIDTH/2 + 200, SCREEN_HEIGHT/2 + 200), make_v2(100, 100), GREEN);
-        add_quad(pm, make_v2(100, 100), make_v2(250, 200), RED);
 
         add_texture(pm, &ship_shader_resource, make_v2(100, SCREEN_HEIGHT - 300), make_v2(200, 200));
-        add_texture(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH - 200, SCREEN_HEIGHT/2 + 100), make_v2(100, 200), GREEN);
-        add_texture(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH - 200, 200), make_v2(100, 150), RED);
+        add_texture(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH - 200, SCREEN_HEIGHT - 400), make_v2(100, 300), GREEN);
+        add_texture(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH - 400, 100), make_v2(300, 100), RED);
 
-        String8 text = str8_literal("! \"#$%'()*+,\n-x/0123456789:;<=>?@ABCD\nEFGHIJKLMNOPQRSTUVWXYZ[\n\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
-        f32 ypos = 0.2f * (f32)window.height;
         //add_entity_text(pm, global_font, text, 10.0f, ypos, ORANGE);
 
         memory.initialized = true;
@@ -192,9 +194,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             switch(e->type){
                 case EntityType_Quad:{
                     v2 p0 = e->pos;
-                    v2 p1 = make_v2(e->pos.x, e->pos.y + e->dim.h);
+                    v2 p1 = make_v2(e->pos.x + e->dim.w, e->pos.y);
                     v2 p2 = make_v2(e->pos.x + e->dim.w, e->pos.y + e->dim.h);
-                    v2 p3 = make_v2(e->pos.x + e->dim.w, e->pos.y);
+                    v2 p3 = make_v2(e->pos.x, e->pos.y + e->dim.h);
 
                     v2 direction = direction_v2(e->origin, v2_from_v2s32(controller.mouse.pos));
                     direction = normalize_v2(direction);
@@ -209,9 +211,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 } break;
                 case EntityType_Texture:{
                     v2 p0 = e->pos;
-                    v2 p1 = make_v2(e->pos.x, e->pos.y + e->dim.h);
+                    v2 p1 = make_v2(e->pos.x + e->dim.w, e->pos.y);
                     v2 p2 = make_v2(e->pos.x + e->dim.w, e->pos.y + e->dim.h);
-                    v2 p3 = make_v2(e->pos.x + e->dim.w, e->pos.y);
+                    v2 p3 = make_v2(e->pos.x, e->pos.y + e->dim.h);
 
                     v2 direction = direction_v2(e->origin, v2_from_v2s32(controller.mouse.pos));
                     direction = normalize_v2(direction);
@@ -230,12 +232,21 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
         }
 
-
         // draw everything
-        draw_commands(render_command_arena);
         console_draw();
+        String8 text = str8_literal("! \"#$%'()*+,\n-x/0123456789:;<=>?@ABCD\nEFGHIJKLMNOPQRSTUVWXYZ[\n\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
+        f32 ypos = 0.2f * (f32)window.height;
+        push_text(render_command_arena, global_font, text, 50, SCREEN_HEIGHT - 50, RED);
+
+
+
+        draw_commands(render_command_arena);
         //d3d_draw_textured_cube_instanced(&image_shader_resource);
         d3d_present();
+
+
+
+
 
         frame_count++;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
@@ -271,7 +282,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             Event event;
             event.type = MOUSE; // TODO: maybe have this be a KEYBOARD event
             event.mouse_pos.x = (s32)(s16)(l_param & 0xFFFF);
-            event.mouse_pos.y = SCREEN_HEIGHT - (s32)(s16)(l_param >> 16);
+            event.mouse_pos.y = (s32)(s16)(l_param >> 16);
 
             s32 dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
             s32 dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);

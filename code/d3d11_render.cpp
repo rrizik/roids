@@ -108,11 +108,11 @@ draw_commands(Arena* commands){
             case RenderCommandType_Quad:{
                 d3d_draw_quad(command->p0, command->p1, command->p2, command->p3, command->color);
             } break;
-            case RenderCommandType_Text:{
-                d3d_draw_text(command->font, command->x, command->y, command->color, command->text);
-            } break;
             case RenderCommandType_Texture:{
                 d3d_draw_texture(command->p0, command->p1, command->p2, command->p3, command->color, command->texture);
+            } break;
+            case RenderCommandType_Text:{
+                d3d_draw_text(command->font, command->x, command->y, command->color, command->text);
             } break;
         }
 		at = (u8*)at + sizeof(RenderCommand);
@@ -162,19 +162,6 @@ d3d_draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
 
     d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
     d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
-
-    //d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
-    //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
-    //depth_stencil_desc.DepthEnable = false;
-    //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    //depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
-    //hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
-    //d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
-
-    D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
-    rasterizer_desc.FillMode = D3D11_FILL_SOLID;
-    rasterizer_desc.CullMode = D3D11_CULL_BACK;
-    hr = d3d_device->CreateRasterizerState1(&rasterizer_desc, &d3d_rasterizer_state);
     d3d_context->RSSetState(d3d_rasterizer_state);
 
     d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
@@ -227,18 +214,6 @@ d3d_draw_texture(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, ID3D11ShaderResourceVie
     d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
     d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
 
-    //d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
-    //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
-    //depth_stencil_desc.DepthEnable = false;
-    //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    //depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
-    //hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
-    //d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
-
-    D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
-    rasterizer_desc.FillMode = D3D11_FILL_SOLID;
-    rasterizer_desc.CullMode = D3D11_CULL_BACK;
-    hr = d3d_device->CreateRasterizerState1(&rasterizer_desc, &d3d_rasterizer_state);
     d3d_context->RSSetState(d3d_rasterizer_state);
 
     d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
@@ -257,8 +232,8 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
     ScratchArena scratch = begin_scratch(0);
     u64 allocation_size = text.size * 6;
     Vertex3* buffer = push_array(scratch.arena, Vertex3, allocation_size);
-    Vertex3* vertex = buffer;
 
+    Vertex3* vertex = buffer;
     f32 start_x = x;
     f32 y_offset = 0;
     stbtt_aligned_quad quad;
@@ -268,16 +243,27 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
             y_offset += (f32)font.vertical_offset * font.scale;
             x = start_x;
         }
-        stbtt_GetPackedQuad(font.packed_chars, font.texture_w, font.texture_h, (*character) - font.first_char, &x, &y, &quad, 1);
-        Rect rect = make_rect(quad.x0, quad.y0 + y_offset, quad.x1, quad.y1 + y_offset);
-        Rect clip_rect = rect_clip_from_pixel_inverted(rect, make_v2s32(window.width, window.height));
 
-        *vertex++ = { make_v2(clip_rect.x0, clip_rect.y1), linear_color, make_v2(quad.s0, quad.t1) };
-        *vertex++ = { make_v2(clip_rect.x1, clip_rect.y1), linear_color, make_v2(quad.s1, quad.t1) };
-        *vertex++ = { make_v2(clip_rect.x0, clip_rect.y0), linear_color, make_v2(quad.s0, quad.t0) };
-        *vertex++ = { make_v2(clip_rect.x0, clip_rect.y0), linear_color, make_v2(quad.s0, quad.t0) };
-        *vertex++ = { make_v2(clip_rect.x1, clip_rect.y1), linear_color, make_v2(quad.s1, quad.t1) };
-        *vertex++ = { make_v2(clip_rect.x1, clip_rect.y0), linear_color, make_v2(quad.s1, quad.t0) };
+        stbtt_GetPackedQuad(font.packed_chars, font.texture_w, font.texture_h, (*character) - font.first_char, &x, &y, &quad, 1);
+        v2 p0 = make_v2(quad.x0, quad.y0 + y_offset);
+        v2 p1 = make_v2(quad.x1, quad.y0 + y_offset);
+        v2 p2 = make_v2(quad.x1, quad.y1 + y_offset);
+        v2 p3 = make_v2(quad.x0, quad.y1 + y_offset);
+
+        //g_angle += 1 * (f32)clock.dt;
+        //v2 origin = make_v2((p0.x + p2.x)/2, (p0.y + p2.y)/2);
+        //p0 = rotate_point_deg(p0, g_angle, origin);
+        //p1 = rotate_point_deg(p1, g_angle, origin);
+        //p2 = rotate_point_deg(p2, g_angle, origin);
+        //p3 = rotate_point_deg(p3, g_angle, origin);
+
+        *vertex++ = { p0, linear_color, make_v2(quad.s0, quad.t0) };
+        *vertex++ = { p1, linear_color, make_v2(quad.s1, quad.t0) };
+        *vertex++ = { p2, linear_color, make_v2(quad.s1, quad.t1) };
+
+        *vertex++ = { p0, linear_color, make_v2(quad.s0, quad.t0) };
+        *vertex++ = { p2, linear_color, make_v2(quad.s1, quad.t1) };
+        *vertex++ = { p3, linear_color, make_v2(quad.s0, quad.t1) };
     }
 
     //----vertex buffer----
@@ -305,18 +291,6 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
     d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
     d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
 
-    //d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, d3d_depthbuffer_view);
-    //D3D11_DEPTH_STENCIL_DESC depth_stencil_desc = {};
-    //depth_stencil_desc.DepthEnable = false;
-    //depth_stencil_desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
-    //depth_stencil_desc.DepthFunc      = D3D11_COMPARISON_LESS;
-    //hr = d3d_device->CreateDepthStencilState(&depth_stencil_desc, &d3d_depthstencil_state);
-    //d3d_context->OMSetDepthStencilState(d3d_depthstencil_state, 0);
-
-    D3D11_RASTERIZER_DESC1 rasterizer_desc = {};
-    rasterizer_desc.FillMode = D3D11_FILL_SOLID;
-    rasterizer_desc.CullMode = D3D11_CULL_FRONT;
-    hr = d3d_device->CreateRasterizerState1(&rasterizer_desc, &d3d_rasterizer_state);
     d3d_context->RSSetState(d3d_rasterizer_state);
 
     d3d_context->RSSetViewports(1, &d3d_viewport);

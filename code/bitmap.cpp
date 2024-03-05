@@ -41,15 +41,17 @@ load_bitmap(Arena* arena, String8 filename){
     File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
     assert_fh(file);
 
-    String8 data = os_file_read(arena, file);
+    String8 data = os_file_read(scratch.arena, file);
     BitmapHeader *header = (BitmapHeader *)data.str;
-    result.base = (u8 *)data.str + header->bitmap_offset;
+    u8* bytes_read = (u8 *)data.str + header->bitmap_offset;
+
     result.width = header->width;
     result.height = header->height;
     result.stride = header->width * 4;
+    result.base = push_array(arena, u8, result.stride * result.height);
 
-    // NOTE: As bmps can have ARGB or RGBA or ..., we need to find where our color
-    // shifts are and position the each 8 bit into a ARGB format.
+    //// NOTE: As bmps can have ARGB or RGBA or ..., we need to find where our color
+    //// shifts are and position the each 8 bit into a ARGB format.
     BitScanResult red_shift = {0};
     BitScanResult green_shift = {0};
     BitScanResult blue_shift = {0};
@@ -67,11 +69,18 @@ load_bitmap(Arena* arena, String8 filename){
         assert(alpha_shift.found);
     }
 
-    u32* pixel = (u32*)result.base;
+    u8* row = bytes_read;
+    s32 row_inc = 1;
+    if(result.height > 0){ // if height is positive, swap to top bottom order
+        row = bytes_read + ((result.height - 1) * result.stride);
+        row_inc = -1;
+    }
+
+    u32* dest = (u32*)result.base;
     for(s32 y=0; y < result.height; ++y){
+        u32* pixel = (u32*)row;
         for(s32 x=0; x < result.width; ++x){
-            // get u32 color. shift colors out of correct location
-            u32 color_u32 = *pixel;
+            u32 color_u32 = *pixel++;
             if(header->Compression == 3){
                 color_u32 = ((((*pixel >> alpha_shift.index) & 0xFF) << 24) |
                              (((*pixel >> red_shift.index) & 0xFF)   << 16) |
@@ -101,11 +110,12 @@ load_bitmap(Arena* arena, String8 filename){
             color.b = sqrt_f32(color.b),
 
             // write pixel
-            *pixel++ = (u32)(round_f32_u32(color.a * 255.0f) << 24 |
-                             round_f32_u32(color.r * 255.0f) << 16 |
-                             round_f32_u32(color.g * 255.0f) << 8  |
-                             round_f32_u32(color.b * 255.0f) << 0);
+            *dest++ = (u32)(round_f32_u32(color.a * 255.0f) << 24 |
+                            round_f32_u32(color.r * 255.0f) << 16 |
+                            round_f32_u32(color.g * 255.0f) << 8  |
+                            round_f32_u32(color.b * 255.0f) << 0);
         }
+        row = row + (row_inc * result.stride);
     }
 
     end_scratch(scratch);
