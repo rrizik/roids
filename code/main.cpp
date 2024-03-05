@@ -154,8 +154,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         add_texture(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH - 200, SCREEN_HEIGHT - 400), make_v2(100, 300), GREEN);
         add_texture(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH - 400, 100), make_v2(300, 100), RED);
 
-        //add_entity_text(pm, global_font, text, 10.0f, ypos, ORANGE);
-
         memory.initialized = true;
     }
 
@@ -236,7 +234,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         console_draw();
         String8 text = str8_literal("! \"#$%'()*+,\n-x/0123456789:;<=>?@ABCD\nEFGHIJKLMNOPQRSTUVWXYZ[\n\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
         f32 ypos = 0.2f * (f32)window.height;
-        push_text(render_command_arena, global_font, text, 50, SCREEN_HEIGHT - 50, RED);
+        push_text(render_command_arena, global_font, text, 50, SCREEN_HEIGHT - 200, RED);
 
 
 

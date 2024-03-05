@@ -243,27 +243,29 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
             y_offset += (f32)font.vertical_offset * font.scale;
             x = start_x;
         }
+        else{
 
-        stbtt_GetPackedQuad(font.packed_chars, font.texture_w, font.texture_h, (*character) - font.first_char, &x, &y, &quad, 1);
-        v2 p0 = make_v2(quad.x0, quad.y0 + y_offset);
-        v2 p1 = make_v2(quad.x1, quad.y0 + y_offset);
-        v2 p2 = make_v2(quad.x1, quad.y1 + y_offset);
-        v2 p3 = make_v2(quad.x0, quad.y1 + y_offset);
+            stbtt_GetPackedQuad(font.packed_chars, font.texture_w, font.texture_h, (*character) - font.first_char, &x, &y, &quad, 1);
+            v2 p0 = make_v2(quad.x0, quad.y0 + y_offset);
+            v2 p1 = make_v2(quad.x1, quad.y0 + y_offset);
+            v2 p2 = make_v2(quad.x1, quad.y1 + y_offset);
+            v2 p3 = make_v2(quad.x0, quad.y1 + y_offset);
 
-        //g_angle += 1 * (f32)clock.dt;
-        //v2 origin = make_v2((p0.x + p2.x)/2, (p0.y + p2.y)/2);
-        //p0 = rotate_point_deg(p0, g_angle, origin);
-        //p1 = rotate_point_deg(p1, g_angle, origin);
-        //p2 = rotate_point_deg(p2, g_angle, origin);
-        //p3 = rotate_point_deg(p3, g_angle, origin);
+            //g_angle += 1 * (f32)clock.dt;
+            //v2 origin = make_v2((p0.x + p2.x)/2, (p0.y + p2.y)/2);
+            //p0 = rotate_point_deg(p0, g_angle, origin);
+            //p1 = rotate_point_deg(p1, g_angle, origin);
+            //p2 = rotate_point_deg(p2, g_angle, origin);
+            //p3 = rotate_point_deg(p3, g_angle, origin);
 
-        *vertex++ = { p0, linear_color, make_v2(quad.s0, quad.t0) };
-        *vertex++ = { p1, linear_color, make_v2(quad.s1, quad.t0) };
-        *vertex++ = { p2, linear_color, make_v2(quad.s1, quad.t1) };
+            *vertex++ = { p0, linear_color, make_v2(quad.s0, quad.t0) };
+            *vertex++ = { p1, linear_color, make_v2(quad.s1, quad.t0) };
+            *vertex++ = { p2, linear_color, make_v2(quad.s1, quad.t1) };
 
-        *vertex++ = { p0, linear_color, make_v2(quad.s0, quad.t0) };
-        *vertex++ = { p2, linear_color, make_v2(quad.s1, quad.t1) };
-        *vertex++ = { p3, linear_color, make_v2(quad.s0, quad.t1) };
+            *vertex++ = { p0, linear_color, make_v2(quad.s0, quad.t0) };
+            *vertex++ = { p2, linear_color, make_v2(quad.s1, quad.t1) };
+            *vertex++ = { p3, linear_color, make_v2(quad.s0, quad.t1) };
+        }
     }
 
     //----vertex buffer----
