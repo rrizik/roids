@@ -2,7 +2,7 @@
 #define ENTITY_H
 
 typedef enum {EntityFlag_Movable} EntityFlags;
-typedef enum {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Object, EntityType_Pixel, EntityType_Line, EntityType_Ray, EntityType_Segment, EntityType_Triangle, EntityType_Rect, EntityType_Box, EntityType_Circle, EntityType_Bitmap, EntityType_Glyph, EntityType_Bases, EntityType_Ship, EntityType_Bullet, EntityType_Cube, EntityType_Player} EntityType;
+typedef enum {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet} EntityType;
 
 typedef struct Entity{
     EntityType type;
@@ -13,16 +13,15 @@ typedef struct Entity{
     v2 pos;
     v2 dim;
     v2 dir;
-    f32 angle;
+    f32 deg;
     v2 scale;
     v2 origin;
     RGBA color;
 
-    ID3D11ShaderResourceView** texture;
-
-    // TODO: Review this
     f32 speed;
     f32 velocity;
+
+    ID3D11ShaderResourceView** texture;
 
     // TODO: Remove this
     f32 x;

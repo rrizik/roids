@@ -17,35 +17,17 @@ typedef struct Mouse{
 
 typedef struct Controller{
     Mouse mouse;
-    Button q;
-    Button e;
     Button up;
     Button down;
     Button left;
     Button right;
+    Button shoot;
+    Button q;
+    Button e;
     Button three;
     Button four;
-    Button m_left;
-    Button m_right;
-    Button m_middle;
 } Controller;
 global Controller controller;
-
-static void
-clear_controller_pressed(Controller* controller){
-    controller->q.pressed = false;
-    controller->e.pressed = false;
-    controller->left.pressed = false;
-    controller->up.pressed = false;
-    controller->down.pressed = false;
-    controller->left.pressed = false;
-    controller->right.pressed = false;
-    controller->three.pressed = false;
-    controller->four.pressed = false;
-    controller->m_left.pressed = false;
-    controller->m_right.pressed = false;
-    controller->m_middle.pressed = false;
-}
 
 // CLEANUP: everything that is commented out, I dont think needs to exist.
 typedef enum KeyCode{
@@ -217,12 +199,14 @@ typedef struct Events{
 } Events;
 global Events events;
 
-static void events_init(Events* events);
-static u32 events_count(Events* events);
-static bool events_full(Events* events);
-static bool events_empty(Events* events);
-static u32 mask(Events* events, u32 idx);
-static void events_add(Events* events, Event event);
+static void  events_init(Events* events);
+static u32   events_count(Events* events);
+static bool  events_full(Events* events);
+static bool  events_empty(Events* events);
+static u32   mask(Events* events, u32 idx);
+static void  events_add(Events* events, Event event);
 static Event events_next(Events* events);
+static void  clear_controller_pressed(Controller* controller);
+
 
 #endif

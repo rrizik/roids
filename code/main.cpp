@@ -15,9 +15,11 @@
 
 static void
 init_paths(Arena* arena){
-    path_data = os_get_data_path(global_arena);
-    String8 exe = os_get_exe_path(global_arena);
-    u32 a = 1;
+    build_dir = os_application_path(global_arena);
+    fonts_dir = str8_path_append(global_arena, build_dir, str8_literal("fonts"));
+    shaders_dir = str8_path_append(global_arena, build_dir, str8_literal("shaders"));
+    saves_dir = str8_path_append(global_arena, build_dir, str8_literal("saves"));
+    sprites_dir = str8_path_append(global_arena, build_dir, str8_literal("sprites"));
 }
 
 static void
@@ -146,13 +148,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_console(&pm->arena);
         init_console_commands();
 
-        add_quad(pm, make_v2(100, 100), make_v2(250, 200), RED);
-        add_quad(pm, make_v2(SCREEN_WIDTH/2 - 100, SCREEN_HEIGHT/2 - 100), make_v2(200, 300), BLUE);
-        add_quad(pm, make_v2(SCREEN_WIDTH/2 + 200, SCREEN_HEIGHT/2 + 200), make_v2(100, 100), GREEN);
-
-        add_texture(pm, &ship_shader_resource, make_v2(100, SCREEN_HEIGHT - 300), make_v2(200, 200));
-        add_texture(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH - 200, SCREEN_HEIGHT - 400), make_v2(100, 300), GREEN);
-        add_texture(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH - 400, 100), make_v2(300, 100), RED);
+        pm->ship = add_ship(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(75, 75));
+        pm->ship_loaded = true;
 
         memory.initialized = true;
     }
@@ -181,6 +178,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             simulations++;
 
             clear_controller_pressed(&controller);
+            arena_free(&tm->arena);
         }
 
         // command arena
@@ -191,36 +189,32 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
             switch(e->type){
                 case EntityType_Quad:{
-                    v2 p0 = e->pos;
-                    v2 p1 = make_v2(e->pos.x + e->dim.w, e->pos.y);
-                    v2 p2 = make_v2(e->pos.x + e->dim.w, e->pos.y + e->dim.h);
-                    v2 p3 = make_v2(e->pos.x, e->pos.y + e->dim.h);
+                    v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
+                    v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
+                    v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
+                    v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
 
-                    v2 direction = direction_v2(e->origin, v2_from_v2s32(controller.mouse.pos));
-                    direction = normalize_v2(direction);
-                    f32 deg = deg_from_dir(direction);
-
-                    p0 = rotate_point_deg(p0, deg, e->origin);
-                    p1 = rotate_point_deg(p1, deg, e->origin);
-                    p2 = rotate_point_deg(p2, deg, e->origin);
-                    p3 = rotate_point_deg(p3, deg, e->origin);
+                    //f32 deg = deg_from_dir(e->dir);
+                    p0 = rotate_point_deg(p0, e->deg, e->origin);
+                    p1 = rotate_point_deg(p1, e->deg, e->origin);
+                    p2 = rotate_point_deg(p2, e->deg, e->origin);
+                    p3 = rotate_point_deg(p3, e->deg, e->origin);
 
                     push_quad(render_command_arena, p0, p1, p2, p3, e->color);
                 } break;
+                case EntityType_Bullet:
+                case EntityType_Ship:
                 case EntityType_Texture:{
-                    v2 p0 = e->pos;
-                    v2 p1 = make_v2(e->pos.x + e->dim.w, e->pos.y);
-                    v2 p2 = make_v2(e->pos.x + e->dim.w, e->pos.y + e->dim.h);
-                    v2 p3 = make_v2(e->pos.x, e->pos.y + e->dim.h);
+                    v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
+                    v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
+                    v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
+                    v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
 
-                    v2 direction = direction_v2(e->origin, v2_from_v2s32(controller.mouse.pos));
-                    direction = normalize_v2(direction);
-                    f32 deg = deg_from_dir(direction);
-
-                    p0 = rotate_point_deg(p0, deg, e->origin);
-                    p1 = rotate_point_deg(p1, deg, e->origin);
-                    p2 = rotate_point_deg(p2, deg, e->origin);
-                    p3 = rotate_point_deg(p3, deg, e->origin);
+                    //f32 deg = deg_from_dir(e->dir);
+                    p0 = rotate_point_deg(p0, e->deg, e->pos);
+                    p1 = rotate_point_deg(p1, e->deg, e->pos);
+                    p2 = rotate_point_deg(p2, e->deg, e->pos);
+                    p3 = rotate_point_deg(p3, e->deg, e->pos);
 
                     push_texture(render_command_arena, p0, p1, p2, p3, e->color, e->texture);
                 } break;
@@ -230,20 +224,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
         }
 
-        // draw everything
         console_draw();
-        String8 text = str8_literal("! \"#$%'()*+,\n-x/0123456789:;<=>?@ABCD\nEFGHIJKLMNOPQRSTUVWXYZ[\n\\]^_`abc defghujklmnopqrstuvwxyz{|}~");
-        f32 ypos = 0.2f * (f32)window.height;
-        push_text(render_command_arena, global_font, text, 50, SCREEN_HEIGHT - 200, RED);
 
-
-
+        // draw everything
         draw_commands(render_command_arena);
-        //d3d_draw_textured_cube_instanced(&image_shader_resource);
-        d3d_present();
-
-
-
 
 
         frame_count++;
@@ -253,6 +237,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             frame_tick_start = clock.get_os_timer();
             frame_count = 0;
         }
+
+
         //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
 		simulations = 0;
     }

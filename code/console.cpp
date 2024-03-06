@@ -16,7 +16,7 @@ init_console(Arena* arena){ //note: everything is positioned relative to the out
     console.text_left_pad = 10;
 
     // how much/fast to open
-    console.open_dt = 2.0f;
+    console.open_dt = 30.0f;
     console.open_t  = 0.0f;
     console.open_t_target = 0.0f;
 
@@ -45,7 +45,6 @@ console_is_open(){
 
 static bool
 console_is_visible(){
-    print("%f\n", console.open_t);
     return(console.open_t > 0);
 }
 
@@ -255,13 +254,15 @@ static void
 console_update_openess(){
     f32 open_d = console.open_dt * (f32)clock.dt;
     if(console.open_t < console.open_t_target){
-        console.open_t += open_d;
+        console.open_t = lerp(console.open_t, console.open_t_target, smoothstep(open_d));
+        //console.open_t += open_d;
         if(console.open_t > console.open_t_target){
             console.open_t = console.open_t_target;
         }
     }
     else if(console.open_t > console.open_t_target){
-        console.open_t -= open_d;
+        console.open_t = lerp(console.open_t, console.open_t_target, smoothstep(open_d));
+        //console.open_t -= open_d;
         if(console.open_t < 0){
             console.open_t = 0;
         }

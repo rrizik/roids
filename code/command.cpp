@@ -25,17 +25,18 @@ command_exit(String8* args){
     should_quit = true;
 }
 
-//static void
-//command_load(String8* args){
-//    deserialize_data(pm, *args);
-//    console_store_output(str8_formatted(global_arena, "loading from file: %s", args->str));
-//}
-//
-//static void
-//command_save(String8* args){
-//    serialize_data(pm, *args);
-//    console_store_output(str8_formatted(global_arena, "saving to file: %s", args->str));
-//}
+static void
+command_load(String8* args){
+    console.output_history[console.output_history_count++] = str8_formatted(global_arena, "loading from file: %s", args->str);
+    deserialize_data(pm, *args);
+}
+
+static void
+command_save(String8* args){
+    console.output_history[console.output_history_count++] = str8_formatted(global_arena, "saving to file: %s", args->str);
+    serialize_data(pm, *args);
+    //console_store_output(str8_formatted(global_arena, "saving to file: %s", args->str));
+}
 
 static void
 command_add(String8* args){
@@ -46,6 +47,7 @@ command_add(String8* args){
     console.output_history[console.output_history_count++] = result;
 }
 
+// todo: change this to list arg(saves, fonts, shaders, sprites)
 static void
 command_saves(String8* args){
     ScratchArena scratch = begin_scratch(0);
@@ -66,10 +68,10 @@ command_saves(String8* args){
 
 static void
 init_console_commands(){
-    //add_command(str8_literal("load"), 1, 1, command_load);
-    //add_command(str8_literal("save"), 1, 1, command_save);
+    //add_command(str8_literal("saves"), 1, 1, command_save);
     add_command(str8_literal("add"), 2, 2, command_add);
-    add_command(str8_literal("saves"), 0, 0, command_saves);
+    add_command(str8_literal("save"), 1, 1, command_save);
+    add_command(str8_literal("load"), 1, 1, command_load);
     add_command(str8_literal("exit"), 0, 0, command_exit);
     add_command(str8_literal("quit"), 0, 0, command_exit);
     add_command(str8_literal("help"), 0, 0, command_help);

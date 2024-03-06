@@ -71,6 +71,16 @@ push_quad(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
 }
 
 static void
+push_line(Arena* arena, v2 p0, v2 p1, s32 width, RGBA color){
+    RenderCommand* command = push_struct(arena, RenderCommand);
+    command->type = RenderCommandType_Line;
+    command->color = color;
+    command->p0 = p0;
+    command->p1 = p1;
+    command->width = width;
+}
+
+static void
 push_text(Arena* arena, Font font, String8 text, f32 x, f32 y, RGBA color){
     RenderCommand* command = push_struct(arena, RenderCommand);
     command->type = RenderCommandType_Text;
@@ -108,6 +118,9 @@ draw_commands(Arena* commands){
             case RenderCommandType_Quad:{
                 d3d_draw_quad(command->p0, command->p1, command->p2, command->p3, command->color);
             } break;
+            case RenderCommandType_Line:{
+                d3d_draw_line(command->p0, command->p1, command->width, command->color);
+            } break;
             case RenderCommandType_Texture:{
                 d3d_draw_texture(command->p0, command->p1, command->p2, command->p3, command->color, command->texture);
             } break;
@@ -117,16 +130,68 @@ draw_commands(Arena* commands){
         }
 		at = (u8*)at + sizeof(RenderCommand);
     }
+    d3d_present();
 }
 
 static void
 d3d_clear_color(RGBA color){
     d3d_context->ClearRenderTargetView(d3d_framebuffer_view, color.e);
-    //d3d_context->ClearDepthStencilView(d3d_depthbuffer_view, D3D11_CLEAR_DEPTH, 1.0f, 0);
 }
 
 static void
 d3d_draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
+
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    Vertex2 vertices[] = {
+        { p0, linear_color },
+        { p1, linear_color },
+        { p2, linear_color },
+
+        { p0, linear_color },
+        { p2, linear_color },
+        { p3, linear_color },
+    };
+
+    //----vertex buffer----
+    {
+        D3D11_MAPPED_SUBRESOURCE resource;
+        hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        assert_hr(hr);
+
+        memcpy(resource.pData, vertices, sizeof(Vertex2) * array_count(vertices));
+        d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
+
+        ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
+        u32 strides[] = {sizeof(Vertex2)};
+        u32 offset[] = {0};
+
+        d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
+    }
+
+    //-------------------------------------------------------------------
+
+    d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
+
+    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
+    d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
+    d3d_context->RSSetState(d3d_rasterizer_state);
+
+    d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
+
+    d3d_context->RSSetViewports(1, &d3d_viewport);
+    d3d_context->IASetInputLayout(d3d_2d_quad_il);
+    d3d_context->VSSetShader(d3d_2d_quad_vs, 0, 0);
+    d3d_context->PSSetShader(d3d_2d_quad_ps, 0, 0);
+
+    d3d_context->Draw(6, 0);
+}
+
+static void
+d3d_draw_line(v2 p0, v2 p1, s32 width, RGBA color){
+
+    v2 p2 = make_v2(p1.x, p1.y + (f32)width);
+    v2 p3 = make_v2(p0.x, p0.y + (f32)width);
 
     RGBA linear_color = srgb_to_linear(color); // gamma correction
     Vertex2 vertices[] = {
@@ -251,6 +316,7 @@ static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text){
             v2 p2 = make_v2(quad.x1, quad.y1 + y_offset);
             v2 p3 = make_v2(quad.x0, quad.y1 + y_offset);
 
+            // todo: remove this
             //g_angle += 1 * (f32)clock.dt;
             //v2 origin = make_v2((p0.x + p2.x)/2, (p0.y + p2.y)/2);
             //p0 = rotate_point_deg(p0, g_angle, origin);

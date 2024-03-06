@@ -47,4 +47,17 @@ events_next(Events* events){
     return(event);
 }
 
+static void
+clear_controller_pressed(Controller* controller){
+    controller->up.pressed    = false;
+    controller->down.pressed  = false;
+    controller->left.pressed  = false;
+    controller->right.pressed = false;
+    controller->shoot.pressed = false;
+    controller->q.pressed     = false;
+    controller->e.pressed     = false;
+    controller->three.pressed = false;
+    controller->four.pressed  = false;
+}
+
 #endif

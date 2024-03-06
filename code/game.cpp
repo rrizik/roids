@@ -4,7 +4,7 @@
 static void
 load_assets(Arena* arena, Assets* assets){
     assets->bitmaps[AssetID_Image] =  load_bitmap(arena, str8_literal("sprites\\image.bmp"));
-    assets->bitmaps[AssetID_Ship] =   load_bitmap(arena, str8_literal("sprites\\ship.bmp"));
+    assets->bitmaps[AssetID_Ship] =   load_bitmap(arena, str8_literal("sprites\\ship2.bmp"));
     assets->bitmaps[AssetID_Tree] =   load_bitmap(arena, str8_literal("sprites\\tree00.bmp"));
     assets->bitmaps[AssetID_Circle] = load_bitmap(arena, str8_literal("sprites\\circle.bmp"));
     assets->bitmaps[AssetID_Bullet] = load_bitmap(arena, str8_literal("sprites\\bullet4.bmp"));
@@ -69,7 +69,7 @@ add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color){
         e->pos = pos;
         e->dim = dim;
         e->dir = make_v2(0, 1);
-        e->angle = 90;
+        e->deg = 90;
         e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
     }
     else{
@@ -87,7 +87,7 @@ add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 
         e->pos = pos;
         e->dim = dim;
         e->dir = make_v2(0, 1);
-        e->angle = 90;
+        e->deg = 90;
         e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
         e->texture = texture;
     }
@@ -114,42 +114,41 @@ add_text(PermanentMemory* pm, Font font, String8 text, f32 x, f32 y, RGBA color)
 }
 
 static Entity*
-add_ship(PermanentMemory* pm, v2 pos, Bitmap* texture, RGBA color){
+add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color){
     Entity* e = add_entity(pm, EntityType_Ship);
-    e->pos = pos;
-    e->color = color;
-    //e->texture = texture;
-    e->dir = make_v2(0, 1);
-    e->speed = 250;
-    //e->scale = 50;
-    pm->ship_loaded = true; // TODO: get rid of
-    return(e);
-}
-
-static Entity*
-add_bullet(PermanentMemory* pm, v2 pos, Bitmap* texture, RGBA color){
-    Entity* e = add_entity(pm, EntityType_Bullet);
-    e->pos = pos;
-    e->color = color;
-    //e->texture = texture;
-    e->dir = make_v2(0, 1);
-    e->speed = 250;
-    //e->scale = 10;
-    return(e);
-}
-
-static Entity*
-add_player(PermanentMemory* pm, Bitmap* texture, v2 pos, f32 angle, v2 scale, u32 index){
-    Entity* e = add_entity(pm, EntityType_Player);
     if(e){
-        e->index = index;
+        e->dir = make_v2(1, 1);
+        e->color = color;
         e->pos = pos;
-        e->angle = angle;
-        e->scale = scale;
-        //e->texture = texture;
+        e->dim = dim;
+        e->dir = make_v2(0, -1);
+        e->deg = -90;
+        e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
+        e->speed = 400;
+        e->velocity = 0;
+        e->texture = texture;
     }
     else{
-        print("Failed to add entity: Player\n");
+        print("Failed to add entity: Quad\n");
+    }
+    return(e);
+}
+
+static Entity*
+add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color){
+    Entity* e = add_entity(pm, EntityType_Bullet);
+    if(e){
+        e->dir = make_v2(1, 1);
+        e->color = color;
+        e->pos = pos;
+        e->dim = dim;
+        e->deg = deg;
+        e->speed = 200;
+        e->velocity = 1;
+        e->texture = texture;
+    }
+    else{
+        print("Failed to add entity: Quad\n");
     }
     return(e);
 }
@@ -158,6 +157,8 @@ static void
 entities_clear(PermanentMemory* pm){
     pm->free_entities_at = ENTITIES_MAX - 1;
     for(u32 i = pm->free_entities_at; i <= pm->free_entities_at; --i){
+        Entity* e = pm->entities + i;
+        e->type = EntityType_None;
         pm->free_entities[i] = pm->free_entities_at - i;
         pm->generation[i] = 0;
     }
@@ -166,41 +167,54 @@ entities_clear(PermanentMemory* pm){
 
 static void
 serialize_data(PermanentMemory* pm, String8 filename){
-    File file = os_file_open(filename, GENERIC_WRITE, CREATE_NEW);
-    assert_fh(file);
+    ScratchArena scratch = begin_scratch(0);
+    String8 full_path = str8_path_append(scratch.arena, saves_dir, filename);
 
-    os_file_write(file, pm->entities, sizeof(Entity) * ENTITIES_MAX);
+    File file = os_file_open(full_path, GENERIC_WRITE, CREATE_NEW);
+    if(file.size){
+        os_file_write(file, pm->entities, sizeof(Entity) * ENTITIES_MAX);
+    }
+    else{
+        // log error
+        print("Save file \"%s\" already exists: Could not serialize data\n", filename.str);
+    }
+
     os_file_close(file);
+    end_scratch(scratch);
 }
 
 static void
 deserialize_data(PermanentMemory* pm, String8 filename){
-    File file = os_file_open(filename, GENERIC_READ, OPEN_EXISTING);
-    assert_fh(file);
-    String8 data = os_file_read(&pm->arena, file);
+    ScratchArena scratch = begin_scratch(0);
+    String8 full_path = str8_path_append(scratch.arena, saves_dir, filename);
 
-    entities_clear(pm);
-    u32 offset = 0;
-    while(offset < data.size){
-        Entity* e = (Entity*)(data.str + offset);
-        switch(e->type){
-            case EntityType_Ship:{
-                Entity* ship = add_entity(pm, EntityType_Ship);
-                *ship = *e;
+    File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
+    if(file.size){
+        String8 data = os_file_read(&pm->arena, file);
 
-                String8 ship_str = str8_literal("sprites\\ship_simple.bmp");
-                Bitmap ship_image = load_bitmap(&pm->arena, ship_str);
-                //ship->texture = get_bitmap(&tm->assets, AssetID_Ship);
+        entities_clear(pm);
 
-                pm->ship = ship;
-                pm->ship_loaded = true;
-            } break;
-            case EntityType_Rect:{
-                //add_rect(pm, e->rect, e->color, e->border_size, e->border_color);
-            } break;
+        u32 offset = 0;
+        while(offset < data.size){
+            Entity* e = (Entity*)(data.str + offset);
+            switch(e->type){
+                case EntityType_Ship:{
+                    Entity* ship = add_entity(pm, EntityType_Ship);
+                    *ship = *e;
+                    ship->texture = &ship_shader_resource;
+
+                    //String8 ship_str = str8_literal("sprites\\ship_simple.bmp");
+                    //Bitmap ship_image = load_bitmap(&pm->arena, ship_str);
+
+                    pm->ship = ship;
+                    pm->ship_loaded = true;
+                } break;
+            }
+            offset += sizeof(Entity);
         }
-        offset += sizeof(*e);
     }
+    os_file_close(file);
+    end_scratch(scratch);
 }
 
 static v2 dir_normalized = make_v2(0, 0);
@@ -211,16 +225,33 @@ handle_global_events(Event event){
         return(true);
     }
     if(event.type == MOUSE){
-        v2 dir = make_v2((f32)event.mouse_pos.x - SCREEN_WIDTH/2, (f32)event.mouse_pos.y - SCREEN_HEIGHT/2);
-        dir_normalized = normalize_v2(dir);
-        f32 rad = rad_from_dir(dir_normalized);
-        f32 deg = deg_from_rad(rad);
-        print("pos(%i, %i) - dir(%f, %f) - dirn(%f, %f) - r(%f) - d(%f)\n", event.mouse_pos.x, event.mouse_pos.y, dir.x, dir.y, dir_normalized.x, dir_normalized.y, rad, deg);
+        v2 p0 = make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+        v2 p1 = make_v2((f32)controller.mouse.pos.x, (f32)controller.mouse.pos.y);
+        v2 direction = direction_v2(p0, p1);
+
+        f32 rad = rad_from_dir(direction);
+        f32 deg = deg_from_dir(direction);
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == ESCAPE){
                 should_quit = true;
+            }
+            if(event.keycode == Q_UPPER){
+                g_angle_t = 0;
+                p = 0;
+            }
+            if(event.keycode == W_UPPER){
+                g_angle_t = 90;
+                p = 0;
+            }
+            if(event.keycode == E_UPPER){
+                g_angle_t = 180;
+                p = 0;
+            }
+            if(event.keycode == R_UPPER){
+                g_angle_t = 270;
+                p = 0;
             }
             if(event.keycode == TILDE && !event.repeat){
                 //console_t = 0;
@@ -297,6 +328,13 @@ handle_controller_events(Event event){
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
+            if(event.keycode == SPACEBAR){
+                if(!event.repeat){
+                    controller.shoot.pressed = true;
+                }
+                controller.shoot.held = true;
+                return(true);
+            }
             if(event.keycode == Q_UPPER){
                 if(!event.repeat){
                     controller.q.pressed = true;
@@ -341,6 +379,10 @@ handle_controller_events(Event event){
             }
         }
         else{
+            if(event.keycode == SPACEBAR){
+                controller.shoot.held = false;
+                return(true);
+            }
             if(event.keycode == Q_UPPER){
                 controller.q.held = false;
                 return(true);
@@ -448,34 +490,6 @@ update_game(Window* window, Memory* memory, Events* events){
         update_camera(controller.mouse.dx, controller.mouse.dy, (f32)clock.dt);
     }
 
-    //if(pm->ship_loaded){
-    //    Entity* ship = pm->ship;
-    //    // rotate ship
-    //    if(controller.right.held){
-    //        ship->rad -= 2 * (f32)clock.dt;
-    //        second->pos.x += 1 * (f32)clock.dt;
-    //    }
-    //    if(controller.left.held){
-    //        ship->rad += 2 * (f32)clock.dt;
-    //        second->pos.x -= 1 * (f32)clock.dt;
-    //    }
-
-    //    // increase ship velocity
-    //    if(controller.up.held){
-    //        ship->velocity += (f32)clock.dt;
-    //    }
-    //    if(controller.down.held){
-    //        ship->velocity -= (f32)clock.dt;
-    //    }
-    //    clamp_f32(0, 1, &ship->velocity);
-
-    //    // move ship
-    //    ship->direction = rad_to_dir(ship->rad);
-    //    ship->origin.x += (ship->direction.x * ship->velocity * ship->speed) * (f32)clock.dt;
-    //    ship->origin.y += (ship->direction.y * ship->velocity * ship->speed) * (f32)clock.dt;
-    //    //print("x: %f - y: %f - v: %f - a: %f\n", ship->direction.x, ship->direction.y, ship->velocity, ship->rad);
-    //}
-
     console_update_openess();
 
     XMVECTOR camera_pos = {camera.pos.x, camera.pos.y, camera.pos.z};
@@ -500,45 +514,54 @@ update_game(Window* window, Memory* memory, Events* events){
     constants->screen_res = make_v2s32(window->width, window->height);
     d3d_context->Unmap(d3d_constant_buffer, 0);
 
-    //u32 c = array_count(pm->entities) - 1;
-
     for(s32 index = 0; index < array_count(pm->entities); ++index){
         Entity *e = pm->entities + index;
 
         switch(e->type){
-            case EntityType_Quad:{
-                //f32 rad = dir_to_rad(e->direction);
-                //f32 t_rad = dir_to_rad(e->target_direction);
+            case EntityType_Ship:{
+                if(pm->ship_loaded){
+                    Entity* ship = pm->ship;
 
-                //f32 test1 = dir_to_rad(make_v2(1, 1));
-                //f32 test2 = dir_to_rad(make_v2(0, 1));
-                //f32 test3 = dir_to_rad(make_v2(1, 0));
-                //f32 test4 = dir_to_rad(make_v2(0, 0));
-                //print("(%f, %f, %f, %f)\n", test1, test2, test3, test4);
+                    // add bullet entity
+                    if(controller.shoot.pressed){
+                        add_bullet(pm, &circle_shader_resource, ship->pos, ship->dim, ship->deg);
+                    }
 
-                //e->rotation_percent += (f32)clock.dt;
-                //if(e->rotation_percent > 1.0f){
-                //    e->rotation_percent = 1.0f;
-                //}
-                //print("(%f)\n", e->rotation_percent);
+                    // rotate ship
+                    if(controller.right.held){
+                        ship->deg += 200 * (f32)clock.dt;
+                    }
+                    if(controller.left.held){
+                        ship->deg -= 200 * (f32)clock.dt;
+                    }
 
-                //if(e->direction != e->target_direction){
-                    //print("%f(%f, %f) %f(%f, %f)\n", rad, e->direction.x, e->direction.y, t_rad, e->target_direction.x, e->target_direction.y);
-                    //e->direction = slerp_v2(e->direction, e->rotation_percent, e->target_direction);
-                //}
+                    // increase ship velocity
+                    if(controller.up.held){
+                        ship->velocity += (f32)clock.dt;
+                    }
+                    if(controller.down.held){
+                        ship->velocity -= (f32)clock.dt;
+                    }
+                    clamp_f32(0, 1, &ship->velocity);
 
-                //v2 center = quad_center(e->p0, e->p2);
-                //e->p0 = rotate_point(e->p0, angle, center);
-                //e->p1 = rotate_point(e->p1, angle, center);
-                //e->p2 = rotate_point(e->p2, angle, center);
-                //e->p3 = rotate_point(e->p3, angle, center);
+                    // move ship
+                    v2 dir = dir_from_deg(ship->deg);
+                    ship->pos.x += (dir.x * ship->velocity * ship->speed) * (f32)clock.dt;
+                    ship->pos.y += (dir.y * ship->velocity * ship->speed) * (f32)clock.dt;
+                }
+            } break;
+            case EntityType_Bullet:{
+                v2 dir = dir_from_deg(e->deg);
+                e->pos.x += (dir.x * e->velocity * e->speed) * (f32)clock.dt;
+                e->pos.y += (dir.y * e->velocity * e->speed) * (f32)clock.dt;
+
+                if((e->pos.x < 0 || e->pos.x > SCREEN_WIDTH) ||
+                   (e->pos.y < 0 || e->pos.y > SCREEN_HEIGHT)){
+                    remove_entity(pm, e);
+                }
             } break;
         }
     }
-
-    // TODO: move this out of simulation and have it before the render call
-    clear_controller_pressed(&controller);
-    arena_free(&tm->arena);
 }
 
 #endif

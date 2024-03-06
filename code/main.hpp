@@ -45,6 +45,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param);
 
 global f32 g_angle = 0;
+global f32 g_angle_t = 0;
+global f32 p = 1;
 
 #include "input.hpp"
 #include "clock.hpp"
@@ -85,11 +87,7 @@ typedef struct PermanentMemory{
     u32 free_entities[ENTITIES_MAX];
     u32 free_entities_at;
 
-    Entity* texture;
-    Entity* circle;
-    Entity* basis;
     Entity* ship;
-    Bitmap tree;
     bool ship_loaded;
 
 } PermanentMemory, State;
@@ -107,5 +105,10 @@ global TransientMemory* tm;
 #include "game.hpp"
 
 static Font global_font;
+static String8 build_dir;
+static String8 fonts_dir;
+static String8 shaders_dir;
+static String8 saves_dir;
+static String8 sprites_dir;
 
 #endif
