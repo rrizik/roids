@@ -72,6 +72,7 @@ global ID3D11ShaderResourceView* tree_shader_resource;
 global ID3D11ShaderResourceView* circle_shader_resource;
 global ID3D11ShaderResourceView* bullet_shader_resource;
 global ID3D11ShaderResourceView* test_shader_resource;
+global ID3D11ShaderResourceView* asteroid_shader_resource;
 
 global ID3D11Texture2D* white_texture;
 global ID3D11ShaderResourceView* white_shader_resource;
@@ -139,8 +140,9 @@ static RGBA DARK_GRAY =   {0.5f, 0.5f, 0.5f,  1.0f};
 static RGBA LIGHT_GRAY =   {0.8f, 0.8f, 0.8f,  1.0f};
 static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
 static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
+static RGBA BACKGROUND_COLOR =   {1.0f/255.0f, 1.0f/255.0f, 1.0f/255.0f};
 static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
-static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
+//static RGBA BACKGROUND_COLOR = {0.2f, 0.29f, 0.29f, 1.0f};
 
 static RGBA CONSOLE_INPUT_BACKGROUND_COLOR = {20/255.0f, 20/255.0f, 20/255.0f, 1.0f};
 static RGBA CONSOLE_OUTPUT_BACKGROUND_COLOR = {29/255.0f, 29/255.0f, 29/255.0f, 1.0f};

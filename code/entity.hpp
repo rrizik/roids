@@ -2,7 +2,7 @@
 #define ENTITY_H
 
 typedef enum {EntityFlag_Movable} EntityFlags;
-typedef enum {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet} EntityType;
+typedef enum {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
 
 typedef struct Entity{
     EntityType type;
@@ -22,12 +22,6 @@ typedef struct Entity{
     f32 velocity;
 
     ID3D11ShaderResourceView** texture;
-
-    // TODO: Remove this
-    f32 x;
-    f32 y;
-    String8 text;
-    Font font;
 } Entity;
 
 static bool has_flags(u32 flags, u32 flags_set);

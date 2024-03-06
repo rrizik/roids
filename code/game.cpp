@@ -9,6 +9,7 @@ load_assets(Arena* arena, Assets* assets){
     assets->bitmaps[AssetID_Circle] = load_bitmap(arena, str8_literal("sprites\\circle.bmp"));
     assets->bitmaps[AssetID_Bullet] = load_bitmap(arena, str8_literal("sprites\\bullet4.bmp"));
     assets->bitmaps[AssetID_Test] =   load_bitmap(arena, str8_literal("sprites\\test.bmp"));
+    assets->bitmaps[AssetID_Asteroid] = load_bitmap(arena, str8_literal("sprites\\asteroid.bmp"));
 }
 
 // todo: Move these to entity once you move PermanentMemory further up in the tool chain
@@ -97,21 +98,21 @@ add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 
     return(e);
 }
 
-static Entity*
-add_text(PermanentMemory* pm, Font font, String8 text, f32 x, f32 y, RGBA color){
-    Entity* e = add_entity(pm, EntityType_Text);
-    if(e){
-        e->font = font;
-        e->text = text;
-        e->x = x;
-        e->y = y;
-        e->color = color;
-    }
-    else{
-        print("Failed to add entity: Quad\n");
-    }
-    return(e);
-}
+//static Entity*
+//add_text(PermanentMemory* pm, Font font, String8 text, f32 x, f32 y, RGBA color){
+//    Entity* e = add_entity(pm, EntityType_Text);
+//    if(e){
+//        e->font = font;
+//        e->text = text;
+//        e->x = x;
+//        e->y = y;
+//        e->color = color;
+//    }
+//    else{
+//        print("Failed to add entity: Quad\n");
+//    }
+//    return(e);
+//}
 
 static Entity*
 add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color){
@@ -129,7 +130,7 @@ add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim
         e->texture = texture;
     }
     else{
-        print("Failed to add entity: Quad\n");
+        print("Failed to add entity: Ship\n");
     }
     return(e);
 }
@@ -148,7 +149,26 @@ add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 d
         e->texture = texture;
     }
     else{
-        print("Failed to add entity: Quad\n");
+        print("Failed to add entity: Bullet\n");
+    }
+    return(e);
+}
+
+static Entity*
+add_asteroid(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color){
+    Entity* e = add_entity(pm, EntityType_Asteroid);
+    if(e){
+        e->dir = make_v2(1, 1);
+        e->color = color;
+        e->pos = pos;
+        e->dim = dim;
+        e->deg = deg;
+        e->speed = 100;
+        e->velocity = 1;
+        e->texture = texture;
+    }
+    else{
+        print("Failed to add entity: Asteroid\n");
     }
     return(e);
 }
@@ -286,6 +306,10 @@ handle_camera_events(Event event){
         controller.mouse.pos = event.mouse_pos;
         controller.mouse.dx = event.mouse_dx;
         controller.mouse.dy = event.mouse_dy;
+
+        v2 dir = direction_v2(make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), v2_from_v2s32(controller.mouse.pos));
+        f32 deg = deg_from_dir(dir);
+        print("dir(%f, %f) - deg(%f)\n", dir.x, dir.y, deg);
         return(true);
     }
     if(event.type == KEYBOARD){
@@ -490,6 +514,47 @@ update_game(Window* window, Memory* memory, Events* events){
         update_camera(controller.mouse.dx, controller.mouse.dy, (f32)clock.dt);
     }
 
+    pm->spawn_t += clock.dt;
+    if(pm->spawn_t >= 1){
+        pm->spawn_t = 0.0;
+
+        v2 dim;
+        dim.x = (f32)random_range_u32(150) + 25;
+        dim.y = dim.x;
+        // random starting pos
+        // random direction
+        u32 side = random_range_u32(3);
+        f32 deg = 0;
+        v2 pos = {0, 0};
+        if(side == 0){
+            pos.x = -200;
+            pos.y = (f32)random_range_u32(SCREEN_HEIGHT - 1);
+            deg = (f32)random_range_u32(180) - 90.0f;
+        }
+        if(side == 1){
+            pos.x = SCREEN_WIDTH + 200;
+            pos.y = (f32)random_range_u32(SCREEN_HEIGHT - 1);
+
+            s32 sign = (s32)random_range_u32(1);
+            if(sign == 0){
+                sign = -1;
+            }
+            deg = ((f32)random_range_u32(90) + 90.0f) * (f32)sign;
+        }
+        if(side == 2){
+            pos.x = (f32)random_range_u32(SCREEN_WIDTH - 1);
+            pos.y = -200;
+
+            deg = (f32)random_range_u32(180);
+        }
+        if(side == 3){
+            pos.x = (f32)random_range_u32(SCREEN_WIDTH - 1);
+            pos.y = SCREEN_HEIGHT + 200;
+
+            deg = (f32)random_range_u32(180) - 180;
+        }
+        add_asteroid(pm, &asteroid_shader_resource, pos, dim, deg);
+    }
     console_update_openess();
 
     XMVECTOR camera_pos = {camera.pos.x, camera.pos.y, camera.pos.z};
@@ -524,7 +589,7 @@ update_game(Window* window, Memory* memory, Events* events){
 
                     // add bullet entity
                     if(controller.shoot.pressed){
-                        add_bullet(pm, &circle_shader_resource, ship->pos, ship->dim, ship->deg);
+                        add_bullet(pm, &circle_shader_resource, ship->pos, make_v2(40, 8), ship->deg);
                     }
 
                     // rotate ship
@@ -559,6 +624,11 @@ update_game(Window* window, Memory* memory, Events* events){
                    (e->pos.y < 0 || e->pos.y > SCREEN_HEIGHT)){
                     remove_entity(pm, e);
                 }
+            } break;
+            case EntityType_Asteroid:{
+                v2 dir = dir_from_deg(e->deg);
+                e->pos.x += (dir.x * e->velocity * e->speed) * (f32)clock.dt;
+                e->pos.y += (dir.y * e->velocity * e->speed) * (f32)clock.dt;
             } break;
         }
     }

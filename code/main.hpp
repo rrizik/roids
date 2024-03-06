@@ -67,6 +67,7 @@ typedef enum AssetID{
     AssetID_Circle,
     AssetID_Bullet,
     AssetID_Test,
+    AssetID_Asteroid,
 
     AssetID_Count,
 } AssetID;
@@ -89,7 +90,9 @@ typedef struct PermanentMemory{
 
     Entity* ship;
     bool ship_loaded;
+    u32 score;
 
+    f64 spawn_t;
 } PermanentMemory, State;
 global PermanentMemory* pm;
 
@@ -97,6 +100,7 @@ typedef struct TransientMemory{
     Arena arena;
     Arena *frame_arena;
     Arena *render_command_arena;
+    Arena *assets_arena;
 
     Assets assets;
 } TransientMemory;

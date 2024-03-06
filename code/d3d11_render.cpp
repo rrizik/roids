@@ -92,7 +92,7 @@ push_text(Arena* arena, Font font, String8 text, f32 x, f32 y, RGBA color){
 }
 
 static void
-push_texture(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, ID3D11ShaderResourceView** texture){
+push_texture(Arena* arena, ID3D11ShaderResourceView** texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE){
     RenderCommand* command = push_struct(arena, RenderCommand);
     command->type = RenderCommandType_Texture;
     command->color = color;

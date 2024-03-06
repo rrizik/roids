@@ -131,12 +131,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         tm->render_command_arena = push_arena(&tm->arena, MB(16));
         tm->frame_arena = push_arena(&tm->arena, MB(100));
+        tm->assets_arena = push_arena(&tm->arena, MB(100));
 
         // setup free entities array in reverse order
         entities_clear(pm);
 
         load_font_ttf(global_arena, str8_literal("fonts/arial.ttf"), &global_font, 36);
-        load_assets(&tm->arena, &tm->assets);
+        load_assets(tm->assets_arena, &tm->assets);
 
         init_texture_resource(&tm->assets.bitmaps[AssetID_Image],  &image_shader_resource);
         init_texture_resource(&tm->assets.bitmaps[AssetID_Ship],   &ship_shader_resource);
@@ -144,6 +145,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_texture_resource(&tm->assets.bitmaps[AssetID_Circle], &circle_shader_resource);
         init_texture_resource(&tm->assets.bitmaps[AssetID_Bullet], &bullet_shader_resource);
         init_texture_resource(&tm->assets.bitmaps[AssetID_Test],   &test_shader_resource);
+        init_texture_resource(&tm->assets.bitmaps[AssetID_Asteroid], &asteroid_shader_resource);
 
         init_console(&pm->arena);
         init_console_commands();
@@ -178,7 +180,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             simulations++;
 
             clear_controller_pressed(&controller);
-            arena_free(&tm->arena);
         }
 
         // command arena
@@ -202,6 +203,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
                     push_quad(render_command_arena, p0, p1, p2, p3, e->color);
                 } break;
+                case EntityType_Asteroid:
                 case EntityType_Bullet:
                 case EntityType_Ship:
                 case EntityType_Texture:{
@@ -216,19 +218,24 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     p2 = rotate_point_deg(p2, e->deg, e->pos);
                     p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                    push_texture(render_command_arena, p0, p1, p2, p3, e->color, e->texture);
+                    push_texture(render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                    String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
+                    push_text(render_command_arena, global_font, text, p0.x, p0.y, RED);
                 } break;
                 case EntityType_Text:{
-                    push_text(render_command_arena, e->font, e->text, e->x, e->y, e->color);
+                    //push_text(render_command_arena, e->font, e->text, e->x, e->y, e->color);
                 } break;
             }
         }
 
-        console_draw();
+        String8 text = str8_formatted(tm->frame_arena, "SCORE: %i", pm->score);
+        push_text(render_command_arena, global_font, text, 50, 50, BLUE);
 
         // draw everything
+        console_draw();
         draw_commands(render_command_arena);
 
+        arena_free(tm->frame_arena);
 
         frame_count++;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
