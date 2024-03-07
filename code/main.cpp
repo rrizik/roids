@@ -170,6 +170,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
+        arena_free(render_command_arena);
         // simulation
         accumulator += frame_time;
         while(accumulator >= clock.dt){
@@ -183,7 +184,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         }
 
         // command arena
-        arena_free(render_command_arena);
         push_clear_color(render_command_arena, BACKGROUND_COLOR);
         for(s32 index = 0; index < array_count(pm->entities); ++index){
             Entity *e = pm->entities + index;
@@ -212,11 +212,20 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
                     v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
 
-                    //f32 deg = deg_from_dir(e->dir);
+                    Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
+                                            make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
+                    push_quad(render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
+
                     p0 = rotate_point_deg(p0, e->deg, e->pos);
                     p1 = rotate_point_deg(p1, e->deg, e->pos);
                     p2 = rotate_point_deg(p2, e->deg, e->pos);
                     p3 = rotate_point_deg(p3, e->deg, e->pos);
+
+                    push_line(render_command_arena, p0, p1, 2, GREEN);
+                    push_line(render_command_arena, p1, p2, 2, GREEN);
+                    push_line(render_command_arena, p2, p3, 2, GREEN);
+                    push_line(render_command_arena, p3, p0, 2, GREEN);
+
 
                     push_texture(render_command_arena, e->texture, p0, p1, p2, p3, e->color);
                     String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
@@ -230,6 +239,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         String8 text = str8_formatted(tm->frame_arena, "SCORE: %i", pm->score);
         push_text(render_command_arena, global_font, text, 50, 50, BLUE);
+        push_line(render_command_arena, make_v2(100, 100), make_v2(200, 200), 5, GREEN);
+        push_line(render_command_arena, make_v2(100, 100), make_v2(100, 200), 5, GREEN);
+        push_line(render_command_arena, make_v2(100, 100), make_v2(200, 100), 5, GREEN);
+        push_line(render_command_arena, make_v2(100, 200), make_v2(200, 200), 5, GREEN);
+        push_line(render_command_arena, make_v2(200, 200), make_v2(200, 100), 5, GREEN);
 
         // draw everything
         console_draw();

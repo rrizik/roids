@@ -82,14 +82,13 @@ rect_width_height(Rect rect){
 }
 
 static bool
-rect_collides_rect(Rect r1, Rect r2){
-    if((r1.x0 < r2.x0 + r2.x1) &&
-       (r1.x0 + r1.x1 > r2.x0) &&
-       (r1.y0 < r2.y0 + r2.y1) &&
-       (r1.y0 + r1.y1 > r2.y0)){
-        return true;
+rect_collides_rect(Rect rect1, Rect rect2) {
+    // Check for no overlap
+    if (rect1.x1 < rect2.x0 || rect1.x0 > rect2.x1 || rect1.y1 < rect2.y0 || rect1.y0 > rect2.y1) {
+        return false;
     }
-    return false;
+    // Rectangles overlap
+    return true;
 }
 
 static bool

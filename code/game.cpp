@@ -553,7 +553,7 @@ update_game(Window* window, Memory* memory, Events* events){
 
             deg = (f32)random_range_u32(180) - 180;
         }
-        add_asteroid(pm, &asteroid_shader_resource, pos, dim, deg);
+        Entity* e = add_asteroid(pm, &asteroid_shader_resource, pos, dim, deg);
     }
     console_update_openess();
 
@@ -613,6 +613,21 @@ update_game(Window* window, Memory* memory, Events* events){
                     v2 dir = dir_from_deg(ship->deg);
                     ship->pos.x += (dir.x * ship->velocity * ship->speed) * (f32)clock.dt;
                     ship->pos.y += (dir.y * ship->velocity * ship->speed) * (f32)clock.dt;
+
+                    Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
+                                            make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
+                    for(s32 ast_idx = 0; ast_idx < array_count(pm->entities); ++ast_idx){
+                        Entity *ast = pm->entities + ast_idx;
+
+                        if(ast->type == EntityType_Asteroid){
+                            Rect ast_rect = make_rect(make_v2(ast->pos.x - ast->dim.w/2, ast->pos.y - ast->dim.h/2),
+                                                      make_v2(ast->pos.x + ast->dim.x/2, ast->pos.y + ast->dim.h/2));
+                            if(rect_collides_rect(ast_rect, e_rect)){
+                                remove_entity(pm, e);
+                                remove_entity(pm, ast);
+                            }
+                        }
+                    }
                 }
             } break;
             case EntityType_Bullet:{
@@ -624,11 +639,29 @@ update_game(Window* window, Memory* memory, Events* events){
                    (e->pos.y < 0 || e->pos.y > SCREEN_HEIGHT)){
                     remove_entity(pm, e);
                 }
+
+                Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
+                                        make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
+                for(s32 ast_idx = 0; ast_idx < array_count(pm->entities); ++ast_idx){
+                    Entity *ast = pm->entities + ast_idx;
+
+                    if(ast->type == EntityType_Asteroid){
+                        Rect ast_rect = make_rect(make_v2(ast->pos.x - ast->dim.w/2, ast->pos.y - ast->dim.h/2),
+                                                  make_v2(ast->pos.x + ast->dim.x/2, ast->pos.y + ast->dim.h/2));
+                        if(rect_collides_rect(ast_rect, e_rect)){
+                            remove_entity(pm, e);
+                            remove_entity(pm, ast);
+                            pm->score += (u32)ast->dim.w;
+                        }
+                    }
+                }
+
             } break;
             case EntityType_Asteroid:{
                 v2 dir = dir_from_deg(e->deg);
                 e->pos.x += (dir.x * e->velocity * e->speed) * (f32)clock.dt;
                 e->pos.y += (dir.y * e->velocity * e->speed) * (f32)clock.dt;
+                //e->deg += 1;
             } break;
         }
     }

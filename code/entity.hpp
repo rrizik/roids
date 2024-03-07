@@ -5,6 +5,9 @@ typedef enum {EntityFlag_Movable} EntityFlags;
 typedef enum {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
 
 typedef struct Entity{
+    Entity* next;
+    Entity* prev;
+
     EntityType type;
     u32 flags;
     u32 index;

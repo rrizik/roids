@@ -76,6 +76,11 @@ typedef struct Assets{
     Bitmap bitmaps[AssetID_Count];
 } Assets;
 
+typedef struct Asteroid{
+    Asteroid* next;
+    Asteroid* prev;
+} Asteroid;
+
 #define ENTITIES_MAX 4096
 typedef struct PermanentMemory{
     Arena arena;

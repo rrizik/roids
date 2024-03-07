@@ -119,7 +119,16 @@ draw_commands(Arena* commands){
                 d3d_draw_quad(command->p0, command->p1, command->p2, command->p3, command->color);
             } break;
             case RenderCommandType_Line:{
-                d3d_draw_line(command->p0, command->p1, command->width, command->color);
+
+                v2 dir = direction_v2(command->p0, command->p1);
+                v2 perp = perpendicular(dir);
+                v2 perp_v2 = perpendicular_v2(command->p0, command->p1);
+
+                v2 p2 = command->p1 + (perp * (f32)command->width);
+                v2 p3 = command->p0 + (perp * (f32)command->width);
+                //d3d_draw_quad(command->p0, command->p1, command->width, command->color);
+                d3d_draw_quad(command->p0, command->p1, p2, p3, command->color);
+                //d3d_draw_line(command->p0, command->p1, command->width, command->color);
             } break;
             case RenderCommandType_Texture:{
                 d3d_draw_texture(command->p0, command->p1, command->p2, command->p3, command->color, command->texture);
