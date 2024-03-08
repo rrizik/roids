@@ -122,7 +122,6 @@ draw_commands(Arena* commands){
 
                 v2 dir = direction_v2(command->p0, command->p1);
                 v2 perp = perpendicular(dir);
-                v2 perp_v2 = perpendicular_v2(command->p0, command->p1);
 
                 v2 p2 = command->p1 + (perp * (f32)command->width);
                 v2 p3 = command->p0 + (perp * (f32)command->width);
@@ -196,71 +195,19 @@ d3d_draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
     d3d_context->Draw(6, 0);
 }
 
-static void
-d3d_draw_line(v2 p0, v2 p1, s32 width, RGBA color){
-
-    v2 p2 = make_v2(p1.x, p1.y + (f32)width);
-    v2 p3 = make_v2(p0.x, p0.y + (f32)width);
-
-    RGBA linear_color = srgb_to_linear(color); // gamma correction
-    Vertex2 vertices[] = {
-        { p0, linear_color },
-        { p1, linear_color },
-        { p2, linear_color },
-
-        { p0, linear_color },
-        { p2, linear_color },
-        { p3, linear_color },
-    };
-
-    //----vertex buffer----
-    {
-        D3D11_MAPPED_SUBRESOURCE resource;
-        hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
-        assert_hr(hr);
-
-        memcpy(resource.pData, vertices, sizeof(Vertex2) * array_count(vertices));
-        d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
-
-        ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
-        u32 strides[] = {sizeof(Vertex2)};
-        u32 offset[] = {0};
-
-        d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
-    }
-
-    //-------------------------------------------------------------------
-
-    d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-    d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
-
-    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
-    d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
-    d3d_context->RSSetState(d3d_rasterizer_state);
-
-    d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
-
-    d3d_context->RSSetViewports(1, &d3d_viewport);
-    d3d_context->IASetInputLayout(d3d_2d_quad_il);
-    d3d_context->VSSetShader(d3d_2d_quad_vs, 0, 0);
-    d3d_context->PSSetShader(d3d_2d_quad_ps, 0, 0);
-
-    d3d_context->Draw(6, 0);
-}
-
 // todo: pass in optional UV (x, y) that is added to each UV xy. Look at JB image as example
 static void
 d3d_draw_texture(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, ID3D11ShaderResourceView** texture){
 
     RGBA linear_color = srgb_to_linear(color); // gamma correction
     Vertex3 vertices[] = {
-        { p0, linear_color, make_v2(0.0f, 0.0f)},
-        { p1, linear_color, make_v2(1.0f, 0.0f)},
-        { p2, linear_color, make_v2(1.0f, 1.0f)},
+        { p0, linear_color, make_v2(0.0f, 0.0f) },
+        { p1, linear_color, make_v2(1.0f, 0.0f) },
+        { p2, linear_color, make_v2(1.0f, 1.0f) },
 
-        { p0, linear_color, make_v2(0.0f, 0.0f)},
-        { p2, linear_color, make_v2(1.0f, 1.0f)},
-        { p3, linear_color, make_v2(0.0f, 1.0f)},
+        { p0, linear_color, make_v2(0.0f, 0.0f) },
+        { p2, linear_color, make_v2(1.0f, 1.0f) },
+        { p3, linear_color, make_v2(0.0f, 1.0f) },
     };
 
     //----vertex buffer----

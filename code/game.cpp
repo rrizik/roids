@@ -191,7 +191,7 @@ serialize_data(PermanentMemory* pm, String8 filename){
     String8 full_path = str8_path_append(scratch.arena, saves_dir, filename);
 
     File file = os_file_open(full_path, GENERIC_WRITE, CREATE_NEW);
-    if(file.size){
+    if(file.handle != INVALID_HANDLE_VALUE){
         os_file_write(file, pm->entities, sizeof(Entity) * ENTITIES_MAX);
     }
     else{
@@ -209,29 +209,41 @@ deserialize_data(PermanentMemory* pm, String8 filename){
     String8 full_path = str8_path_append(scratch.arena, saves_dir, filename);
 
     File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
-    if(file.size){
-        String8 data = os_file_read(&pm->arena, file);
+    if(!file.size){
+        //todo: log error
+        print("Error: failed to open file <%s>\n", full_path.str);
+        os_file_close(file);
+        end_scratch(scratch);
+        return;
+    }
 
-        entities_clear(pm);
+    String8 data = os_file_read(&pm->arena, file);
+    entities_clear(pm);
 
-        u32 offset = 0;
-        while(offset < data.size){
-            Entity* e = (Entity*)(data.str + offset);
-            switch(e->type){
-                case EntityType_Ship:{
-                    Entity* ship = add_entity(pm, EntityType_Ship);
-                    *ship = *e;
-                    ship->texture = &ship_shader_resource;
+    u32 offset = 0;
+    while(offset < data.size){
+        Entity* e = (Entity*)(data.str + offset);
+        switch(e->type){
+            case EntityType_Ship:{
+                Entity* ship = add_entity(pm, EntityType_Ship);
+                *ship = *e;
+                ship->texture = &ship_shader_resource;
 
-                    //String8 ship_str = str8_literal("sprites\\ship_simple.bmp");
-                    //Bitmap ship_image = load_bitmap(&pm->arena, ship_str);
-
-                    pm->ship = ship;
-                    pm->ship_loaded = true;
-                } break;
-            }
-            offset += sizeof(Entity);
+                pm->ship = ship;
+                pm->ship_loaded = true;
+            } break;
+            case EntityType_Bullet:{
+                Entity* bullet = add_entity(pm, EntityType_Bullet);
+                *bullet = *e;
+                bullet->texture = &bullet_shader_resource;
+            } break;
+            case EntityType_Asteroid:{
+                Entity* ast = add_entity(pm, EntityType_Asteroid);
+                *ast = *e;
+                ast->texture = &asteroid_shader_resource;
+            } break;
         }
+        offset += sizeof(Entity);
     }
     os_file_close(file);
     end_scratch(scratch);
@@ -625,6 +637,7 @@ update_game(Window* window, Memory* memory, Events* events){
                             if(rect_collides_rect(ast_rect, e_rect)){
                                 remove_entity(pm, e);
                                 remove_entity(pm, ast);
+                                break;
                             }
                         }
                     }
@@ -652,6 +665,7 @@ update_game(Window* window, Memory* memory, Events* events){
                             remove_entity(pm, e);
                             remove_entity(pm, ast);
                             pm->score += (u32)ast->dim.w;
+                            break;
                         }
                     }
                 }

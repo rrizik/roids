@@ -4,7 +4,7 @@
 static bool load_font_ttf(Arena* arena, String8 path, Font* font, f32 size){
     // open file
     File file = os_file_open(path, GENERIC_READ, OPEN_EXISTING);
-    assert_fh(file); // todo: replace all these asserts with if checks so it doesn't explode
+    assert_h(file.handle); // todo: replace all these asserts with if checks so it doesn't explode
 
     // init font
     String8 file_data =  os_file_read(arena, file);

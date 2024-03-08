@@ -46,7 +46,6 @@ static void draw_commands(Arena* commands);
 static void d3d_clear_color(RGBA color);
 static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text);
 static void d3d_draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color);
-static void d3d_draw_line(v2 p0, v2 p1, s32 width, RGBA color);
 static void d3d_draw_texture(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, ID3D11ShaderResourceView** texture);
 
 static void d3d_present();

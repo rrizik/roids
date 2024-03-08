@@ -39,7 +39,7 @@ load_bitmap(Arena* arena, String8 filename){
     ScratchArena scratch = begin_scratch(0);
     String8 full_path = str8_concatenate(scratch.arena, path_data, filename);
     File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
-    assert_fh(file);
+    assert_h(file.handle);
 
     String8 data = os_file_read(scratch.arena, file);
     BitmapHeader *header = (BitmapHeader *)data.str;
