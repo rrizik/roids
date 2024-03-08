@@ -71,7 +71,7 @@ add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color){
         e->dim = dim;
         e->dir = make_v2(0, 1);
         e->deg = 90;
-        e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
+        //e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
     }
     else{
         print("Failed to add entity: Quad\n");
@@ -89,7 +89,7 @@ add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 
         e->dim = dim;
         e->dir = make_v2(0, 1);
         e->deg = 90;
-        e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
+        //e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
         e->texture = texture;
     }
     else{
@@ -124,7 +124,7 @@ add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim
         e->dim = dim;
         e->dir = make_v2(0, -1);
         e->deg = -90;
-        e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
+        //e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
         e->speed = 400;
         e->velocity = 0;
         e->texture = texture;
@@ -139,13 +139,14 @@ static Entity*
 add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color){
     Entity* e = add_entity(pm, EntityType_Bullet);
     if(e){
-        e->dir = make_v2(1, 1);
         e->color = color;
         e->pos = pos;
         e->dim = dim;
         e->deg = deg;
+        e->dir = dir_from_deg(deg);
         e->speed = 200;
         e->velocity = 1;
+        e->damage = 50;
         e->texture = texture;
     }
     else{
@@ -158,13 +159,15 @@ static Entity*
 add_asteroid(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color){
     Entity* e = add_entity(pm, EntityType_Asteroid);
     if(e){
-        e->dir = make_v2(1, 1);
         e->color = color;
         e->pos = pos;
         e->dim = dim;
         e->deg = deg;
+        e->dir = dir_from_deg(deg);
         e->speed = 100;
+        e->rot_speed = (f32)random_range_u32(150) + 50;
         e->velocity = 1;
+        e->health = (s32)dim.w;
         e->texture = texture;
     }
     else{
@@ -531,7 +534,7 @@ update_game(Window* window, Memory* memory, Events* events){
         pm->spawn_t = 0.0;
 
         v2 dim;
-        dim.x = (f32)random_range_u32(150) + 25;
+        dim.x = (f32)random_range_u32(150) + 50;
         dim.y = dim.x;
         // random starting pos
         // random direction
@@ -606,10 +609,18 @@ update_game(Window* window, Memory* memory, Events* events){
 
                     // rotate ship
                     if(controller.right.held){
-                        ship->deg += 200 * (f32)clock.dt;
+                        //ship->deg += 200 * (f32)clock.dt;
+                        f32 d = deg_from_dir(ship->dir);
+                        d += 200 * (f32)clock.dt;
+                        ship->dir = dir_from_deg(d);
+                        ship->deg = d;
                     }
                     if(controller.left.held){
-                        ship->deg -= 200 * (f32)clock.dt;
+                        //ship->deg -= 200 * (f32)clock.dt;
+                        f32 d = deg_from_dir(ship->dir);
+                        d -= 200 * (f32)clock.dt;
+                        ship->dir = dir_from_deg(d);
+                        ship->deg = d;
                     }
 
                     // increase ship velocity
@@ -622,9 +633,9 @@ update_game(Window* window, Memory* memory, Events* events){
                     clamp_f32(0, 1, &ship->velocity);
 
                     // move ship
-                    v2 dir = dir_from_deg(ship->deg);
-                    ship->pos.x += (dir.x * ship->velocity * ship->speed) * (f32)clock.dt;
-                    ship->pos.y += (dir.y * ship->velocity * ship->speed) * (f32)clock.dt;
+                    //v2 dir = dir_from_deg(ship->deg);
+                    ship->pos.x += (ship->dir.x * ship->velocity * ship->speed) * (f32)clock.dt;
+                    ship->pos.y += (ship->dir.y * ship->velocity * ship->speed) * (f32)clock.dt;
 
                     Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
                                             make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
@@ -662,9 +673,12 @@ update_game(Window* window, Memory* memory, Events* events){
                         Rect ast_rect = make_rect(make_v2(ast->pos.x - ast->dim.w/2, ast->pos.y - ast->dim.h/2),
                                                   make_v2(ast->pos.x + ast->dim.x/2, ast->pos.y + ast->dim.h/2));
                         if(rect_collides_rect(ast_rect, e_rect)){
+                            ast->health -= e->damage;
+                            if(ast->health <= 0){
+                                remove_entity(pm, ast);
+                                pm->score += (u32)ast->dim.w;
+                            }
                             remove_entity(pm, e);
-                            remove_entity(pm, ast);
-                            pm->score += (u32)ast->dim.w;
                             break;
                         }
                     }
@@ -673,8 +687,9 @@ update_game(Window* window, Memory* memory, Events* events){
             } break;
             case EntityType_Asteroid:{
                 v2 dir = dir_from_deg(e->deg);
-                e->pos.x += (dir.x * e->velocity * e->speed) * (f32)clock.dt;
-                e->pos.y += (dir.y * e->velocity * e->speed) * (f32)clock.dt;
+                e->deg += e->rot_speed * (f32)clock.dt;
+                e->pos.x += (e->dir.x * e->velocity * e->speed) * (f32)clock.dt;
+                e->pos.y += (e->dir.y * e->velocity * e->speed) * (f32)clock.dt;
                 //e->deg += 1;
             } break;
         }

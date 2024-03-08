@@ -18,11 +18,14 @@ typedef struct Entity{
     v2 dir;
     f32 deg;
     v2 scale;
-    v2 origin;
     RGBA color;
 
     f32 speed;
+    f32 rot_speed;
     f32 velocity;
+
+    s32 health;
+    s32 damage;
 
     ID3D11ShaderResourceView** texture;
 } Entity;
