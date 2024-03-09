@@ -26,6 +26,7 @@ typedef struct Entity{
 
     s32 health;
     s32 damage;
+    bool in_play;
 
     ID3D11ShaderResourceView** texture;
 } Entity;

@@ -67,15 +67,15 @@ input_add_char(u8 c){
             ScratchArena scratch = begin_scratch(0);
 
             String8 left = {
-                .str = push_array(scratch.arena, u8, console.cursor_index),
+                .str = push_array(scratch.arena, u8, (u32)console.cursor_index),
                 .size = (u64)console.cursor_index,
             };
-            mem_copy(left.str, console.input, left.size);
+            memory_copy(left.str, console.input, left.size);
             String8 right = {
-                .str = push_array(scratch.arena, u8, console.input_count - console.cursor_index),
-                .size = (u64)console.input_count - console.cursor_index,
+                .str = push_array(scratch.arena, u8, (u32)(console.input_count - console.cursor_index)),
+                .size = (u64)(console.input_count - console.cursor_index)
             };
-            mem_copy(right.str, console.input + console.cursor_index, right.size);
+            memory_copy(right.str, console.input + console.cursor_index, right.size);
 
             u32 index = 0;
             for(u32 i=0; i < left.size; ++i){
@@ -104,15 +104,15 @@ input_remove_char(){
             ScratchArena scratch = begin_scratch(0);
 
             String8 left = {
-                .str = push_array(scratch.arena, u8, console.cursor_index-1),
+                .str = push_array(scratch.arena, u8, (u32)(console.cursor_index-1)),
                 .size = (u64)console.cursor_index-1,
             };
-            mem_copy(left.str, console.input, left.size);
+            memory_copy(left.str, console.input, left.size);
             String8 right = {
-                .str = push_array(scratch.arena, u8, console.input_count - console.cursor_index),
-                .size = (u64)console.input_count - console.cursor_index,
+                .str = push_array(scratch.arena, u8, (u32)(console.input_count - console.cursor_index)),
+                .size = (u64)console.input_count - (u64)console.cursor_index,
             };
-            mem_copy(right.str, console.input + console.cursor_index, right.size);
+            memory_copy(right.str, console.input + console.cursor_index, right.size);
 
             console.input_count--;
             c = console.input[console.cursor_index - 1];
@@ -151,7 +151,7 @@ console_set_state(ConsoleState state){
         }
     }
 
-    console_update_openess();
+    console_update();
 }
 
 static bool
@@ -227,7 +227,7 @@ handle_console_events(Event event){
             }
             if(event.keycode == ENTER){
                 u8* line_u8 = (u8*)push_array(global_arena, u8, console.input_count + 1);
-                mem_copy(line_u8, console.input, (size_t)console.input_count);
+                memory_copy(line_u8, console.input, (size_t)console.input_count);
 
                 String8 line_str8 = {line_u8, (u64)console.input_count};
                 line_str8 = str8_eat_whitespace(line_str8);
@@ -251,7 +251,7 @@ handle_console_events(Event event){
 }
 
 static void
-console_update_openess(){
+console_update(){
     f32 open_d = console.open_dt * (f32)clock.dt;
     if(console.open_t < console.open_t_target){
         console.open_t = lerp(console.open_t, console.open_t_target, smoothstep(open_d));

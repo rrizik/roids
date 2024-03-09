@@ -57,7 +57,7 @@ static   u8 input_remove_char();
 
 static void console_set_state(ConsoleState state);
 static bool handle_console_events(Event event);
-static void console_update_openess();
-static void draw_console();
+static void console_update();
+static void console_draw();
 
 #endif

@@ -55,7 +55,7 @@ win32_window_create(const wchar* window_name, s32 width, s32 height){
     result.aspect_ratio = (f32)width / (f32)height;
 
     DWORD style = WS_OVERLAPPEDWINDOW;
-    style &= ~WS_THICKFRAME & ~WS_MAXIMIZEBOX;
+    //style &= ~WS_THICKFRAME & ~WS_MAXIMIZEBOX;
     RECT rect = { 0, 0, 1280, 720 };
     AdjustWindowRect(&rect, style, FALSE);
     s32 adjusted_w = rect.right - rect.left;
@@ -245,7 +245,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     tm = (TransientMemory*)memory.transient_base;
 
     if(!memory.initialized){
-        pm->game_mode = GameMode_Editor;
+        pm->game_mode = GameMode_Game;
         show_cursor(true);
 
         init_camera();
@@ -277,6 +277,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         pm->ship = add_ship(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(75, 75));
         pm->ship_loaded = true;
+        pm->lives = 3;
 
         memory.initialized = true;
     }
@@ -330,7 +331,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 } break;
                 case EntityType_Asteroid:
                 case EntityType_Bullet:
-                case EntityType_Ship:
                 case EntityType_Texture:{
                     v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
                     v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
@@ -351,11 +351,38 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     push_line(render_command_arena, p2, p3, 2, GREEN);
                     push_line(render_command_arena, p3, p0, 2, GREEN);
 
-                    String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
-                    if(e->type == EntityType_Asteroid){
-                        text = str8_formatted(tm->frame_arena, "%i", e->health);
-                    }
                     push_texture(render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                    String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
+                    //if(e->type == EntityType_Asteroid){
+                    //    text = str8_formatted(tm->frame_arena, "%i", e->health);
+                    //}
+                    push_text(render_command_arena, global_font, text, p0.x, p0.y, RED);
+                } break;
+                case EntityType_Ship:{
+                    v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
+                    v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
+                    v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
+                    v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+
+                    Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
+                                            make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
+                    push_quad(render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
+
+                    p0 = rotate_point_deg(p0, e->deg, e->pos);
+                    p1 = rotate_point_deg(p1, e->deg, e->pos);
+                    p2 = rotate_point_deg(p2, e->deg, e->pos);
+                    p3 = rotate_point_deg(p3, e->deg, e->pos);
+
+                    push_line(render_command_arena, p0, p1, 2, GREEN);
+                    push_line(render_command_arena, p1, p2, 2, GREEN);
+                    push_line(render_command_arena, p2, p3, 2, GREEN);
+                    push_line(render_command_arena, p3, p0, 2, GREEN);
+
+                    push_texture(render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                    String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
+                    //if(e->type == EntityType_Asteroid){
+                    //    text = str8_formatted(tm->frame_arena, "%i", e->health);
+                    //}
                     push_text(render_command_arena, global_font, text, p0.x, p0.y, RED);
                 } break;
                 case EntityType_Text:{
@@ -364,18 +391,29 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
         }
 
+
+        if(!pm->lives){
+            String8 text = str8_formatted(tm->frame_arena, "GAME OVER - Score: %i", pm->score);
+            f32 width = font_string_width(global_font, text);
+            f32 x = SCREEN_WIDTH/2 - width/2;
+            push_text(render_command_arena, global_font, text, x, SCREEN_HEIGHT/2, ORANGE);
+        }
+        if(pm->score >= WIN_SCORE){
+            String8 text = str8_formatted(tm->frame_arena, "CHICKEN DINNER - Score: %i", pm->score);
+            f32 width = font_string_width(global_font, text);
+            f32 x = SCREEN_WIDTH/2 - width/2;
+            push_text(render_command_arena, global_font, text, x, SCREEN_HEIGHT/2, ORANGE);
+        }
         String8 text = str8_formatted(tm->frame_arena, "SCORE: %i", pm->score);
-        push_text(render_command_arena, global_font, text, 50, 50, BLUE);
-        push_line(render_command_arena, make_v2(100, 100), make_v2(200, 200), 5, GREEN);
-        //push_line(render_command_arena, make_v2(100, 100), make_v2(100, 200), 5, GREEN);
-        //push_line(render_command_arena, make_v2(100, 100), make_v2(200, 100), 5, GREEN);
-        //push_line(render_command_arena, make_v2(100, 200), make_v2(200, 200), 5, GREEN);
-        //push_line(render_command_arena, make_v2(200, 200), make_v2(200, 100), 5, GREEN);
+        push_text(render_command_arena, global_font, text, 50, 50, ORANGE);
+        String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
+        push_text(render_command_arena, global_font, lives, 50, 100, ORANGE);
 
         // draw everything
         console_draw();
         draw_commands(render_command_arena);
 
+        //print("count: %i - score: %i\n", pm->entities_count, pm->score);
         arena_free(tm->frame_arena);
 
         frame_count++;

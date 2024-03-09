@@ -12,11 +12,11 @@ typedef struct CommandInfo{
 
 #define COMMANDS_COUNT_MAX KB(1)
 global CommandInfo commands[COMMANDS_COUNT_MAX];
-s32 commands_count = 0;
+global         s32 commands_count = 0;
 
 #define ARGS_COUNT_MAX 50
 global String8 command_args[ARGS_COUNT_MAX];
-s32 command_args_count = 0;
+global     s32 command_args_count = 0;
 
 static void add_command(String8 name, u32 min, u32 max, Proc* proc);
 static void command_help(String8* args);

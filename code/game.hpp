@@ -18,12 +18,9 @@ static void    remove_entity(PermanentMemory* pm, Entity* e);
 static Entity* add_entity(PermanentMemory *pm, EntityType type);
 static Entity* add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color);
 static Entity* add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color=WHITE);
-static Entity* add_line(PermanentMemory* pm, v2 direction, RGBA color);
 static Entity* add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color=WHITE);
 static Entity* add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE);
 static Entity* add_asteroid(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE);
-//static Entity* add_text(PermanentMemory* pm, Font font, String8 text, f32 x, f32 y, RGBA color);
-
 
 static void entities_clear(PermanentMemory* pm);
 static void serialize_data(PermanentMemory* pm, String8 filename);

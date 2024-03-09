@@ -38,11 +38,9 @@ handle_from_entity(PermanentMemory* pm, Entity *e){
 
 static void
 remove_entity(PermanentMemory* pm, Entity* e){
-    e->type = EntityType_None;
     pm->free_entities[++pm->free_entities_at] = e->index;
     pm->entities_count--;
-    e->index = 0;
-    e->generation = 0;
+    *e = {0};
 }
 
 static Entity*
@@ -124,7 +122,6 @@ add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim
         e->dim = dim;
         e->dir = make_v2(0, -1);
         e->deg = -90;
-        //e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
         e->speed = 400;
         e->velocity = 0;
         e->texture = texture;
@@ -164,7 +161,7 @@ add_asteroid(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2
         e->dim = dim;
         e->deg = deg;
         e->dir = dir_from_deg(deg);
-        e->speed = 100;
+        e->speed = 200;
         e->rot_speed = (f32)random_range_u32(150) + 50;
         e->velocity = 1;
         e->health = (s32)dim.w;
@@ -324,7 +321,7 @@ handle_camera_events(Event event){
 
         v2 dir = direction_v2(make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), v2_from_v2s32(controller.mouse.pos));
         f32 deg = deg_from_dir(dir);
-        print("dir(%f, %f) - deg(%f)\n", dir.x, dir.y, deg);
+        //print("dir(%f, %f) - deg(%f)\n", dir.x, dir.y, deg);
         return(true);
     }
     if(event.type == KEYBOARD){
@@ -472,111 +469,48 @@ update_game(Window* window, Memory* memory, Events* events){
         }
     }
 
-    f32 move_speed = 40;
-    if(pm->game_mode == GameMode_Editor){
-        //if(controller.right.held){
-        //    second->pos.x += move_speed * (f32)clock.dt;
-        //}
-        //if(controller.left.held){
-        //    second->pos.x -= move_speed * (f32)clock.dt;
-        //}
-        //if(controller.e.held){
-        //    second->pos.y += move_speed * (f32)clock.dt;
-        //}
-        //if(controller.q.held){
-        //    second->pos.y -= move_speed * (f32)clock.dt;
-        //}
-        //if(controller.up.held){
-        //    second->pos.z += move_speed * (f32)clock.dt;
-        //}
-        //if(controller.down.held){
-        //    second->pos.z -= move_speed * (f32)clock.dt;
-        //}
-    }
-    if(pm->game_mode == GameMode_FirstPerson){
+    //if(pm->game_mode == GameMode_FirstPerson){
 
-        // up down
-        if(controller.e.held){
-            f32 dy = (f32)(camera.move_speed * clock.dt);
-            camera.pos.y += dy;
-        }
-        if(controller.q.held){
-            f32 dy = (f32)(camera.move_speed * clock.dt);
-            camera.pos.y -= dy;
-        }
+    //    // up down
+    //    if(controller.e.held){
+    //        f32 dy = (f32)(camera.move_speed * clock.dt);
+    //        camera.pos.y += dy;
+    //    }
+    //    if(controller.q.held){
+    //        f32 dy = (f32)(camera.move_speed * clock.dt);
+    //        camera.pos.y -= dy;
+    //    }
 
-        // wasd
-        if(controller.up.held){
-            v3 result = (camera.forward  * camera.move_speed * (f32)clock.dt);
-            camera.pos = camera.pos + result;
-        }
-        if(controller.down.held){
-            v3 result = (camera.forward  * camera.move_speed * (f32)clock.dt);
-            camera.pos = camera.pos - result;
-        }
-        if(controller.left.held){
-            v3 result = (normalize_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock.dt);
-            camera.pos = camera.pos + result;
-        }
-        if(controller.right.held){
-            v3 result = (normalize_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock.dt);
-            camera.pos = camera.pos - result;
-        }
+    //    // wasd
+    //    if(controller.up.held){
+    //        v3 result = (camera.forward  * camera.move_speed * (f32)clock.dt);
+    //        camera.pos = camera.pos + result;
+    //    }
+    //    if(controller.down.held){
+    //        v3 result = (camera.forward  * camera.move_speed * (f32)clock.dt);
+    //        camera.pos = camera.pos - result;
+    //    }
+    //    if(controller.left.held){
+    //        v3 result = (normalize_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock.dt);
+    //        camera.pos = camera.pos + result;
+    //    }
+    //    if(controller.right.held){
+    //        v3 result = (normalize_v3(cross_product_v3(camera.forward, make_v3(0, 1, 0))) * camera.move_speed * (f32)clock.dt);
+    //        camera.pos = camera.pos - result;
+    //    }
 
-        POINT center = {(SCREEN_WIDTH/2), (SCREEN_HEIGHT/2)};
-        ClientToScreen(window->handle, &center);
-        SetCursorPos(center.x, center.y);
-        update_camera(controller.mouse.dx, controller.mouse.dy, (f32)clock.dt);
-    }
+    //    POINT center = {(SCREEN_WIDTH/2), (SCREEN_HEIGHT/2)};
+    //    ClientToScreen(window->handle, &center);
+    //    SetCursorPos(center.x, center.y);
+    //    update_camera(controller.mouse.dx, controller.mouse.dy, (f32)clock.dt);
+    //}
 
-    pm->spawn_t += clock.dt;
-    if(pm->spawn_t >= 1){
-        pm->spawn_t = 0.0;
-
-        v2 dim;
-        dim.x = (f32)random_range_u32(150) + 50;
-        dim.y = dim.x;
-        // random starting pos
-        // random direction
-        u32 side = random_range_u32(3);
-        f32 deg = 0;
-        v2 pos = {0, 0};
-        if(side == 0){
-            pos.x = -200;
-            pos.y = (f32)random_range_u32(SCREEN_HEIGHT - 1);
-            deg = (f32)random_range_u32(180) - 90.0f;
-        }
-        if(side == 1){
-            pos.x = SCREEN_WIDTH + 200;
-            pos.y = (f32)random_range_u32(SCREEN_HEIGHT - 1);
-
-            s32 sign = (s32)random_range_u32(1);
-            if(sign == 0){
-                sign = -1;
-            }
-            deg = ((f32)random_range_u32(90) + 90.0f) * (f32)sign;
-        }
-        if(side == 2){
-            pos.x = (f32)random_range_u32(SCREEN_WIDTH - 1);
-            pos.y = -200;
-
-            deg = (f32)random_range_u32(180);
-        }
-        if(side == 3){
-            pos.x = (f32)random_range_u32(SCREEN_WIDTH - 1);
-            pos.y = SCREEN_HEIGHT + 200;
-
-            deg = (f32)random_range_u32(180) - 180;
-        }
-        Entity* e = add_asteroid(pm, &asteroid_shader_resource, pos, dim, deg);
-    }
-    console_update_openess();
-
-    XMVECTOR camera_pos = {camera.pos.x, camera.pos.y, camera.pos.z};
-    XMVECTOR camera_forward = {camera.forward.x, camera.forward.y, camera.forward.z};
-    XMVECTOR camera_up = {camera.up.x, camera.up.y, camera.up.z};
-    XMMATRIX view_matrix = XMMatrixLookAtLH(camera_pos, camera_pos + camera_forward, camera_up);
-    XMMATRIX perspective_matrix = XMMatrixPerspectiveFovLH(PI_f32*0.25f, (f32)((f32)SCREEN_WIDTH/(f32)SCREEN_HEIGHT), 1.0f, 1000.0f);
+    // camera update
+    //XMVECTOR camera_pos = {camera.pos.x, camera.pos.y, camera.pos.z};
+    //XMVECTOR camera_forward = {camera.forward.x, camera.forward.y, camera.forward.z};
+    //XMVECTOR camera_up = {camera.up.x, camera.up.y, camera.up.z};
+    //XMMATRIX view_matrix = XMMatrixLookAtLH(camera_pos, camera_pos + camera_forward, camera_up);
+    //XMMATRIX perspective_matrix = XMMatrixPerspectiveFovLH(PI_f32*0.25f, (f32)((f32)SCREEN_WIDTH/(f32)SCREEN_HEIGHT), 1.0f, 1000.0f);
 
     // note: set constant buffer
     //D3D11_MAPPED_SUBRESOURCE mapped_subresource;
@@ -594,48 +528,121 @@ update_game(Window* window, Memory* memory, Events* events){
     constants->screen_res = make_v2s32(window->width, window->height);
     d3d_context->Unmap(d3d_constant_buffer, 0);
 
-    for(s32 index = 0; index < array_count(pm->entities); ++index){
-        Entity *e = pm->entities + index;
+    console_update();
+    if(pm->game_mode == GameMode_Game && pm->score < WIN_SCORE){
+        pm->spawn_t += clock.dt;
+        if(pm->spawn_t >= 0.5f){
+            pm->spawn_t = 0.0;
 
-        switch(e->type){
-            case EntityType_Ship:{
-                if(pm->ship_loaded){
-                    Entity* ship = pm->ship;
+            v2 dim;
+            dim.x = (f32)random_range_u32(150) + 50;
+            dim.y = dim.x;
+            u32 side = random_range_u32(3);
 
-                    // add bullet entity
-                    if(controller.shoot.pressed){
-                        add_bullet(pm, &circle_shader_resource, ship->pos, make_v2(40, 8), ship->deg);
-                    }
+            v2 pos = {0, 0};
+            f32 deg = 0;
+            if(side == 0){
+                pos.x = -200;
+                pos.y = (f32)random_range_u32(SCREEN_HEIGHT - 1);
+                deg = (f32)random_range_u32(180) - 90.0f;
+            }
+            if(side == 1){
+                pos.x = SCREEN_WIDTH + 200;
+                pos.y = (f32)random_range_u32(SCREEN_HEIGHT - 1);
 
-                    // rotate ship
-                    if(controller.right.held){
-                        //ship->deg += 200 * (f32)clock.dt;
-                        f32 d = deg_from_dir(ship->dir);
-                        d += 200 * (f32)clock.dt;
-                        ship->dir = dir_from_deg(d);
-                        ship->deg = d;
-                    }
-                    if(controller.left.held){
-                        //ship->deg -= 200 * (f32)clock.dt;
-                        f32 d = deg_from_dir(ship->dir);
-                        d -= 200 * (f32)clock.dt;
-                        ship->dir = dir_from_deg(d);
-                        ship->deg = d;
-                    }
+                s32 sign = (s32)random_range_u32(1);
+                if(sign == 0){
+                    sign = -1;
+                }
+                deg = ((f32)random_range_u32(90) + 90.0f) * (f32)sign;
+            }
+            if(side == 2){
+                pos.x = (f32)random_range_u32(SCREEN_WIDTH - 1);
+                pos.y = -200;
 
-                    // increase ship velocity
-                    if(controller.up.held){
-                        ship->velocity += (f32)clock.dt;
-                    }
-                    if(controller.down.held){
-                        ship->velocity -= (f32)clock.dt;
-                    }
-                    clamp_f32(0, 1, &ship->velocity);
+                deg = (f32)random_range_u32(180);
+            }
+            if(side == 3){
+                pos.x = (f32)random_range_u32(SCREEN_WIDTH - 1);
+                pos.y = SCREEN_HEIGHT + 200;
 
-                    // move ship
-                    //v2 dir = dir_from_deg(ship->deg);
-                    ship->pos.x += (ship->dir.x * ship->velocity * ship->speed) * (f32)clock.dt;
-                    ship->pos.y += (ship->dir.y * ship->velocity * ship->speed) * (f32)clock.dt;
+                deg = (f32)random_range_u32(180) - 180;
+            }
+            Entity* e = add_asteroid(pm, &asteroid_shader_resource, pos, dim, deg);
+        }
+
+        for(s32 index = 0; index < array_count(pm->entities); ++index){
+            Entity *e = pm->entities + index;
+
+            switch(e->type){
+                case EntityType_Ship:{
+                    if(pm->ship_loaded){
+
+                        // add bullet entity
+                        if(controller.shoot.pressed){
+                            add_bullet(pm, &circle_shader_resource, e->pos, make_v2(40, 8), e->deg);
+                        }
+
+                        // rotate ship
+                        if(controller.right.held){
+                            f32 d = deg_from_dir(e->dir);
+                            d += 200 * (f32)clock.dt;
+                            e->dir = dir_from_deg(d);
+                            e->deg = d;
+                        }
+                        if(controller.left.held){
+                            f32 d = deg_from_dir(e->dir);
+                            d -= 200 * (f32)clock.dt;
+                            e->dir = dir_from_deg(d);
+                            e->deg = d;
+                        }
+
+                        // increase ship velocity
+                        if(controller.up.held){
+                            e->velocity += (f32)clock.dt;
+                        }
+                        if(controller.down.held){
+                            e->velocity -= (f32)clock.dt;
+                        }
+                        clamp_f32(0, 1, &e->velocity);
+
+                        // move ship
+                        e->pos.x += (e->dir.x * e->velocity * e->speed) * (f32)clock.dt;
+                        e->pos.y += (e->dir.y * e->velocity * e->speed) * (f32)clock.dt;
+
+                        Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
+                                                make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
+                        for(s32 ast_idx = 0; ast_idx < array_count(pm->entities); ++ast_idx){
+                            Entity *ast = pm->entities + ast_idx;
+
+                            if(ast->type == EntityType_Asteroid){
+                                Rect ast_rect = make_rect(make_v2(ast->pos.x - ast->dim.w/2, ast->pos.y - ast->dim.h/2),
+                                                          make_v2(ast->pos.x + ast->dim.x/2, ast->pos.y + ast->dim.h/2));
+                                if(rect_collides_rect(ast_rect, e_rect)){
+                                    pm->lives -= 1;
+                                    if(pm->lives){
+                                        e->pos = make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+                                    }
+                                    else{
+                                        remove_entity(pm, e);
+                                    }
+                                    remove_entity(pm, ast);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                } break;
+                case EntityType_Bullet:{
+                    v2 dir = dir_from_deg(e->deg);
+                    e->pos.x += (dir.x * e->velocity * e->speed) * (f32)clock.dt;
+                    e->pos.y += (dir.y * e->velocity * e->speed) * (f32)clock.dt;
+
+                    if((e->pos.x < 0 || e->pos.x > SCREEN_WIDTH) ||
+                       (e->pos.y < 0 || e->pos.y > SCREEN_HEIGHT)){
+                        remove_entity(pm, e);
+                        break;
+                    }
 
                     Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
                                             make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
@@ -646,52 +653,38 @@ update_game(Window* window, Memory* memory, Events* events){
                             Rect ast_rect = make_rect(make_v2(ast->pos.x - ast->dim.w/2, ast->pos.y - ast->dim.h/2),
                                                       make_v2(ast->pos.x + ast->dim.x/2, ast->pos.y + ast->dim.h/2));
                             if(rect_collides_rect(ast_rect, e_rect)){
+                                ast->health -= e->damage;
+                                if(ast->health <= 0){
+                                    pm->score += (u32)ast->dim.w;
+                                    remove_entity(pm, ast);
+                                }
                                 remove_entity(pm, e);
-                                remove_entity(pm, ast);
                                 break;
                             }
                         }
                     }
-                }
-            } break;
-            case EntityType_Bullet:{
-                v2 dir = dir_from_deg(e->deg);
-                e->pos.x += (dir.x * e->velocity * e->speed) * (f32)clock.dt;
-                e->pos.y += (dir.y * e->velocity * e->speed) * (f32)clock.dt;
 
-                if((e->pos.x < 0 || e->pos.x > SCREEN_WIDTH) ||
-                   (e->pos.y < 0 || e->pos.y > SCREEN_HEIGHT)){
-                    remove_entity(pm, e);
-                }
+                } break;
+                case EntityType_Asteroid:{
+                    v2 dir = dir_from_deg(e->deg);
+                    e->deg += e->rot_speed * (f32)clock.dt;
+                    e->pos.x += (e->dir.x * e->velocity * e->speed) * (f32)clock.dt;
+                    e->pos.y += (e->dir.y * e->velocity * e->speed) * (f32)clock.dt;
 
-                Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
-                                        make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
-                for(s32 ast_idx = 0; ast_idx < array_count(pm->entities); ++ast_idx){
-                    Entity *ast = pm->entities + ast_idx;
 
-                    if(ast->type == EntityType_Asteroid){
-                        Rect ast_rect = make_rect(make_v2(ast->pos.x - ast->dim.w/2, ast->pos.y - ast->dim.h/2),
-                                                  make_v2(ast->pos.x + ast->dim.x/2, ast->pos.y + ast->dim.h/2));
-                        if(rect_collides_rect(ast_rect, e_rect)){
-                            ast->health -= e->damage;
-                            if(ast->health <= 0){
-                                remove_entity(pm, ast);
-                                pm->score += (u32)ast->dim.w;
-                            }
+                    if((e->pos.x > 0 && e->pos.x < SCREEN_WIDTH) &&
+                       (e->pos.y > 0 && e->pos.y < SCREEN_HEIGHT)){
+                        e->in_play = true;
+                    }
+                    if((e->pos.x < 0 || e->pos.x > SCREEN_WIDTH) ||
+                       (e->pos.y < 0 || e->pos.y > SCREEN_HEIGHT)){
+                        if(e->in_play){
                             remove_entity(pm, e);
                             break;
                         }
                     }
-                }
-
-            } break;
-            case EntityType_Asteroid:{
-                v2 dir = dir_from_deg(e->deg);
-                e->deg += e->rot_speed * (f32)clock.dt;
-                e->pos.x += (e->dir.x * e->velocity * e->speed) * (f32)clock.dt;
-                e->pos.y += (e->dir.y * e->velocity * e->speed) * (f32)clock.dt;
-                //e->deg += 1;
-            } break;
+                } break;
+            }
         }
     }
 }

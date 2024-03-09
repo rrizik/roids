@@ -48,7 +48,7 @@ load_bitmap(Arena* arena, String8 filename){
     result.width = header->width;
     result.height = header->height;
     result.stride = header->width * 4;
-    result.base = push_array(arena, u8, result.stride * result.height);
+    result.base = push_array(arena, u8, (u32)(result.stride * result.height));
 
     //// NOTE: As bmps can have ARGB or RGBA or ..., we need to find where our color
     //// shifts are and position the each 8 bit into a ARGB format.

@@ -231,7 +231,7 @@ d3d_init(Window window){
 
         hr = d3d_device->CreateBuffer(&desc, 0, &d3d_constant_buffer);
         assert_hr(hr);
-    };
+    }
 
     // ---------------------------------------------------------------------------------
     // White Texture

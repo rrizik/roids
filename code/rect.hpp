@@ -18,10 +18,7 @@ typedef union Quad{
         v2 p0, p1, p2, p3;
     };
     struct{
-        v2 bottom_left, bottom_right, top_left, top_right;
-    };
-    struct{
-        v2 min, bottom_right, max, top_right;
+        v2 top_left, top_right, bottom_right, bottom_left;
     };
 } Quad;
 

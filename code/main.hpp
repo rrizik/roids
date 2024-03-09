@@ -81,6 +81,7 @@ typedef struct Asteroid{
     Asteroid* prev;
 } Asteroid;
 
+#define WIN_SCORE 3000
 #define ENTITIES_MAX 4096
 typedef struct PermanentMemory{
     Arena arena;
@@ -95,7 +96,8 @@ typedef struct PermanentMemory{
 
     Entity* ship;
     bool ship_loaded;
-    u32 score;
+    s32 score;
+    s32 lives;
 
     f64 spawn_t;
 } PermanentMemory, State;
