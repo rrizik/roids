@@ -5,8 +5,6 @@ static RGBA srgb_to_linear_approx(RGBA value);
 static RGBA linear_to_srgb_approx(RGBA value);
 static RGBA srgb_to_linear(RGBA value);
 
-static Arena* render_command_arena = make_arena(MB(4));
-
 typedef enum RenderCommandType{
     RenderCommandType_ClearColor,
     RenderCommandType_Quad,

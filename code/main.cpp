@@ -81,6 +81,7 @@ show_cursor(bool show){
 }
 
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
+    begin_timed_function();
     LRESULT result = 0;
 
     switch(message){
@@ -226,10 +227,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
     init_memory(&memory);
     init_clock(&clock);
+    HRESULT hr = init_audio();
+    assert_hr(hr);
+
     events_init(&events);
 
     f64 FPS = 0;
     f64 MSPF = 0;
+    u64 total_frames = 0;
     u64 frame_count = 0;
 	u32 simulations = 0;
     f64 time_elapsed = 0;
@@ -245,6 +250,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     tm = (TransientMemory*)memory.transient_base;
 
     if(!memory.initialized){
+        begin_timed_scope("memory.initialized");
         pm->game_mode = GameMode_Game;
         show_cursor(true);
 
@@ -254,7 +260,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_arena(&pm->arena, (u8*)memory.permanent_base + sizeof(PermanentMemory), memory.permanent_size - sizeof(PermanentMemory));
         init_arena(&tm->arena, (u8*)memory.transient_base + sizeof(TransientMemory), memory.transient_size - sizeof(TransientMemory));
 
-        tm->render_command_arena = push_arena(&tm->arena, MB(16));
+        tm->render_command_arena = push_arena(&tm->arena, MB(100));
         tm->frame_arena = push_arena(&tm->arena, MB(100));
         tm->assets_arena = push_arena(&tm->arena, MB(100));
 
@@ -264,12 +270,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         load_font_ttf(global_arena, str8_literal("fonts/arial.ttf"), &global_font, 36);
         load_assets(tm->assets_arena, &tm->assets);
 
-        init_texture_resource(&tm->assets.bitmaps[AssetID_Image],  &image_shader_resource);
         init_texture_resource(&tm->assets.bitmaps[AssetID_Ship],   &ship_shader_resource);
-        init_texture_resource(&tm->assets.bitmaps[AssetID_Tree],   &tree_shader_resource);
         init_texture_resource(&tm->assets.bitmaps[AssetID_Circle], &circle_shader_resource);
-        init_texture_resource(&tm->assets.bitmaps[AssetID_Bullet], &bullet_shader_resource);
-        init_texture_resource(&tm->assets.bitmaps[AssetID_Test],   &test_shader_resource);
         init_texture_resource(&tm->assets.bitmaps[AssetID_Asteroid], &asteroid_shader_resource);
 
         init_console(&pm->arena);
@@ -283,23 +285,31 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     }
 
 
+    f32 s = 0;
     should_quit = false;
     while(!should_quit){
+        begin_timed_scope("while(!should_quit)");
         MSG message;
         while(PeekMessageW(&message, window.handle, 0, 0, PM_REMOVE)){
             TranslateMessage(&message);
             DispatchMessage(&message);
         }
 
+        s += (f32)clock.dt;
+        f32 value = sin_f32(((2.0f * PI_f32) * 440) * s);
+        //print("sin: %f\n", value);
+
+        //do_audio(440);
         u64 now_ticks = clock.get_os_timer();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
-        arena_free(render_command_arena);
+        arena_free(tm->render_command_arena);
         // simulation
         accumulator += frame_time;
         while(accumulator >= clock.dt){
+            begin_timed_scope("simulation");
             update_game(&window, &memory, &events);
 
             accumulator -= clock.dt;
@@ -309,9 +319,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             clear_controller_pressed(&controller);
         }
 
+        //audio_play(frequency);
         // command arena
-        push_clear_color(render_command_arena, BACKGROUND_COLOR);
+        push_clear_color(tm->render_command_arena, BACKGROUND_COLOR);
         for(s32 index = 0; index < array_count(pm->entities); ++index){
+            begin_timed_scope("command arena");
             Entity *e = pm->entities + index;
 
             switch(e->type){
@@ -327,7 +339,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     p2 = rotate_point_deg(p2, e->deg, e->pos);
                     p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                    push_quad(render_command_arena, p0, p1, p2, p3, e->color);
+                    push_quad(tm->render_command_arena, p0, p1, p2, p3, e->color);
                 } break;
                 case EntityType_Asteroid:
                 case EntityType_Bullet:
@@ -339,24 +351,24 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
                     Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
                                             make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
-                    push_quad(render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
+                    push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
 
                     p0 = rotate_point_deg(p0, e->deg, e->pos);
                     p1 = rotate_point_deg(p1, e->deg, e->pos);
                     p2 = rotate_point_deg(p2, e->deg, e->pos);
                     p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                    push_line(render_command_arena, p0, p1, 2, GREEN);
-                    push_line(render_command_arena, p1, p2, 2, GREEN);
-                    push_line(render_command_arena, p2, p3, 2, GREEN);
-                    push_line(render_command_arena, p3, p0, 2, GREEN);
+                    push_line(tm->render_command_arena, p0, p1, 2, GREEN);
+                    push_line(tm->render_command_arena, p1, p2, 2, GREEN);
+                    push_line(tm->render_command_arena, p2, p3, 2, GREEN);
+                    push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
-                    push_texture(render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                    push_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
                     String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
-                    //if(e->type == EntityType_Asteroid){
-                    //    text = str8_formatted(tm->frame_arena, "%i", e->health);
-                    //}
-                    push_text(render_command_arena, global_font, text, p0.x, p0.y, RED);
+                    if(e->type == EntityType_Asteroid){
+                        text = str8_formatted(tm->frame_arena, "%i", e->health);
+                    }
+                    push_text(tm->render_command_arena, global_font, text, p0.x, p0.y, RED);
                 } break;
                 case EntityType_Ship:{
                     v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
@@ -366,24 +378,21 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
                     Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
                                             make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
-                    push_quad(render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
+                    push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
 
                     p0 = rotate_point_deg(p0, e->deg, e->pos);
                     p1 = rotate_point_deg(p1, e->deg, e->pos);
                     p2 = rotate_point_deg(p2, e->deg, e->pos);
                     p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                    push_line(render_command_arena, p0, p1, 2, GREEN);
-                    push_line(render_command_arena, p1, p2, 2, GREEN);
-                    push_line(render_command_arena, p2, p3, 2, GREEN);
-                    push_line(render_command_arena, p3, p0, 2, GREEN);
+                    push_line(tm->render_command_arena, p0, p1, 2, GREEN);
+                    push_line(tm->render_command_arena, p1, p2, 2, GREEN);
+                    push_line(tm->render_command_arena, p2, p3, 2, GREEN);
+                    push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
-                    push_texture(render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                    push_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
                     String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
-                    //if(e->type == EntityType_Asteroid){
-                    //    text = str8_formatted(tm->frame_arena, "%i", e->health);
-                    //}
-                    push_text(render_command_arena, global_font, text, p0.x, p0.y, RED);
+                    push_text(tm->render_command_arena, global_font, text, p0.x, p0.y, RED);
                 } break;
                 case EntityType_Text:{
                     //push_text(render_command_arena, e->font, e->text, e->x, e->y, e->color);
@@ -396,25 +405,23 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             String8 text = str8_formatted(tm->frame_arena, "GAME OVER - Score: %i", pm->score);
             f32 width = font_string_width(global_font, text);
             f32 x = SCREEN_WIDTH/2 - width/2;
-            push_text(render_command_arena, global_font, text, x, SCREEN_HEIGHT/2, ORANGE);
+            push_text(tm->render_command_arena, global_font, text, x, SCREEN_HEIGHT/2, ORANGE);
         }
         if(pm->score >= WIN_SCORE){
             String8 text = str8_formatted(tm->frame_arena, "CHICKEN DINNER - Score: %i", pm->score);
             f32 width = font_string_width(global_font, text);
             f32 x = SCREEN_WIDTH/2 - width/2;
-            push_text(render_command_arena, global_font, text, x, SCREEN_HEIGHT/2, ORANGE);
+            push_text(tm->render_command_arena, global_font, text, x, SCREEN_HEIGHT/2, ORANGE);
         }
-        String8 text = str8_formatted(tm->frame_arena, "SCORE: %i", pm->score);
-        push_text(render_command_arena, global_font, text, 50, 50, ORANGE);
+        String8 text = str8_formatted(tm->frame_arena, "SCORE: %i/%i", pm->score, WIN_SCORE);
+        push_text(tm->render_command_arena, global_font, text, 50, 50, ORANGE);
         String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
-        push_text(render_command_arena, global_font, lives, 50, 100, ORANGE);
+        push_text(tm->render_command_arena, global_font, lives, 50, 100, ORANGE);
 
         // draw everything
         console_draw();
-        draw_commands(render_command_arena);
 
         //print("count: %i - score: %i\n", pm->entities_count, pm->score);
-        arena_free(tm->frame_arena);
 
         frame_count++;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
@@ -424,12 +431,20 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             frame_count = 0;
         }
 
-
+        //print("frame: at/size %i/%i\nrender: at/size %i/%i\n------------------------------\n", tm->frame_arena->at, tm->frame_arena->size, tm->render_command_arena->at, tm->render_command_arena->size);
         //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
+
+        String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
+        push_text(tm->render_command_arena, global_font, fps, SCREEN_WIDTH - 250, 50, ORANGE);
+
+        draw_commands(tm->render_command_arena);
 		simulations = 0;
+        total_frames++;
+        arena_free(tm->frame_arena);
     }
     d3d_release();
     end_profiler();
+    audio_release();
 
     return(0);
 }

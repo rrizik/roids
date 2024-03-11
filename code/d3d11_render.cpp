@@ -105,6 +105,7 @@ push_texture(Arena* arena, ID3D11ShaderResourceView** texture, v2 p0, v2 p1, v2 
 
 static void
 draw_commands(Arena* commands){
+    begin_timed_function();
     void* at = commands->base;
     void* end = (u8*)commands->base + commands->at;
 
@@ -138,7 +139,10 @@ draw_commands(Arena* commands){
         }
 		at = (u8*)at + sizeof(RenderCommand);
     }
-    d3d_present();
+    {
+        begin_timed_scope("present");
+        d3d_present();
+    }
 }
 
 static void

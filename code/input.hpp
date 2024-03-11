@@ -26,6 +26,20 @@ typedef struct Controller{
     Button e;
     Button three;
     Button four;
+
+    Button z;
+    Button x;
+    Button c;
+    Button v;
+    Button b;
+    Button n;
+    Button m;
+    Button comma;
+    Button s;
+    Button d;
+    Button g;
+    Button h;
+    Button j;
 } Controller;
 global Controller controller;
 
@@ -159,6 +173,8 @@ typedef enum KeyCode{
     F9 = 121,
     F10 = 122,
 
+    COMMA = 188,
+    PERIOD = 190,
  	TILDE = 192,
 } KeyCode;
 

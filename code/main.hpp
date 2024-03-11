@@ -50,6 +50,7 @@ global f32 p = 1;
 
 #include "input.hpp"
 #include "clock.hpp"
+#include "audio.h"
 #include "camera.hpp"
 #include "rect.hpp"
 #include "bitmap.hpp"

@@ -271,6 +271,7 @@ console_update(){
 
 static void
 console_draw(){
+    begin_timed_function();
     if(console_is_visible()){
         // rect setup
         f32 y = -((f32)console.font.vertical_offset * console.font.scale);
@@ -292,16 +293,16 @@ console_draw(){
         v2 cursor_p3 = make_v2(console.text_left_pad + font_char_width(console.font, '>') + font_string_width(console.font, str), input_p2.y);
 
         // draw regions
-        push_quad(render_command_arena, output_p0, output_p1, output_p2, output_p3, console.output_background_color);
-        push_quad(render_command_arena, input_p0, input_p1, input_p2, input_p3, console.input_background_color);
-        push_quad(render_command_arena, cursor_p0, cursor_p1, cursor_p2, cursor_p3, console.cursor_color);
+        push_quad(tm->render_command_arena, output_p0, output_p1, output_p2, output_p3, console.output_background_color);
+        push_quad(tm->render_command_arena, input_p0, input_p1, input_p2, input_p3, console.input_background_color);
+        push_quad(tm->render_command_arena, cursor_p0, cursor_p1, cursor_p2, cursor_p3, console.cursor_color);
 
         // draw input
         f32 input_pos_y = input_p2.y + ((f32)console.font.descent * console.font.scale);
-        push_text(render_command_arena, console.font, str8_literal(">"), console.text_left_pad, input_pos_y, console.input_color);
+        push_text(tm->render_command_arena, console.font, str8_literal(">"), console.text_left_pad, input_pos_y, console.input_color);
         if(console.input_count > 0){
             String8 input_str = str8(console.input, (u64)console.input_count);
-            push_text(render_command_arena, console.font, input_str, console.text_left_pad + font_char_width(console.font, '>'), input_pos_y, console.input_color);
+            push_text(tm->render_command_arena, console.font, input_str, console.text_left_pad + font_char_width(console.font, '>'), input_pos_y, console.input_color);
         }
 
         // draw history (in reverse order and only if its on screen)
@@ -310,7 +311,7 @@ console_draw(){
             for(s32 i=console.output_history_count-1; i >= 0; --i){
                 if(output_pos_y < (f32)window.height){
                     String8 next_string = console.output_history[i];
-                    push_text(render_command_arena, console.font, next_string, console.text_left_pad, output_pos_y, console.output_color);
+                    push_text(tm->render_command_arena, console.font, next_string, console.text_left_pad, output_pos_y, console.output_color);
                     output_pos_y -= (f32)console.font.vertical_offset * console.font.scale;
                 }
             }

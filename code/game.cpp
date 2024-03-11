@@ -3,12 +3,8 @@
 
 static void
 load_assets(Arena* arena, Assets* assets){
-    assets->bitmaps[AssetID_Image] =  load_bitmap(arena, str8_literal("sprites\\image.bmp"));
     assets->bitmaps[AssetID_Ship] =   load_bitmap(arena, str8_literal("sprites\\ship2.bmp"));
-    assets->bitmaps[AssetID_Tree] =   load_bitmap(arena, str8_literal("sprites\\tree00.bmp"));
     assets->bitmaps[AssetID_Circle] = load_bitmap(arena, str8_literal("sprites\\circle.bmp"));
-    assets->bitmaps[AssetID_Bullet] = load_bitmap(arena, str8_literal("sprites\\bullet4.bmp"));
-    assets->bitmaps[AssetID_Test] =   load_bitmap(arena, str8_literal("sprites\\test.bmp"));
     assets->bitmaps[AssetID_Asteroid] = load_bitmap(arena, str8_literal("sprites\\asteroid.bmp"));
 }
 
@@ -95,22 +91,6 @@ add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 
     }
     return(e);
 }
-
-//static Entity*
-//add_text(PermanentMemory* pm, Font font, String8 text, f32 x, f32 y, RGBA color){
-//    Entity* e = add_entity(pm, EntityType_Text);
-//    if(e){
-//        e->font = font;
-//        e->text = text;
-//        e->x = x;
-//        e->y = y;
-//        e->color = color;
-//    }
-//    else{
-//        print("Failed to add entity: Quad\n");
-//    }
-//    return(e);
-//}
 
 static Entity*
 add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color){
@@ -285,6 +265,7 @@ handle_global_events(Event event){
                 g_angle_t = 270;
                 p = 0;
             }
+
             if(event.keycode == TILDE && !event.repeat){
                 //console_t = 0;
 
@@ -307,6 +288,8 @@ handle_global_events(Event event){
                 }
                 return(true);
             }
+        }
+        else{
         }
     }
     return(false);
@@ -371,49 +354,149 @@ handle_controller_events(Event event){
                 controller.shoot.held = true;
                 return(true);
             }
-            if(event.keycode == Q_UPPER){
+            else if(event.keycode == Q_UPPER){
                 if(!event.repeat){
                     controller.q.pressed = true;
                 }
                 controller.q.held = true;
                 return(true);
             }
-            if(event.keycode == E_UPPER){
+            else if(event.keycode == E_UPPER){
                 if(!event.repeat){
                     controller.e.pressed = true;
                 }
                 controller.e.held = true;
                 return(true);
             }
-            if(event.keycode == A_UPPER){
+            else if(event.keycode == A_UPPER){
                 if(!event.repeat){
                     controller.left.pressed = true;
                 }
                 controller.left.held = true;
                 return(true);
             }
-            if(event.keycode == D_UPPER){
+            else if(event.keycode == D_UPPER){
                 if(!event.repeat){
                     controller.right.pressed = true;
+                    controller.d.pressed = true;
                 }
                 controller.right.held = true;
+                controller.d.held = true;
+                audio_play(311.13f);
                 return(true);
             }
-            if(event.keycode == W_UPPER){
+            else if(event.keycode == W_UPPER){
                 if(!event.repeat){
                     controller.up.pressed = true;
                 }
                 controller.up.held = true;
                 return(true);
             }
-            if(event.keycode == S_UPPER){
+            else if(event.keycode == S_UPPER){
                 if(!event.repeat){
                     controller.down.pressed = true;
+                    controller.s.pressed = true;
                 }
                 controller.down.held = true;
+                controller.s.held = true;
+                audio_play(277.18f);
                 return(true);
             }
+
+            else if(event.keycode == Z_UPPER){
+                if(!event.repeat){
+                    controller.z.pressed = true;
+                }
+                controller.z.held = true;
+                audio_play(261.63f);
+                return(true);
+            }
+            else if(event.keycode == X_UPPER){
+                if(!event.repeat){
+                    controller.x.pressed = true;
+                }
+                controller.x.held = true;
+                audio_play(293.67f);
+                return(true);
+            }
+            else if(event.keycode == C_UPPER){
+                if(!event.repeat){
+                    controller.c.pressed = true;
+                }
+                controller.c.held = true;
+                audio_play(329.23f);
+                return(true);
+            }
+            else if(event.keycode == V_UPPER){
+                if(!event.repeat){
+                    controller.v.pressed = true;
+                }
+                controller.v.held = true;
+                audio_play(339.23f);
+                return(true);
+            }
+            else if(event.keycode == B_UPPER){
+                if(!event.repeat){
+                    controller.b.pressed = true;
+                }
+                controller.b.held = true;
+                audio_play(392.0f);
+                return(true);
+            }
+            else if(event.keycode == N_UPPER){
+                if(!event.repeat){
+                    controller.n.pressed = true;
+                }
+                controller.n.held = true;
+                audio_play(440.0f);
+                return(true);
+            }
+            else if(event.keycode == M_UPPER){
+                if(!event.repeat){
+                    controller.m.pressed = true;
+                }
+                controller.m.held = true;
+                audio_play(493.88f);
+                return(true);
+            }
+            else if(event.keycode == COMMA){
+                if(!event.repeat){
+                    controller.comma.pressed = true;
+                }
+                controller.comma.held = true;
+                audio_play(523.25f);
+                return(true);
+            }
+
+            else if(event.keycode == G_UPPER){
+                if(!event.repeat){
+                    controller.g.pressed = true;
+                }
+                controller.g.held = true;
+                audio_play(369.99f);
+                return(true);
+            }
+            else if(event.keycode == H_UPPER){
+                if(!event.repeat){
+                    controller.h.pressed = true;
+                }
+                controller.h.held = true;
+                audio_play(415.30f);
+                return(true);
+            }
+            else if(event.keycode == J_UPPER){
+                if(!event.repeat){
+                    controller.j.pressed = true;
+                }
+                controller.j.held = true;
+                audio_play(466.16f);
+                return(true);
+            }
+            else{
+                audio_play(0.0f);
+            }
         }
+
         else{
             if(event.keycode == SPACEBAR){
                 controller.shoot.held = false;
@@ -435,12 +518,60 @@ handle_controller_events(Event event){
                 controller.left.held = false;
                 return(true);
             }
-            if(event.keycode == D_UPPER){
-                controller.right.held = false;
-                return(true);
-            }
             if(event.keycode == S_UPPER){
                 controller.down.held = false;
+                controller.s.held = false;
+                return(true);
+            }
+            if(event.keycode == D_UPPER){
+                controller.right.held = false;
+                controller.d.held = false;
+                return(true);
+            }
+
+            if(event.keycode == Z_UPPER){
+                controller.z.held = false;
+                return(true);
+            }
+            if(event.keycode == X_UPPER){
+                controller.x.held = false;
+                return(true);
+            }
+            if(event.keycode == C_UPPER){
+                controller.c.held = false;
+                return(true);
+            }
+            if(event.keycode == V_UPPER){
+                controller.v.held = false;
+                return(true);
+            }
+            if(event.keycode == B_UPPER){
+                controller.b.held = false;
+                return(true);
+            }
+            if(event.keycode == N_UPPER){
+                controller.n.held = false;
+                return(true);
+            }
+            if(event.keycode == M_UPPER){
+                controller.m.held = false;
+                return(true);
+            }
+            if(event.keycode == COMMA){
+                controller.comma.held = false;
+                return(true);
+            }
+
+            if(event.keycode == G_UPPER){
+                controller.g.held = false;
+                return(true);
+            }
+            if(event.keycode == H_UPPER){
+                controller.h.held = false;
+                return(true);
+            }
+            if(event.keycode == J_UPPER){
+                controller.j.held = false;
                 return(true);
             }
         }
@@ -455,6 +586,7 @@ update_game(Window* window, Memory* memory, Events* events){
     v3 camera_pos_vector = {0};
     v3 camera_forward_vector = {0};
     while(!events_empty(events)){
+        begin_timed_scope("events");
         Event event = events_next(events);
 
         bool handled;
@@ -468,6 +600,49 @@ update_game(Window* window, Memory* memory, Events* events){
             handled = handle_controller_events(event);
         }
     }
+
+    //if(controller.z.held == true){
+    //    frequency = 261.63f;
+    //}
+    //else if(controller.x.held == true){
+    //    frequency = 293.67f;
+    //}
+    //else if(controller.c.held == true){
+    //    frequency = 329.23f;
+    //}
+    //else if(controller.v.held == true){
+    //    frequency = 339.23f;
+    //}
+    //else if(controller.b.held == true){
+    //    frequency = 392.0f;
+    //}
+    //else if(controller.n.held == true){
+    //    frequency = 440.0f;
+    //}
+    //else if(controller.m.held == true){
+    //    frequency = 493.88f;
+    //}
+    //else if(controller.comma.held == true){
+    //    frequency = 523.25f;
+    //}
+    //else if(controller.s.held == true){
+    //    frequency = 277.18f;
+    //}
+    //else if(controller.d.held == true){
+    //    frequency = 311.13f;
+    //}
+    //else if(controller.g.held == true){
+    //    frequency = 369.99f;
+    //}
+    //else if(controller.h.held == true){
+    //    frequency = 415.30f;
+    //}
+    //else if(controller.j.held == true){
+    //    frequency = 466.16f;
+    //}
+    //else{
+    //    frequency = 0.0f;
+    //}
 
     //if(pm->game_mode == GameMode_FirstPerson){
 
@@ -572,6 +747,7 @@ update_game(Window* window, Memory* memory, Events* events){
         }
 
         for(s32 index = 0; index < array_count(pm->entities); ++index){
+            begin_timed_scope("sim entities");
             Entity *e = pm->entities + index;
 
             switch(e->type){
@@ -654,6 +830,9 @@ update_game(Window* window, Memory* memory, Events* events){
                                                       make_v2(ast->pos.x + ast->dim.x/2, ast->pos.y + ast->dim.h/2));
                             if(rect_collides_rect(ast_rect, e_rect)){
                                 ast->health -= e->damage;
+                                ast->color.r += 0.2f;
+                                ast->color.g -= 0.4f;
+                                ast->color.b -= 0.4f;
                                 if(ast->health <= 0){
                                     pm->score += (u32)ast->dim.w;
                                     remove_entity(pm, ast);
