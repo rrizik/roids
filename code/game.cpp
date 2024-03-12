@@ -246,27 +246,27 @@ handle_global_events(Event event){
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
-            if(event.keycode == ESCAPE){
+            if(event.keycode == KeyCode_ESCAPE){
                 should_quit = true;
             }
-            if(event.keycode == Q_UPPER){
+            if(event.keycode == KeyCode_Q){
                 g_angle_t = 0;
                 p = 0;
             }
-            if(event.keycode == W_UPPER){
+            if(event.keycode == KeyCode_W){
                 g_angle_t = 90;
                 p = 0;
             }
-            if(event.keycode == E_UPPER){
+            if(event.keycode == KeyCode_E){
                 g_angle_t = 180;
                 p = 0;
             }
-            if(event.keycode == R_UPPER){
+            if(event.keycode == KeyCode_R){
                 g_angle_t = 270;
                 p = 0;
             }
 
-            if(event.keycode == TILDE && !event.repeat){
+            if(event.keycode == KeyCode_TILDE && !event.repeat){
                 //console_t = 0;
 
                 if(event.shift_pressed){
@@ -310,7 +310,7 @@ handle_camera_events(Event event){
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             // TODO: log to screen these changes
-            if(event.keycode == ONE){
+            if(event.keycode == KeyCode_ONE){
                 if(pm->game_mode != GameMode_FirstPerson){
                     pm->game_mode = GameMode_FirstPerson;
 
@@ -322,13 +322,13 @@ handle_camera_events(Event event){
                     show_cursor(false);
                 }
             }
-            if(event.keycode == TWO){
+            if(event.keycode == KeyCode_TWO){
                 if(pm->game_mode != GameMode_Editor){
                     pm->game_mode = GameMode_Editor;
                     show_cursor(true);
                 }
             }
-            if(event.keycode == THREE){
+            if(event.keycode == KeyCode_THREE){
                 if(pm->game_mode != GameMode_Game){
                     pm->game_mode = GameMode_Game;
                     init_camera();
@@ -347,35 +347,35 @@ handle_controller_events(Event event){
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
-            if(event.keycode == SPACEBAR){
+            if(event.keycode == KeyCode_SPACEBAR){
                 if(!event.repeat){
                     controller.shoot.pressed = true;
                 }
                 controller.shoot.held = true;
                 return(true);
             }
-            else if(event.keycode == Q_UPPER){
+            else if(event.keycode == KeyCode_Q){
                 if(!event.repeat){
                     controller.q.pressed = true;
                 }
                 controller.q.held = true;
                 return(true);
             }
-            else if(event.keycode == E_UPPER){
+            else if(event.keycode == KeyCode_E){
                 if(!event.repeat){
                     controller.e.pressed = true;
                 }
                 controller.e.held = true;
                 return(true);
             }
-            else if(event.keycode == A_UPPER){
+            else if(event.keycode == KeyCode_A){
                 if(!event.repeat){
                     controller.left.pressed = true;
                 }
                 controller.left.held = true;
                 return(true);
             }
-            else if(event.keycode == D_UPPER){
+            else if(event.keycode == KeyCode_D){
                 if(!event.repeat){
                     controller.right.pressed = true;
                     controller.d.pressed = true;
@@ -385,14 +385,14 @@ handle_controller_events(Event event){
                 audio_play(311.13f);
                 return(true);
             }
-            else if(event.keycode == W_UPPER){
+            else if(event.keycode == KeyCode_W){
                 if(!event.repeat){
                     controller.up.pressed = true;
                 }
                 controller.up.held = true;
                 return(true);
             }
-            else if(event.keycode == S_UPPER){
+            else if(event.keycode == KeyCode_S){
                 if(!event.repeat){
                     controller.down.pressed = true;
                     controller.s.pressed = true;
@@ -403,7 +403,7 @@ handle_controller_events(Event event){
                 return(true);
             }
 
-            else if(event.keycode == Z_UPPER){
+            else if(event.keycode == KeyCode_Z){
                 if(!event.repeat){
                     controller.z.pressed = true;
                 }
@@ -411,7 +411,7 @@ handle_controller_events(Event event){
                 audio_play(261.63f);
                 return(true);
             }
-            else if(event.keycode == X_UPPER){
+            else if(event.keycode == KeyCode_X){
                 if(!event.repeat){
                     controller.x.pressed = true;
                 }
@@ -419,7 +419,7 @@ handle_controller_events(Event event){
                 audio_play(293.67f);
                 return(true);
             }
-            else if(event.keycode == C_UPPER){
+            else if(event.keycode == KeyCode_C){
                 if(!event.repeat){
                     controller.c.pressed = true;
                 }
@@ -427,7 +427,7 @@ handle_controller_events(Event event){
                 audio_play(329.23f);
                 return(true);
             }
-            else if(event.keycode == V_UPPER){
+            else if(event.keycode == KeyCode_V){
                 if(!event.repeat){
                     controller.v.pressed = true;
                 }
@@ -435,7 +435,7 @@ handle_controller_events(Event event){
                 audio_play(339.23f);
                 return(true);
             }
-            else if(event.keycode == B_UPPER){
+            else if(event.keycode == KeyCode_B){
                 if(!event.repeat){
                     controller.b.pressed = true;
                 }
@@ -443,7 +443,7 @@ handle_controller_events(Event event){
                 audio_play(392.0f);
                 return(true);
             }
-            else if(event.keycode == N_UPPER){
+            else if(event.keycode == KeyCode_N){
                 if(!event.repeat){
                     controller.n.pressed = true;
                 }
@@ -451,7 +451,7 @@ handle_controller_events(Event event){
                 audio_play(440.0f);
                 return(true);
             }
-            else if(event.keycode == M_UPPER){
+            else if(event.keycode == KeyCode_M){
                 if(!event.repeat){
                     controller.m.pressed = true;
                 }
@@ -459,7 +459,7 @@ handle_controller_events(Event event){
                 audio_play(493.88f);
                 return(true);
             }
-            else if(event.keycode == COMMA){
+            else if(event.keycode == KeyCode_COMMA){
                 if(!event.repeat){
                     controller.comma.pressed = true;
                 }
@@ -468,7 +468,7 @@ handle_controller_events(Event event){
                 return(true);
             }
 
-            else if(event.keycode == G_UPPER){
+            else if(event.keycode == KeyCode_G){
                 if(!event.repeat){
                     controller.g.pressed = true;
                 }
@@ -476,7 +476,7 @@ handle_controller_events(Event event){
                 audio_play(369.99f);
                 return(true);
             }
-            else if(event.keycode == H_UPPER){
+            else if(event.keycode == KeyCode_H){
                 if(!event.repeat){
                     controller.h.pressed = true;
                 }
@@ -484,7 +484,7 @@ handle_controller_events(Event event){
                 audio_play(415.30f);
                 return(true);
             }
-            else if(event.keycode == J_UPPER){
+            else if(event.keycode == KeyCode_J){
                 if(!event.repeat){
                     controller.j.pressed = true;
                 }
@@ -493,84 +493,84 @@ handle_controller_events(Event event){
                 return(true);
             }
             else{
-                audio_play(0.0f);
+                //audio_play(0.0f);
             }
         }
 
         else{
-            if(event.keycode == SPACEBAR){
+            if(event.keycode == KeyCode_SPACEBAR){
                 controller.shoot.held = false;
                 return(true);
             }
-            if(event.keycode == Q_UPPER){
+            if(event.keycode == KeyCode_Q){
                 controller.q.held = false;
                 return(true);
             }
-            if(event.keycode == E_UPPER){
+            if(event.keycode == KeyCode_E){
                 controller.e.held = false;
                 return(true);
             }
-            if(event.keycode == W_UPPER){
+            if(event.keycode == KeyCode_W){
                 controller.up.held = false;
                 return(true);
             }
-            if(event.keycode == A_UPPER){
+            if(event.keycode == KeyCode_A){
                 controller.left.held = false;
                 return(true);
             }
-            if(event.keycode == S_UPPER){
+            if(event.keycode == KeyCode_S){
                 controller.down.held = false;
                 controller.s.held = false;
                 return(true);
             }
-            if(event.keycode == D_UPPER){
+            if(event.keycode == KeyCode_D){
                 controller.right.held = false;
                 controller.d.held = false;
                 return(true);
             }
 
-            if(event.keycode == Z_UPPER){
+            if(event.keycode == KeyCode_Z){
                 controller.z.held = false;
                 return(true);
             }
-            if(event.keycode == X_UPPER){
+            if(event.keycode == KeyCode_X){
                 controller.x.held = false;
                 return(true);
             }
-            if(event.keycode == C_UPPER){
+            if(event.keycode == KeyCode_C){
                 controller.c.held = false;
                 return(true);
             }
-            if(event.keycode == V_UPPER){
+            if(event.keycode == KeyCode_V){
                 controller.v.held = false;
                 return(true);
             }
-            if(event.keycode == B_UPPER){
+            if(event.keycode == KeyCode_B){
                 controller.b.held = false;
                 return(true);
             }
-            if(event.keycode == N_UPPER){
+            if(event.keycode == KeyCode_N){
                 controller.n.held = false;
                 return(true);
             }
-            if(event.keycode == M_UPPER){
+            if(event.keycode == KeyCode_M){
                 controller.m.held = false;
                 return(true);
             }
-            if(event.keycode == COMMA){
+            if(event.keycode == KeyCode_COMMA){
                 controller.comma.held = false;
                 return(true);
             }
 
-            if(event.keycode == G_UPPER){
+            if(event.keycode == KeyCode_G){
                 controller.g.held = false;
                 return(true);
             }
-            if(event.keycode == H_UPPER){
+            if(event.keycode == KeyCode_H){
                 controller.h.held = false;
                 return(true);
             }
-            if(event.keycode == J_UPPER){
+            if(event.keycode == KeyCode_J){
                 controller.j.held = false;
                 return(true);
             }
@@ -583,8 +583,6 @@ static void
 update_game(Window* window, Memory* memory, Events* events){
 
     // NOTE: process events.
-    v3 camera_pos_vector = {0};
-    v3 camera_forward_vector = {0};
     while(!events_empty(events)){
         begin_timed_scope("events");
         Event event = events_next(events);
@@ -600,49 +598,6 @@ update_game(Window* window, Memory* memory, Events* events){
             handled = handle_controller_events(event);
         }
     }
-
-    //if(controller.z.held == true){
-    //    frequency = 261.63f;
-    //}
-    //else if(controller.x.held == true){
-    //    frequency = 293.67f;
-    //}
-    //else if(controller.c.held == true){
-    //    frequency = 329.23f;
-    //}
-    //else if(controller.v.held == true){
-    //    frequency = 339.23f;
-    //}
-    //else if(controller.b.held == true){
-    //    frequency = 392.0f;
-    //}
-    //else if(controller.n.held == true){
-    //    frequency = 440.0f;
-    //}
-    //else if(controller.m.held == true){
-    //    frequency = 493.88f;
-    //}
-    //else if(controller.comma.held == true){
-    //    frequency = 523.25f;
-    //}
-    //else if(controller.s.held == true){
-    //    frequency = 277.18f;
-    //}
-    //else if(controller.d.held == true){
-    //    frequency = 311.13f;
-    //}
-    //else if(controller.g.held == true){
-    //    frequency = 369.99f;
-    //}
-    //else if(controller.h.held == true){
-    //    frequency = 415.30f;
-    //}
-    //else if(controller.j.held == true){
-    //    frequency = 466.16f;
-    //}
-    //else{
-    //    frequency = 0.0f;
-    //}
 
     //if(pm->game_mode == GameMode_FirstPerson){
 

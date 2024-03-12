@@ -5,13 +5,16 @@ static IMMDeviceEnumerator* device_enumerator;
 static IAudioClient* audio_client;
 static IMMDevice* audio_device;
 static IAudioRenderClient *render_client;
+static IAudioClock* audio_clock;
+
+
 static WAVEFORMATEX* wave_format;
 static WAVEFORMATEX wf;
-static u32 buffer_size_in_seconds;
 static u32 buffer_size;
-static f32 numerator = 0;
 static f32 volume = 0.03f;
 static f32 frequency = 0.0f;
+//static u32 duration = 10000000;
+REFERENCE_TIME duration = 10000000;
 
 static HRESULT init_audio(){
     HRESULT hr = S_OK;
@@ -42,12 +45,22 @@ static HRESULT init_audio(){
         assert_hr(hr);
         return(hr);
     }
-    wf.wFormatTag = WAVE_FORMAT_PCM;
 
-    u32 seconds = 2;
-    u32 buffer_size_in_seconds = wave_format->nSamplesPerSec * wave_format->nChannels * seconds;
-    //hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 2000000, 0, wave_format, 0);
-    hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 2000000, 0, wave_format, 0);
+    wf = {0};
+    wf.wFormatTag = WAVE_FORMAT_PCM;
+    wf.nChannels = 2;
+    wf.nSamplesPerSec = 48000;
+    wf.wBitsPerSample = 16;
+    wf.nBlockAlign = (u16)(wf.nChannels * wf.wBitsPerSample / 8);
+    wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
+    wf.cbSize = 0;
+
+    s32 bytes_per_sample = (s32)sizeof(s16) * wf.nChannels;
+    s32 b_size = bytes_per_sample * (s32)wf.nSamplesPerSec;
+
+    size_t s = sizeof(s16);
+    //hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, duration * 2, 0, &wf, 0);
+    hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, duration * 2, 0, wave_format, 0);
     if (FAILED(hr)) {
         assert_hr(hr);
         return(hr);
@@ -62,6 +75,12 @@ static HRESULT init_audio(){
 
     // get the render client
     hr = audio_client->GetService(__uuidof(IAudioRenderClient), (void**)&render_client);
+    if (FAILED(hr)) {
+        assert_hr(hr);
+        return(hr);
+    }
+
+    hr = audio_client->GetService(__uuidof(IAudioClock), (void**)&audio_clock);
     if (FAILED(hr)) {
         assert_hr(hr);
         return(hr);
@@ -113,20 +132,36 @@ static HRESULT audio_play(f32 freq){
         return(hr);
     }
 
-    for(u32 i=0; i < available_size; ++i){
-        f32 time = (f32)(numerator++ / (f32)buffer_size);
-        if((u32)numerator > buffer_size){
-            numerator = 0.0f;
+    u64 play_pos;
+    u64 write_pos;
+    hr = audio_clock->GetPosition(&play_pos, &write_pos);
+    if (FAILED(hr)) {
+        assert_hr(hr);
+        return(hr);
+    }
+
+    f32 time = 0.0f;
+    for(u32 i=0; i < available_size / wf.nChannels; ++i){
+        time += 1.0f / (f32)wf.nSamplesPerSec;
+        if (time > 1.0f) {
+            time = 0.0f;
         }
         f32 sine_value = (f32)sin_f32((2.0f * PI_f32 * freq * time));
         //f32 sine_value = (f32)sin_f32((2.0f * PI_f32 * freq * time) / (f32)wave_format->nSamplesPerSec);
 
-        // Scale the sine value to the range -0.3f to 0.3f
+        // scale the sine value to the range -0.nf to 0.nf
         sine_value *= volume;
 
+        u64 write_index = (write_pos + i) % buffer_size;
         f32* buffer_f32 = (f32*)buffer;
-        buffer_f32[i * wave_format->nChannels] = sine_value;
-        buffer_f32[i * wave_format->nChannels + 1] = sine_value;
+        if(wave_format->nChannels == 2){
+            buffer_f32[write_index * wf.nChannels] = sine_value;
+            buffer_f32[(write_index * wf.nChannels) + 1] = sine_value;
+        }
+        else{
+            buffer_f32[i * wave_format->nChannels] = sine_value;
+        }
+
     }
 
     hr = render_client->ReleaseBuffer(available_size, 0);

@@ -319,7 +319,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             clear_controller_pressed(&controller);
         }
 
-        //audio_play(frequency);
+        audio_play(440.0f);
         // command arena
         push_clear_color(tm->render_command_arena, BACKGROUND_COLOR);
         for(s32 index = 0; index < array_count(pm->entities); ++index){

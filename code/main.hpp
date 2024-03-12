@@ -4,6 +4,10 @@
 #pragma comment(lib, "user32")
 #pragma comment(lib, "ole32")
 
+#if DEBUG
+#define ENABLE_ASSERT 1
+#endif
+
 #include "base_inc.h"
 #include "win32_base_inc.h"
 #define PROFILER 1

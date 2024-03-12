@@ -166,28 +166,28 @@ handle_console_events(Event event){
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
-            if(event.keycode == HOME){
+            if(event.keycode == KeyCode_HOME){
                 console.cursor_index = 0;
             }
-            if(event.keycode == END){
+            if(event.keycode == KeyCode_END){
                 for(s32 i=console.cursor_index; i < console.input_count; ++i){
                     u8 c = console.input[i];
                     console.cursor_index++;
                 }
             }
-            if(event.keycode == ARROW_RIGHT){
+            if(event.keycode == KeyCode_ARROW_RIGHT){
                 if(console.cursor_index < console.input_count){
                     u8 c = console.input[console.cursor_index];
                     console.cursor_index++;
                 }
             }
-            if(event.keycode == ARROW_LEFT){
+            if(event.keycode == KeyCode_ARROW_LEFT){
                 if(console.cursor_index > 0){
                     console.cursor_index--;
                     u8 c = console.input[console.cursor_index];
                 }
             }
-            if(event.keycode == BACKSPACE){
+            if(event.keycode == KeyCode_BACKSPACE){
                 if(console.cursor_index > 0){
                     u8 c = input_remove_char();
 
@@ -195,7 +195,7 @@ handle_console_events(Event event){
                 }
                 return(true);
             }
-            if(event.keycode == ARROW_UP){
+            if(event.keycode == KeyCode_ARROW_UP){
                 if(console.input_history_index < console.input_history_count){
                     // clear input
                     console.cursor_index = 0;
@@ -210,7 +210,7 @@ handle_console_events(Event event){
                     console.input_count = (s32)command.size;
                 }
             }
-            if(event.keycode == ARROW_DOWN){
+            if(event.keycode == KeyCode_ARROW_DOWN){
                 if(console.input_history_index > 0){
                     // clear input
                     console.cursor_index = 0;
@@ -225,7 +225,7 @@ handle_console_events(Event event){
                     console.input_count = (s32)command.size;
                 }
             }
-            if(event.keycode == ENTER){
+            if(event.keycode == KeyCode_ENTER){
                 u8* line_u8 = (u8*)push_array(global_arena, u8, console.input_count + 1);
                 memory_copy(line_u8, console.input, (size_t)console.input_count);
 
