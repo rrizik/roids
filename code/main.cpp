@@ -299,7 +299,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         f32 value = sin_f32(((2.0f * PI_f32) * 440) * s);
         //print("sin: %f\n", value);
 
-        //do_audio(440);
         u64 now_ticks = clock.get_os_timer();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));

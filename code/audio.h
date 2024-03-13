@@ -20,28 +20,28 @@ static HRESULT init_audio(){
     HRESULT hr = S_OK;
 
     hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), 0, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&device_enumerator);
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
 
     // get the default audio device
     hr = device_enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &audio_device);
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
 
     // activate the audio client interface
     hr = audio_device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, 0, (void**)&audio_client);
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
 
     // get audio format
     hr = audio_client->GetMixFormat(&wave_format);
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
@@ -55,40 +55,36 @@ static HRESULT init_audio(){
     wf.nAvgBytesPerSec = wf.nSamplesPerSec * wf.nBlockAlign;
     wf.cbSize = 0;
 
-    s32 bytes_per_sample = (s32)sizeof(s16) * wf.nChannels;
-    s32 b_size = bytes_per_sample * (s32)wf.nSamplesPerSec;
-
-    size_t s = sizeof(s16);
-    //hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, duration * 2, 0, &wf, 0);
-    hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, duration * 2, 0, wave_format, 0);
-    if (FAILED(hr)) {
+    //hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, duration, 0, wave_format, 0);
+    hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, duration, 0, &wf, 0);
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
 
     // get the size of the buffer
     hr = audio_client->GetBufferSize(&buffer_size);
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
 
     // get the render client
     hr = audio_client->GetService(__uuidof(IAudioRenderClient), (void**)&render_client);
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
 
     hr = audio_client->GetService(__uuidof(IAudioClock), (void**)&audio_clock);
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
 
     // start the audio stream
     hr = audio_client->Start();
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
@@ -98,7 +94,7 @@ static HRESULT init_audio(){
 
 static HRESULT audio_start(){
     hr = audio_client->Start();
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
@@ -107,7 +103,7 @@ static HRESULT audio_start(){
 
 static HRESULT audio_stop(){
     hr = audio_client->Stop();
-    if (FAILED(hr)){
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
@@ -119,7 +115,7 @@ static HRESULT audio_play(f32 freq){
 
     u32 padding;
     hr = audio_client->GetCurrentPadding(&padding);
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
@@ -127,23 +123,27 @@ static HRESULT audio_play(f32 freq){
     u8* buffer;
     u32 available_size = buffer_size - padding;
     hr = render_client->GetBuffer(available_size, &buffer);
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
 
-    u64 play_pos;
-    u64 write_pos;
-    hr = audio_clock->GetPosition(&play_pos, &write_pos);
-    if (FAILED(hr)) {
+    u64 device_pos;
+    hr = audio_clock->GetPosition(&device_pos, 0);
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
+    u32 play_cursor = (u32)((device_pos + padding) % buffer_size);
+    u32 write_cursor = (u32)((device_pos + buffer_size - padding) % buffer_size);
+
+    //print("devicep(%i) - play(%i) - write(%i) - s(%i)\n", device_pos, play_cursor, write_cursor, buffer_size);
 
     f32 time = 0.0f;
+    print("aoskdj\n");
     for(u32 i=0; i < available_size / wf.nChannels; ++i){
         time += 1.0f / (f32)wf.nSamplesPerSec;
-        if (time > 1.0f) {
+        if(time > 1.0f){
             time = 0.0f;
         }
         f32 sine_value = (f32)sin_f32((2.0f * PI_f32 * freq * time));
@@ -152,20 +152,26 @@ static HRESULT audio_play(f32 freq){
         // scale the sine value to the range -0.nf to 0.nf
         sine_value *= volume;
 
-        u64 write_index = (write_pos + i) % buffer_size;
+        u32 sample_position = (write_cursor + i * wf.nBlockAlign) % buffer_size;
+        u64 write_index = (write_cursor + i) % buffer_size;
+        print("wc(%i) - (%i) - (%i)\n", write_cursor, sample_position, write_index);
+
+
         f32* buffer_f32 = (f32*)buffer;
-        if(wave_format->nChannels == 2){
-            buffer_f32[write_index * wf.nChannels] = sine_value;
-            buffer_f32[(write_index * wf.nChannels) + 1] = sine_value;
+        if(wf.nChannels == 2){
+            buffer_f32[sample_position] = sine_value;
+            buffer_f32[sample_position + 1] = sine_value;
+            //buffer_f32[write_index * wf.nChannels] = sine_value;
+            //buffer_f32[(write_index * wf.nChannels) + 1] = sine_value;
         }
         else{
-            buffer_f32[i * wave_format->nChannels] = sine_value;
+            //buffer_f32[i * wf.nChannels] = sine_value;
         }
 
     }
 
     hr = render_client->ReleaseBuffer(available_size, 0);
-    if (FAILED(hr)) {
+    if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
     }
@@ -178,7 +184,7 @@ static HRESULT audio_release(){
 
     if(audio_client != 0){
         hr = audio_client->Stop();
-        if (FAILED(hr)) {
+        if(FAILED(hr)){
             assert_hr(hr);
             return(hr);
         }
