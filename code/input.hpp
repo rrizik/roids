@@ -15,6 +15,7 @@ typedef struct Mouse{
 } Mouse;
 //global Mouse mouse;
 
+// todo: controller.button[EnumType_Down].pressed = blablabla;
 typedef struct Controller{
     Mouse mouse;
     Button up;

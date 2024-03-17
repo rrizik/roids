@@ -1,5 +1,6 @@
 #include "main.hpp"
 
+// todo: move header includes here
 #include "input.cpp"
 #include "clock.cpp"
 #include "camera.cpp"
@@ -104,7 +105,6 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             s32 dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);
             event.mouse_dx = (f32)dx / (f32)(SCREEN_WIDTH/2);
             event.mouse_dy = (f32)dy / (f32)(SCREEN_HEIGHT/2);
-            //print("(%f, %f) - (%i, %i)\n", event.mouse_dx, event.mouse_dy, event.mouse_pos.x, event.mouse_pos.y);
 
             events_add(&events, event);
         } break;
@@ -206,6 +206,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
     return(result);
 }
 
+static Wave wav;
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
     begin_profiler();
 
@@ -224,6 +225,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     d3d_init_debug_stuff();
 #endif
 
+    //audio_init2();
 
     init_memory(&memory);
     init_clock(&clock);
@@ -269,6 +271,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         load_font_ttf(global_arena, str8_literal("fonts/arial.ttf"), &global_font, 36);
         load_assets(tm->assets_arena, &tm->assets);
+        wav = load_wave(tm->assets_arena, str8_literal("sound/roids_shooting_3_long_shot_2.wav"));
 
         init_texture_resource(&tm->assets.bitmaps[AssetID_Ship],   &ship_shader_resource);
         init_texture_resource(&tm->assets.bitmaps[AssetID_Circle], &circle_shader_resource);
@@ -295,11 +298,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             DispatchMessage(&message);
         }
 
-        s += (f32)clock.dt;
-        f32 value = sin_f32(((2.0f * PI_f32) * 440) * s);
-        //print("sin: %f\n", value);
-
-        //do_audio(440);
+        //audio_play(440);
+        audio_play_wave(&wav);
         u64 now_ticks = clock.get_os_timer();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
@@ -319,9 +319,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             clear_controller_pressed(&controller);
         }
 
-        //audio_play(frequency);
         // command arena
         push_clear_color(tm->render_command_arena, BACKGROUND_COLOR);
+        // todo: also use flags here
         for(s32 index = 0; index < array_count(pm->entities); ++index){
             begin_timed_scope("command arena");
             Entity *e = pm->entities + index;
@@ -351,24 +351,24 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
                     Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
                                             make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
-                    push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
+                    //push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
 
                     p0 = rotate_point_deg(p0, e->deg, e->pos);
                     p1 = rotate_point_deg(p1, e->deg, e->pos);
                     p2 = rotate_point_deg(p2, e->deg, e->pos);
                     p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                    push_line(tm->render_command_arena, p0, p1, 2, GREEN);
-                    push_line(tm->render_command_arena, p1, p2, 2, GREEN);
-                    push_line(tm->render_command_arena, p2, p3, 2, GREEN);
-                    push_line(tm->render_command_arena, p3, p0, 2, GREEN);
+                    //push_line(tm->render_command_arena, p0, p1, 2, GREEN);
+                    //push_line(tm->render_command_arena, p1, p2, 2, GREEN);
+                    //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
+                    //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
                     push_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
                     String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
                     if(e->type == EntityType_Asteroid){
                         text = str8_formatted(tm->frame_arena, "%i", e->health);
                     }
-                    push_text(tm->render_command_arena, global_font, text, p0.x, p0.y, RED);
+                    //push_text(tm->render_command_arena, global_font, text, p0.x, p0.y, RED);
                 } break;
                 case EntityType_Ship:{
                     v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
@@ -378,24 +378,21 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
                     Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
                                             make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
-                    push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
+                    //push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
 
                     p0 = rotate_point_deg(p0, e->deg, e->pos);
                     p1 = rotate_point_deg(p1, e->deg, e->pos);
                     p2 = rotate_point_deg(p2, e->deg, e->pos);
                     p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                    push_line(tm->render_command_arena, p0, p1, 2, GREEN);
-                    push_line(tm->render_command_arena, p1, p2, 2, GREEN);
-                    push_line(tm->render_command_arena, p2, p3, 2, GREEN);
-                    push_line(tm->render_command_arena, p3, p0, 2, GREEN);
+                    //push_line(tm->render_command_arena, p0, p1, 2, GREEN);
+                    //push_line(tm->render_command_arena, p1, p2, 2, GREEN);
+                    //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
+                    //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
                     push_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
                     String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
-                    push_text(tm->render_command_arena, global_font, text, p0.x, p0.y, RED);
-                } break;
-                case EntityType_Text:{
-                    //push_text(render_command_arena, e->font, e->text, e->x, e->y, e->color);
+                    //push_text(tm->render_command_arena, global_font, text, p0.x, p0.y, RED);
                 } break;
             }
         }
@@ -418,10 +415,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
         push_text(tm->render_command_arena, global_font, lives, 50, 100, ORANGE);
 
-        // draw everything
         console_draw();
 
-        //print("count: %i - score: %i\n", pm->entities_count, pm->score);
 
         frame_count++;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
@@ -437,6 +432,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
         push_text(tm->render_command_arena, global_font, fps, SCREEN_WIDTH - 250, 50, ORANGE);
 
+        // draw everything
         draw_commands(tm->render_command_arena);
 		simulations = 0;
         total_frames++;

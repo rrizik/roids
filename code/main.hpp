@@ -2,7 +2,6 @@
 #define MAIN_H
 
 #pragma comment(lib, "user32")
-#pragma comment(lib, "ole32")
 
 #include "base_inc.h"
 #include "win32_base_inc.h"
@@ -46,11 +45,11 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
 
 global f32 g_angle = 0;
 global f32 g_angle_t = 0;
-global f32 p = 1;
 
 #include "input.hpp"
 #include "clock.hpp"
 #include "audio.h"
+//#include "taudio.h"
 #include "camera.hpp"
 #include "rect.hpp"
 #include "bitmap.hpp"
@@ -76,11 +75,6 @@ typedef enum AssetID{
 typedef struct Assets{
     Bitmap bitmaps[AssetID_Count];
 } Assets;
-
-typedef struct Asteroid{
-    Asteroid* next;
-    Asteroid* prev;
-} Asteroid;
 
 #define WIN_SCORE 3000
 #define ENTITIES_MAX 4096
