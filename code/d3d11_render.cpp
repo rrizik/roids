@@ -109,6 +109,7 @@ draw_commands(Arena* commands){
     void* at = commands->base;
     void* end = (u8*)commands->base + commands->at;
 
+    // todo: inline most/all of these
     while(at != end){
         RenderCommand* command = (RenderCommand*)at;
 

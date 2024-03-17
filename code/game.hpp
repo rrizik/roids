@@ -11,10 +11,11 @@ static void load_assets(Arena* arena, Assets* assets);
 
 static Bitmap* get_bitmap(Assets* assets, AssetID id);
 
+// todo: PermanentMemory is global, stop passing it around
 static Entity* entity_from_handle(PermanentMemory* pm, EntityHandle handle);
 static EntityHandle handle_from_entity(PermanentMemory* pm, Entity *e);
 
-static void    remove_entity(PermanentMemory* pm, Entity* e);
+static    void remove_entity(PermanentMemory* pm, Entity* e);
 static Entity* add_entity(PermanentMemory *pm, EntityType type);
 static Entity* add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color);
 static Entity* add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color=WHITE);

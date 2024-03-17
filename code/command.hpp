@@ -1,6 +1,7 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+// todo: remove command.cpp hpp. Put it in console. then consider moving console to game layer
 typedef void Proc(String8* args);
 
 typedef struct CommandInfo{
