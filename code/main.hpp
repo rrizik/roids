@@ -57,15 +57,10 @@ global f32 g_angle = 0;
 global f32 g_angle_t = 0;
 
 typedef enum WaveAsset{
-    WaveAsset_rail_1,
-    WaveAsset_rail_2,
-    WaveAsset_rail_3,
-    WaveAsset_rail_4,
-    WaveAsset_rail_5,
-    WaveAsset_rail_all,
-    WaveAsset_blast_all,
     WaveAsset_track1,
     WaveAsset_track2,
+    WaveAsset_track3,
+    WaveAsset_bullet,
 
     WaveAsset_Count,
 } WaveAsset;

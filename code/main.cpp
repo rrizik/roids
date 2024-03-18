@@ -273,8 +273,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         load_assets(tm->assets_arena, &tm->assets);
         //wav = load_wave(tm->assets_arena, str8_literal("sounds/blast_all.wav"));
         //audio_play(WaveAsset_blast_all);
-        audio_play(WaveAsset_track1);
-        //audio_play(WaveAsset_track2);
+        //audio_play(WaveAsset_track1, 1.0f, true);
+        //audio_play(WaveAsset_track2, 1.0f, true);
+        //audio_play(WaveAsset_track3, 1.0f, true);
 
         init_texture_resource(&tm->assets.bitmap[BitmapAsset_Ship],   &ship_shader_resource);
         init_texture_resource(&tm->assets.bitmap[BitmapAsset_Circle], &circle_shader_resource);
@@ -418,6 +419,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         push_text(tm->render_command_arena, global_font, text, 50, 50, ORANGE);
         String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
         push_text(tm->render_command_arena, global_font, lives, 50, 100, ORANGE);
+
+        String8 vol1_str = str8_formatted(tm->frame_arena, "vol1: %f", wave_cursors[0].volume);
+        String8 vol2_str = str8_formatted(tm->frame_arena, "vol2: %f", wave_cursors[1].volume);
+        String8 vol3_str = str8_formatted(tm->frame_arena, "vol3: %f", wave_cursors[2].volume);
+        push_text(tm->render_command_arena, global_font, vol1_str, SCREEN_WIDTH - 400, 500, ORANGE);
+        push_text(tm->render_command_arena, global_font, vol2_str, SCREEN_WIDTH - 400, 550, ORANGE);
+        push_text(tm->render_command_arena, global_font, vol3_str, SCREEN_WIDTH - 400, 600, ORANGE);
 
         console_draw();
 

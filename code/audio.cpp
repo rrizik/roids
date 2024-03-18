@@ -29,10 +29,7 @@ audio_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
     audio_device->Release();
 
     wave_format = {0};
-    //WAVE_FORMAT_PCM
-    //wave_format.wFormatTag = 1;
     wave_format.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
-    //wave_format.wFormatTag = WAVE_FORMAT_PCM;
     wave_format.nChannels = channels;
     wave_format.nSamplesPerSec = samples_per_sec;
     wave_format.wBitsPerSample = bits_per_sample;
@@ -113,7 +110,7 @@ static HRESULT audio_play_sine(f32 freq){
         f32 sine_value = sin_f32((2.0f * PI_f32 * freq * time));
 
         // scale the sine value to the range -0.nf to 0.nf
-        sine_value *= volume;
+        sine_value *= 0.03f;
 
         f32* buffer_f32 = (f32*)buffer;
         if(wave_format.nChannels == 2){
@@ -135,14 +132,16 @@ static HRESULT audio_play_sine(f32 freq){
 }
 
 static bool
-audio_play(WaveAsset id){
+audio_play(WaveAsset id, f32 volume, bool loop){
     Wave wave = tm->assets.wave[id];
     WaveCursor cursor = {0};
     cursor.id = id;
     cursor.at = 0;
+    cursor.volume = volume;
+    cursor.loop = loop;
 
-    if(wave_cursor_count < WAVE_CURSOR_COUNT_MAX){
-        wave_cursors[wave_cursor_count++] = cursor;
+    if(wave_cursors_count < WAVE_CURSORS_COUNT_MAX){
+        wave_cursors[wave_cursors_count++] = cursor;
         return(true);
     }
     return(false);
@@ -166,43 +165,32 @@ static HRESULT audio_play_cursors(){
         return(hr);
     }
 
-    for(s32 cursor_i=0; cursor_i < (s32)wave_cursor_count; ++cursor_i){
+
+    memset(buffer, 0, available_size * wave_format.nBlockAlign);
+    f32* buffer_f32 = (f32*)buffer;
+    for(s32 cursor_i=0; cursor_i < (s32)wave_cursors_count; ++cursor_i){
         WaveCursor* cursor = wave_cursors + cursor_i;
         Wave* wave = tm->assets.wave + cursor->id;
 
-        f32* buffer_f32 = (f32*)buffer;
         u32 wave_remainder = wave->size - cursor->at;
         u32 iter_size = wave_remainder > available_size ? available_size : wave_remainder;
-        for(s32 i=0; i < iter_size; ++i){
-            f32 val = ((s16)(wave->base[(cursor->at + i)])) * (1.0f / 32768.0f);
-            val *= volume;
 
-            buffer_f32[ i * wave_format.nChannels]      += val;
-            buffer_f32[(i * wave_format.nChannels) + 1] += val;
+        if(cursor->at < wave->size){
+            for(s32 i=0; i < iter_size; ++i){
+                f32 sample = ((s16)(wave->base[(cursor->at + i)])) * (1.0f / 32768.0f);
+
+                buffer_f32[ i * wave_format.nChannels]      += sample * cursor->volume;
+                buffer_f32[(i * wave_format.nChannels) + 1] += sample * cursor->volume;
+            }
+
         }
 
         cursor->at += iter_size;
-        if(cursor->at >= wave->size){
-            cursor->at = 0;
+        if(cursor->loop){
+            if(cursor->at >= wave->size){
+                cursor->at = 0;
+            }
         }
-
-        //u32 wave_remainder = wave->size - cursor->at;
-        //u32 total_bytes = available_size * wave_format.nChannels * (wave_format.wBitsPerSample / 8);
-        //if (wave_remainder >= total_bytes){
-
-        //    memory_copy(buffer, wave->base + cursor->at, total_bytes);
-
-        //    cursor->at += total_bytes;
-
-        //    if (cursor->at >= wave->size){
-        //        cursor->at = 0;
-        //    }
-        //}
-        //else {
-        //    memory_copy(buffer, wave->base + cursor->at, wave_remainder);
-        //    memset((u8*)buffer + wave_remainder, 0, total_bytes - wave_remainder);
-        //    cursor->at = 0;
-        //}
     }
 
     hr = render_client->ReleaseBuffer(available_size, 0);

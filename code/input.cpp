@@ -59,19 +59,12 @@ clear_controller_pressed(Controller* controller){
     controller->three.pressed = false;
     controller->four.pressed  = false;
 
-    controller->z.pressed  = false;
-    controller->x.pressed  = false;
-    controller->c.pressed  = false;
-    controller->v.pressed  = false;
-    controller->b.pressed  = false;
-    controller->n.pressed  = false;
-    controller->m.pressed  = false;
-    controller->comma.pressed  = false;
-    controller->s.pressed  = false;
-    controller->d.pressed  = false;
-    controller->g.pressed  = false;
+    controller->y.pressed  = false;
     controller->h.pressed  = false;
+    controller->u.pressed  = false;
     controller->j.pressed  = false;
+    controller->i.pressed  = false;
+    controller->k.pressed  = false;
 }
 
 #endif

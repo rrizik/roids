@@ -7,15 +7,10 @@ load_assets(Arena* arena, Assets* assets){
     assets->bitmap[BitmapAsset_Circle] = load_bitmap(arena, str8_literal("sprites/circle.bmp"));
     assets->bitmap[BitmapAsset_Asteroid] = load_bitmap(arena, str8_literal("sprites/asteroid.bmp"));
 
-    //assets->wave[WaveAsset_rail_1] = load_wave(arena, str8_literal("sounds/rail_1.wav"));
-    //assets->wave[WaveAsset_rail_2] = load_wave(arena, str8_literal("sounds/rail_2.wav"));
-    //assets->wave[WaveAsset_rail_3] = load_wave(arena, str8_literal("sounds/rail_3.wav"));
-    //assets->wave[WaveAsset_rail_4] = load_wave(arena, str8_literal("sounds/rail_4.wav"));
-    //assets->wave[WaveAsset_rail_5] = load_wave(arena, str8_literal("sounds/rail_5.wav"));
-    //assets->wave[WaveAsset_rail_all] = load_wave(arena, str8_literal("sounds/rail_all.wav"));
-    //assets->wave[WaveAsset_blast_all] = load_wave(arena, str8_literal("sounds/blast_all.wav"));
     assets->wave[WaveAsset_track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
     assets->wave[WaveAsset_track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
+    assets->wave[WaveAsset_track3] = load_wave(arena, str8_literal("sounds/track3.wav"));
+    assets->wave[WaveAsset_bullet] = load_wave(arena, str8_literal("sounds/bullet.wav"));
 }
 
 // todo: Move these to entity once you move PermanentMemory further up in the tool chain
@@ -380,6 +375,42 @@ handle_controller_events(Event event){
                 }
                 controller.down.held = true;
             }
+            if(event.keycode == KeyCode_Y){
+                if(!event.repeat){
+                    controller.y.pressed = true;
+                }
+                controller.y.held = true;
+            }
+            if(event.keycode == KeyCode_H){
+                if(!event.repeat){
+                    controller.h.pressed = true;
+                }
+                controller.h.held = true;
+            }
+            if(event.keycode == KeyCode_U){
+                if(!event.repeat){
+                    controller.u.pressed = true;
+                }
+                controller.u.held = true;
+            }
+            if(event.keycode == KeyCode_J){
+                if(!event.repeat){
+                    controller.j.pressed = true;
+                }
+                controller.j.held = true;
+            }
+            if(event.keycode == KeyCode_I){
+                if(!event.repeat){
+                    controller.i.pressed = true;
+                }
+                controller.i.held = true;
+            }
+            if(event.keycode == KeyCode_K){
+                if(!event.repeat){
+                    controller.k.pressed = true;
+                }
+                controller.k.held = true;
+            }
         }
 
         else{
@@ -403,8 +434,36 @@ handle_controller_events(Event event){
                 controller.left.held = false;
                 return(true);
             }
+            if(event.keycode == KeyCode_D || event.keycode == KeyCode_ARROW_RIGHT){
+                controller.right.held = false;
+                return(true);
+            }
             if(event.keycode == KeyCode_S || event.keycode == KeyCode_ARROW_DOWN){
                 controller.down.held = false;
+                return(true);
+            }
+            if(event.keycode == KeyCode_Y){
+                controller.y.held = false;
+                return(true);
+            }
+            if(event.keycode == KeyCode_H){
+                controller.h.held = false;
+                return(true);
+            }
+            if(event.keycode == KeyCode_U){
+                controller.u.held = false;
+                return(true);
+            }
+            if(event.keycode == KeyCode_J){
+                controller.j.held = false;
+                return(true);
+            }
+            if(event.keycode == KeyCode_I){
+                controller.i.held = false;
+                return(true);
+            }
+            if(event.keycode == KeyCode_K){
+                controller.k.held = false;
                 return(true);
             }
         }
@@ -482,6 +541,43 @@ update_game(Window* window, Memory* memory, Events* events){
             Entity* e = add_asteroid(pm, &asteroid_shader_resource, pos, dim, deg);
         }
 
+        if(controller.y.held){
+            wave_cursors[0].volume += (f32)clock.dt;
+            if(wave_cursors[0].volume > 1.0f){
+                wave_cursors[0].volume = 1.0f;
+            }
+        }
+        if(controller.h.held){
+            wave_cursors[0].volume -= (f32)clock.dt;
+            if(wave_cursors[0].volume < 0.0f){
+                wave_cursors[0].volume = 0.0f;
+            }
+        }
+        if(controller.u.held){
+            wave_cursors[1].volume += (f32)clock.dt;
+            if(wave_cursors[1].volume > 1.0f){
+                wave_cursors[1].volume = 1.0f;
+            }
+        }
+        if(controller.j.held){
+            wave_cursors[1].volume -= (f32)clock.dt;
+            if(wave_cursors[1].volume < 0.0f){
+                wave_cursors[1].volume = 0.0f;
+            }
+        }
+        if(controller.i.held){
+            wave_cursors[2].volume += (f32)clock.dt;
+            if(wave_cursors[2].volume > 1.0f){
+                wave_cursors[2].volume = 1.0f;
+            }
+        }
+        if(controller.k.held){
+            wave_cursors[2].volume -= (f32)clock.dt;
+            if(wave_cursors[2].volume < 0.0f){
+                wave_cursors[2].volume = 0.0f;
+            }
+        }
+
         for(s32 index = 0; index < array_count(pm->entities); ++index){
             begin_timed_scope("sim entities");
             Entity *e = pm->entities + index;
@@ -493,6 +589,7 @@ update_game(Window* window, Memory* memory, Events* events){
                         // add bullet entity
                         if(controller.shoot.pressed){
                             add_bullet(pm, &circle_shader_resource, e->pos, make_v2(40, 8), e->deg);
+                            audio_play(WaveAsset_bullet, 1.0f, false);
                             //audio_play_wav(bullet_sound);
                         }
 

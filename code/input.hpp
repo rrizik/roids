@@ -27,20 +27,13 @@ typedef struct Controller{
     Button e;
     Button three;
     Button four;
-
-    Button z;
-    Button x;
-    Button c;
-    Button v;
-    Button b;
-    Button n;
-    Button m;
-    Button comma;
-    Button s;
-    Button d;
-    Button g;
+    Button y;
     Button h;
+    Button u;
     Button j;
+    Button i;
+    Button k;
+
 } Controller;
 global Controller controller;
 
