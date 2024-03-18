@@ -37,7 +37,7 @@ load_bitmap(Arena* arena, String8 filename){
     Bitmap result = {0};
 
     ScratchArena scratch = begin_scratch(0);
-    String8 full_path = str8_concatenate(scratch.arena, path_data, filename);
+    String8 full_path = str8_concatenate(scratch.arena, build_path, filename);
     File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
     assert_h(file.handle);
 

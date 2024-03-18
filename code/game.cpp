@@ -3,9 +3,19 @@
 
 static void
 load_assets(Arena* arena, Assets* assets){
-    assets->bitmaps[AssetID_Ship] =   load_bitmap(arena, str8_literal("sprites\\ship2.bmp"));
-    assets->bitmaps[AssetID_Circle] = load_bitmap(arena, str8_literal("sprites\\circle.bmp"));
-    assets->bitmaps[AssetID_Asteroid] = load_bitmap(arena, str8_literal("sprites\\asteroid.bmp"));
+    assets->bitmap[BitmapAsset_Ship] =   load_bitmap(arena, str8_literal("sprites/ship2.bmp"));
+    assets->bitmap[BitmapAsset_Circle] = load_bitmap(arena, str8_literal("sprites/circle.bmp"));
+    assets->bitmap[BitmapAsset_Asteroid] = load_bitmap(arena, str8_literal("sprites/asteroid.bmp"));
+
+    //assets->wave[WaveAsset_rail_1] = load_wave(arena, str8_literal("sounds/rail_1.wav"));
+    //assets->wave[WaveAsset_rail_2] = load_wave(arena, str8_literal("sounds/rail_2.wav"));
+    //assets->wave[WaveAsset_rail_3] = load_wave(arena, str8_literal("sounds/rail_3.wav"));
+    //assets->wave[WaveAsset_rail_4] = load_wave(arena, str8_literal("sounds/rail_4.wav"));
+    //assets->wave[WaveAsset_rail_5] = load_wave(arena, str8_literal("sounds/rail_5.wav"));
+    //assets->wave[WaveAsset_rail_all] = load_wave(arena, str8_literal("sounds/rail_all.wav"));
+    //assets->wave[WaveAsset_blast_all] = load_wave(arena, str8_literal("sounds/blast_all.wav"));
+    assets->wave[WaveAsset_track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
+    assets->wave[WaveAsset_track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
 }
 
 // todo: Move these to entity once you move PermanentMemory further up in the tool chain
@@ -168,7 +178,7 @@ entities_clear(PermanentMemory* pm){
 static void
 serialize_data(PermanentMemory* pm, String8 filename){
     ScratchArena scratch = begin_scratch(0);
-    String8 full_path = str8_path_append(scratch.arena, saves_dir, filename);
+    String8 full_path = str8_path_append(scratch.arena, saves_path, filename);
 
     File file = os_file_open(full_path, GENERIC_WRITE, CREATE_NEW);
     if(file.handle != INVALID_HANDLE_VALUE){
@@ -186,7 +196,7 @@ serialize_data(PermanentMemory* pm, String8 filename){
 static void
 deserialize_data(PermanentMemory* pm, String8 filename){
     ScratchArena scratch = begin_scratch(0);
-    String8 full_path = str8_path_append(scratch.arena, saves_dir, filename);
+    String8 full_path = str8_path_append(scratch.arena, saves_path, filename);
 
     File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
     if(!file.size){
@@ -483,6 +493,7 @@ update_game(Window* window, Memory* memory, Events* events){
                         // add bullet entity
                         if(controller.shoot.pressed){
                             add_bullet(pm, &circle_shader_resource, e->pos, make_v2(40, 8), e->deg);
+                            //audio_play_wav(bullet_sound);
                         }
 
                         // rotate ship

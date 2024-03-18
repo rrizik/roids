@@ -3,6 +3,7 @@
 // todo: move header includes here
 #include "input.cpp"
 #include "clock.cpp"
+#include "audio.cpp"
 #include "camera.cpp"
 #include "rect.cpp"
 #include "bitmap.cpp"
@@ -16,11 +17,12 @@
 
 static void
 init_paths(Arena* arena){
-    build_dir = os_application_path(global_arena);
-    fonts_dir = str8_path_append(global_arena, build_dir, str8_literal("fonts"));
-    shaders_dir = str8_path_append(global_arena, build_dir, str8_literal("shaders"));
-    saves_dir = str8_path_append(global_arena, build_dir, str8_literal("saves"));
-    sprites_dir = str8_path_append(global_arena, build_dir, str8_literal("sprites"));
+    build_path = os_application_path(global_arena);
+    fonts_path = str8_path_append(global_arena, build_path, str8_literal("fonts"));
+    shaders_path = str8_path_append(global_arena, build_path, str8_literal("shaders"));
+    saves_path = str8_path_append(global_arena, build_path, str8_literal("saves"));
+    sprites_path = str8_path_append(global_arena, build_path, str8_literal("sprites"));
+    sounds_path = str8_path_append(global_arena, build_path, str8_literal("sounds"));
 }
 
 static void
@@ -206,7 +208,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
     return(result);
 }
 
-static Wave wav;
+//static Wave wav;
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
     begin_profiler();
 
@@ -225,11 +227,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     d3d_init_debug_stuff();
 #endif
 
-    //audio_init2();
-
     init_memory(&memory);
     init_clock(&clock);
-    HRESULT hr = init_audio();
+    HRESULT hr = audio_init(2, 48000, 32);
     assert_hr(hr);
 
     events_init(&events);
@@ -271,11 +271,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         load_font_ttf(global_arena, str8_literal("fonts/arial.ttf"), &global_font, 36);
         load_assets(tm->assets_arena, &tm->assets);
-        wav = load_wave(tm->assets_arena, str8_literal("sound/roids_shooting_3_long_shot_2.wav"));
+        //wav = load_wave(tm->assets_arena, str8_literal("sounds/blast_all.wav"));
+        //audio_play(WaveAsset_blast_all);
+        audio_play(WaveAsset_track1);
+        //audio_play(WaveAsset_track2);
 
-        init_texture_resource(&tm->assets.bitmaps[AssetID_Ship],   &ship_shader_resource);
-        init_texture_resource(&tm->assets.bitmaps[AssetID_Circle], &circle_shader_resource);
-        init_texture_resource(&tm->assets.bitmaps[AssetID_Asteroid], &asteroid_shader_resource);
+        init_texture_resource(&tm->assets.bitmap[BitmapAsset_Ship],   &ship_shader_resource);
+        init_texture_resource(&tm->assets.bitmap[BitmapAsset_Circle], &circle_shader_resource);
+        init_texture_resource(&tm->assets.bitmap[BitmapAsset_Asteroid], &asteroid_shader_resource);
 
         init_console(&pm->arena);
         init_console_commands();
@@ -299,7 +302,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         }
 
         //audio_play(440);
-        audio_play_wave(&wav);
+        //audio_play_wave(&wav);
         u64 now_ticks = clock.get_os_timer();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
@@ -318,6 +321,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
             clear_controller_pressed(&controller);
         }
+        audio_play_cursors();
 
         // command arena
         push_clear_color(tm->render_command_arena, BACKGROUND_COLOR);

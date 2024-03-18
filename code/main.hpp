@@ -12,6 +12,13 @@
 #define PROFILER 1
 #include "profiler.h"
 
+static String8 build_path;
+static String8 fonts_path;
+static String8 shaders_path;
+static String8 saves_path;
+static String8 sprites_path;
+static String8 sounds_path;
+
 typedef struct Memory{
     void* base;
     size_t size;
@@ -39,7 +46,6 @@ static Window win32_window_create(const wchar* window_name, s32 width, s32 heigh
 
 global bool should_quit;
 global Arena* global_arena = os_make_arena(MB(100));
-static String8 path_data;
 
 static void show_cursor(bool show);
 static void init_paths(Arena* arena);
@@ -50,10 +56,23 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
 global f32 g_angle = 0;
 global f32 g_angle_t = 0;
 
+typedef enum WaveAsset{
+    WaveAsset_rail_1,
+    WaveAsset_rail_2,
+    WaveAsset_rail_3,
+    WaveAsset_rail_4,
+    WaveAsset_rail_5,
+    WaveAsset_rail_all,
+    WaveAsset_blast_all,
+    WaveAsset_track1,
+    WaveAsset_track2,
+
+    WaveAsset_Count,
+} WaveAsset;
 #include "input.hpp"
 #include "clock.hpp"
+#include "wave.h"
 #include "audio.h"
-//#include "taudio.h"
 #include "camera.hpp"
 #include "rect.hpp"
 #include "bitmap.hpp"
@@ -64,20 +83,22 @@ global f32 g_angle_t = 0;
 #include "console.hpp"
 #include "command.hpp"
 
-typedef enum AssetID{
-    AssetID_Image,
-    AssetID_Ship,
-    AssetID_Tree,
-    AssetID_Circle,
-    AssetID_Bullet,
-    AssetID_Test,
-    AssetID_Asteroid,
+typedef enum BitmapAsset{
+    BitmapAsset_Image,
+    BitmapAsset_Ship,
+    BitmapAsset_Tree,
+    BitmapAsset_Circle,
+    BitmapAsset_Bullet,
+    BitmapAsset_Test,
+    BitmapAsset_Asteroid,
 
-    AssetID_Count,
-} AssetID;
+    BitmapAsset_Count,
+} BitmapAsset;
+
 
 typedef struct Assets{
-    Bitmap bitmaps[AssetID_Count];
+    Bitmap bitmap[BitmapAsset_Count];
+    Wave wave[WaveAsset_Count];
 } Assets;
 
 #define WIN_SCORE 3000
@@ -113,12 +134,6 @@ typedef struct TransientMemory{
 global TransientMemory* tm;
 
 #include "game.hpp"
-
 static Font global_font;
-static String8 build_dir;
-static String8 fonts_dir;
-static String8 shaders_dir;
-static String8 saves_dir;
-static String8 sprites_dir;
 
 #endif

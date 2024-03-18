@@ -9,7 +9,7 @@ typedef enum GameMode{
 
 static void load_assets(Arena* arena, Assets* assets);
 
-static Bitmap* get_bitmap(Assets* assets, AssetID id);
+static Bitmap* get_bitmap(Assets* assets, BitmapAsset id);
 
 // todo: PermanentMemory is global, stop passing it around
 static Entity* entity_from_handle(PermanentMemory* pm, EntityHandle handle);
