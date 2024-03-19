@@ -22,14 +22,15 @@ static IAudioClient* audio_client;
 static IAudioRenderClient *render_client;
 static WAVEFORMATEX wave_format;
 
-static u32 buffer_size;
-static u32 numerator = 0;
-REFERENCE_TIME duration = 10000000;
+static u32 buffer_samples;
+//static u32 numerator = 0;
+REFERENCE_TIME default_device_period;
+REFERENCE_TIME minimum_device_period;
 
 static HRESULT audio_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample);
 static HRESULT audio_start();
 static HRESULT audio_stop();
-static HRESULT audio_play_sine(f32 freq);
+//static HRESULT audio_play_sine(f32 freq);
 static HRESULT audio_play_cursors();
 static bool audio_play(WaveAsset id, f32 volume, bool loop);
 static void audio_release();

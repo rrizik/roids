@@ -3,6 +3,7 @@
 // todo: move header includes here
 #include "input.cpp"
 #include "clock.cpp"
+#include "wave.cpp"
 #include "audio.cpp"
 #include "camera.cpp"
 #include "rect.cpp"
@@ -273,9 +274,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         load_assets(tm->assets_arena, &tm->assets);
         //wav = load_wave(tm->assets_arena, str8_literal("sounds/blast_all.wav"));
         //audio_play(WaveAsset_blast_all);
-        //audio_play(WaveAsset_track1, 1.0f, true);
-        //audio_play(WaveAsset_track2, 1.0f, true);
-        //audio_play(WaveAsset_track3, 1.0f, true);
+        audio_play(WaveAsset_track1, 0.0f, true);
+        audio_play(WaveAsset_track3, 0.0f, true);
+        audio_play(WaveAsset_track4, 0.0f, true);
 
         init_texture_resource(&tm->assets.bitmap[BitmapAsset_Ship],   &ship_shader_resource);
         init_texture_resource(&tm->assets.bitmap[BitmapAsset_Circle], &circle_shader_resource);
@@ -420,13 +421,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
         push_text(tm->render_command_arena, global_font, lives, 50, 100, ORANGE);
 
-        String8 vol1_str = str8_formatted(tm->frame_arena, "vol1: %f", wave_cursors[0].volume);
-        String8 vol2_str = str8_formatted(tm->frame_arena, "vol2: %f", wave_cursors[1].volume);
-        String8 vol3_str = str8_formatted(tm->frame_arena, "vol3: %f", wave_cursors[2].volume);
-        push_text(tm->render_command_arena, global_font, vol1_str, SCREEN_WIDTH - 400, 500, ORANGE);
-        push_text(tm->render_command_arena, global_font, vol2_str, SCREEN_WIDTH - 400, 550, ORANGE);
-        push_text(tm->render_command_arena, global_font, vol3_str, SCREEN_WIDTH - 400, 600, ORANGE);
-
         console_draw();
 
 
@@ -443,6 +437,71 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
         push_text(tm->render_command_arena, global_font, fps, SCREEN_WIDTH - 250, 50, ORANGE);
+
+
+
+
+
+        u32 size1 = tm->assets.waves[wave_cursors[0].id].sample_count;
+        u32 size2 = tm->assets.waves[wave_cursors[1].id].sample_count;
+        u32 size3 = tm->assets.waves[wave_cursors[2].id].sample_count;
+        u32 largest_width = size1 > size2 ? size1 : size2;
+        largest_width = largest_width > size3 ? largest_width : size3;
+
+        f32 width1 = ((f32)size1 / (f32)largest_width) * 700;
+        f32 width2 = ((f32)size2 / (f32)largest_width) * 700;
+        f32 width3 = ((f32)size3 / (f32)largest_width) * 700;
+
+        v2 pos;
+        v2 dim;
+        Quad q = {0};
+
+        // ---------------------------------------------------------
+        pos = make_v2(100, 500);
+        dim = make_v2(width1, 50);
+        q = quad_from_pos(pos, dim);
+        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
+
+        u32 at1 = (u32)(((f32)wave_cursors[0].at / (f32)size1) * dim.w);
+        //print("at1(%i) - at2(%i) - at3(%i)\n", at1, at2, at3);
+        print("at1(%i) - at(%i) - size(%i) - div(%i)\n", at1, wave_cursors[0].at, size1, wave_cursors[0].at/size1);
+        //u32 at1 = (u32)((wave_cursors[0].at * (u32)dim.w) / 700);
+        q = quad_from_pos(make_v2((pos.x + (f32)at1), pos.y), make_v2(10, 50));
+        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
+
+        String8 vol1_str = str8_formatted(tm->frame_arena, "vol1: %f", wave_cursors[0].volume);
+        push_text(tm->render_command_arena, global_font, vol1_str, SCREEN_WIDTH - 450, 525, RED);
+
+        // ---------------------------------------------------------
+        pos = make_v2(100, 575);
+        dim = make_v2(width2, 50);
+        q = quad_from_pos(pos, dim);
+        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
+
+        u32 at2 = (u32)(((f32)wave_cursors[1].at / (f32)size2) * dim.w);
+        q = quad_from_pos(make_v2((pos.x + (f32)at2), pos.y), make_v2(10, 50));
+        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
+
+        String8 vol2_str = str8_formatted(tm->frame_arena, "vol2: %f", wave_cursors[1].volume);
+        push_text(tm->render_command_arena, global_font, vol2_str, SCREEN_WIDTH - 450, 600, RED);
+
+        // ---------------------------------------------------------
+        pos = make_v2(100, 650);
+        dim = make_v2(width3, 50);
+        q = quad_from_pos(pos, dim);
+        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
+
+        u32 at3 = (u32)(((f32)wave_cursors[2].at / (f32)size3) * dim.w);
+        q = quad_from_pos(make_v2((pos.x + (f32)at3), pos.y), make_v2(10, 50));
+        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
+
+        String8 vol3_str = str8_formatted(tm->frame_arena, "vol3: %f", wave_cursors[2].volume);
+        push_text(tm->render_command_arena, global_font, vol3_str, SCREEN_WIDTH - 450, 675, RED);
+
+
+
+
+
 
         // draw everything
         draw_commands(tm->render_command_arena);

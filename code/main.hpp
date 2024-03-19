@@ -60,10 +60,12 @@ typedef enum WaveAsset{
     WaveAsset_track1,
     WaveAsset_track2,
     WaveAsset_track3,
+    WaveAsset_track4,
     WaveAsset_bullet,
 
     WaveAsset_Count,
 } WaveAsset;
+
 #include "input.hpp"
 #include "clock.hpp"
 #include "wave.h"
@@ -93,7 +95,7 @@ typedef enum BitmapAsset{
 
 typedef struct Assets{
     Bitmap bitmap[BitmapAsset_Count];
-    Wave wave[WaveAsset_Count];
+    Wave waves[WaveAsset_Count];
 } Assets;
 
 #define WIN_SCORE 3000

@@ -135,5 +135,24 @@ rect_calc_border(Rect rect, s32 border_size){
 //    return(result);
 //}
 
+static Quad quad_from_pos_center(v2 pos, v2 dim){
+    Quad result = {0};
+    result.p0 = make_v2(pos.x - dim.w/2, pos.y - dim.h/2);
+    result.p1 = make_v2(pos.x + dim.w/2, pos.y - dim.h/2);
+    result.p2 = make_v2(pos.x + dim.w/2, pos.y + dim.h/2);
+    result.p3 = make_v2(pos.x - dim.w/2, pos.y + dim.h/2);
+
+    return(result);
+}
+
+static Quad quad_from_pos(v2 pos, v2 dim){
+    Quad result = {0};
+    result.p0 = make_v2(pos.x, pos.y);
+    result.p1 = make_v2(pos.x + dim.w, pos.y);
+    result.p2 = make_v2(pos.x + dim.w, pos.y + dim.h);
+    result.p3 = make_v2(pos.x, pos.y + dim.h);
+
+    return(result);
+}
 
 #endif

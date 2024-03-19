@@ -7,10 +7,11 @@ load_assets(Arena* arena, Assets* assets){
     assets->bitmap[BitmapAsset_Circle] = load_bitmap(arena, str8_literal("sprites/circle.bmp"));
     assets->bitmap[BitmapAsset_Asteroid] = load_bitmap(arena, str8_literal("sprites/asteroid.bmp"));
 
-    assets->wave[WaveAsset_track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
-    assets->wave[WaveAsset_track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
-    assets->wave[WaveAsset_track3] = load_wave(arena, str8_literal("sounds/track3.wav"));
-    assets->wave[WaveAsset_bullet] = load_wave(arena, str8_literal("sounds/bullet.wav"));
+    assets->waves[WaveAsset_track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
+    assets->waves[WaveAsset_track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
+    assets->waves[WaveAsset_track3] = load_wave(arena, str8_literal("sounds/track3.wav"));
+    assets->waves[WaveAsset_track4] = load_wave(arena, str8_literal("sounds/track4.wav"));
+    assets->waves[WaveAsset_bullet] = load_wave(arena, str8_literal("sounds/bullet.wav"));
 }
 
 // todo: Move these to entity once you move PermanentMemory further up in the tool chain
@@ -411,6 +412,24 @@ handle_controller_events(Event event){
                 }
                 controller.k.held = true;
             }
+            if(event.keycode == KeyCode_SIX){
+                if(!event.repeat){
+                    controller.six.pressed = true;
+                }
+                controller.six.held = true;
+            }
+            if(event.keycode == KeyCode_SEVEN){
+                if(!event.repeat){
+                    controller.seven.pressed = true;
+                }
+                controller.seven.held = true;
+            }
+            if(event.keycode == KeyCode_EIGHT){
+                if(!event.repeat){
+                    controller.eight.pressed = true;
+                }
+                controller.eight.held = true;
+            }
         }
 
         else{
@@ -464,6 +483,18 @@ handle_controller_events(Event event){
             }
             if(event.keycode == KeyCode_K){
                 controller.k.held = false;
+                return(true);
+            }
+            if(event.keycode == KeyCode_SIX){
+                controller.six.held = false;
+                return(true);
+            }
+            if(event.keycode == KeyCode_SEVEN){
+                controller.seven.held = false;
+                return(true);
+            }
+            if(event.keycode == KeyCode_EIGHT){
+                controller.eight.held = false;
                 return(true);
             }
         }
@@ -576,6 +607,15 @@ update_game(Window* window, Memory* memory, Events* events){
             if(wave_cursors[2].volume < 0.0f){
                 wave_cursors[2].volume = 0.0f;
             }
+        }
+        if(controller.six.pressed){
+            wave_cursors[0].at = 0;
+        }
+        if(controller.seven.pressed){
+            wave_cursors[1].at = 0;
+        }
+        if(controller.eight.pressed){
+            wave_cursors[2].at = 0;
         }
 
         for(s32 index = 0; index < array_count(pm->entities); ++index){

@@ -65,6 +65,10 @@ clear_controller_pressed(Controller* controller){
     controller->j.pressed  = false;
     controller->i.pressed  = false;
     controller->k.pressed  = false;
+
+    controller->six.pressed  = false;
+    controller->seven.pressed  = false;
+    controller->eight.pressed  = false;
 }
 
 #endif

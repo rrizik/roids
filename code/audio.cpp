@@ -1,6 +1,10 @@
 #ifndef WASAPI_CPP
 #define WASAPI_CPP
 
+// NOTE:
+// Discord Convo: https://discord.com/channels/239737791225790464/1216549745015656459
+// Improve this entire API by running it through a thread.
+
 // todo: change all asserts to error logs
 static HRESULT
 audio_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
@@ -28,6 +32,12 @@ audio_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
     }
     audio_device->Release();
 
+    hr = audio_client->GetDevicePeriod(&default_device_period, &minimum_device_period);
+    if(FAILED(hr)){
+        assert_hr(hr);
+        return(hr);
+    }
+
     wave_format = {0};
     wave_format.wFormatTag = WAVE_FORMAT_IEEE_FLOAT;
     wave_format.nChannels = channels;
@@ -37,14 +47,14 @@ audio_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
     wave_format.nAvgBytesPerSec = wave_format.nSamplesPerSec * wave_format.nBlockAlign;
     wave_format.cbSize = 0;
 
-    hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, duration, 0, &wave_format, 0);
+    hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, default_device_period, 0, &wave_format, 0);
     if (FAILED(hr)) {
         assert_hr(hr);
         return(hr);
     }
 
     // get the size of the buffer
-    hr = audio_client->GetBufferSize(&buffer_size);
+    hr = audio_client->GetBufferSize(&buffer_samples);
     if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
@@ -85,55 +95,55 @@ static HRESULT audio_stop(){
     return(hr);
 }
 
-static HRESULT audio_play_sine(f32 freq){
-    HRESULT hr = S_OK;
-
-    u32 padding;
-    hr = audio_client->GetCurrentPadding(&padding);
-    if(FAILED(hr)){
-        assert_hr(hr);
-        return(hr);
-    }
-    u32 available_size = buffer_size - padding;
-
-    u8* buffer;
-    hr = render_client->GetBuffer(available_size, &buffer);
-    if(FAILED(hr)){
-        assert_hr(hr);
-        return(hr);
-    }
-
-    static f32 time;
-    for(u32 i=0; i < available_size; ++i){
-        time = (f32)((f32)(numerator++ % buffer_size) / (f32)buffer_size);
-
-        f32 sine_value = sin_f32((2.0f * PI_f32 * freq * time));
-
-        // scale the sine value to the range -0.nf to 0.nf
-        sine_value *= 0.03f;
-
-        f32* buffer_f32 = (f32*)buffer;
-        if(wave_format.nChannels == 2){
-            buffer_f32[i * wave_format.nChannels] = sine_value;
-            buffer_f32[(i * wave_format.nChannels) + 1] = sine_value;
-        }
-        else{
-            buffer_f32[i * wave_format.nChannels] = sine_value;
-        }
-    }
-
-    hr = render_client->ReleaseBuffer(available_size, 0);
-    if (FAILED(hr)) {
-        assert_hr(hr);
-        return(hr);
-    }
-
-    return(hr);
-}
+//static HRESULT audio_play_sine(f32 freq){
+//    HRESULT hr = S_OK;
+//
+//    u32 padding;
+//    hr = audio_client->GetCurrentPadding(&padding);
+//    if(FAILED(hr)){
+//        assert_hr(hr);
+//        return(hr);
+//    }
+//    u32 available_size = buffer_size - padding;
+//
+//    u8* buffer;
+//    hr = render_client->GetBuffer(available_size, &buffer);
+//    if(FAILED(hr)){
+//        assert_hr(hr);
+//        return(hr);
+//    }
+//
+//    static f32 time;
+//    for(u32 i=0; i < available_size; ++i){
+//        time = (f32)((f32)(numerator++ % buffer_size) / (f32)buffer_size);
+//
+//        f32 sine_value = sin_f32((2.0f * PI_f32 * freq * time));
+//
+//        // scale the sine value to the range -0.nf to 0.nf
+//        sine_value *= 0.03f;
+//
+//        f32* buffer_f32 = (f32*)buffer;
+//        if(wave_format.nChannels == 2){
+//            buffer_f32[i * wave_format.nChannels] = sine_value;
+//            buffer_f32[(i * wave_format.nChannels) + 1] = sine_value;
+//        }
+//        else{
+//            buffer_f32[i * wave_format.nChannels] = sine_value;
+//        }
+//    }
+//
+//    hr = render_client->ReleaseBuffer(available_size, 0);
+//    if (FAILED(hr)) {
+//        assert_hr(hr);
+//        return(hr);
+//    }
+//
+//    return(hr);
+//}
 
 static bool
 audio_play(WaveAsset id, f32 volume, bool loop){
-    Wave wave = tm->assets.wave[id];
+    Wave wave = tm->assets.waves[id];
     WaveCursor cursor = {0};
     cursor.id = id;
     cursor.at = 0;
@@ -156,26 +166,25 @@ static HRESULT audio_play_cursors(){
         assert_hr(hr);
         return(hr);
     }
-    u32 available_size = buffer_size - padding;
+    u32 available_samples = buffer_samples - padding;
 
     u8* buffer;
-    hr = render_client->GetBuffer(available_size, &buffer);
+    hr = render_client->GetBuffer(available_samples, &buffer);
     if (FAILED(hr)) {
         assert_hr(hr);
         return(hr);
     }
 
-
-    memset(buffer, 0, available_size * wave_format.nBlockAlign);
+    memset(buffer, 0, available_samples * wave_format.nBlockAlign); // clear buffer from previously written data
     f32* buffer_f32 = (f32*)buffer;
     for(s32 cursor_i=0; cursor_i < (s32)wave_cursors_count; ++cursor_i){
         WaveCursor* cursor = wave_cursors + cursor_i;
-        Wave* wave = tm->assets.wave + cursor->id;
+        Wave* wave = tm->assets.waves + cursor->id;
 
-        u32 wave_remainder = wave->size - cursor->at;
-        u32 iter_size = wave_remainder > available_size ? available_size : wave_remainder;
+        u32 wave_remainder = wave->sample_count - cursor->at;
+        u32 iter_size = wave_remainder > available_samples ? available_samples : wave_remainder;
 
-        if(cursor->at < wave->size){
+        if(cursor->at < wave->sample_count){
             for(s32 i=0; i < iter_size; ++i){
                 f32 sample = ((s16)(wave->base[(cursor->at + i)])) * (1.0f / 32768.0f);
 
@@ -187,13 +196,13 @@ static HRESULT audio_play_cursors(){
 
         cursor->at += iter_size;
         if(cursor->loop){
-            if(cursor->at >= wave->size){
+            if(cursor->at >= wave->sample_count){
                 cursor->at = 0;
             }
         }
     }
 
-    hr = render_client->ReleaseBuffer(available_size, 0);
+    hr = render_client->ReleaseBuffer(available_samples, 0);
     if(FAILED(hr)){
         assert_hr(hr);
         return(hr);
@@ -201,8 +210,6 @@ static HRESULT audio_play_cursors(){
 
     return(hr);
 }
-// todo: next step -
-// mix them into the buffer
 
 static void
 audio_release(){

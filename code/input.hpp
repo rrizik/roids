@@ -33,6 +33,9 @@ typedef struct Controller{
     Button j;
     Button i;
     Button k;
+    Button six;
+    Button seven;
+    Button eight;
 
 } Controller;
 global Controller controller;
