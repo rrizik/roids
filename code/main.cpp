@@ -4,7 +4,7 @@
 #include "input.cpp"
 #include "clock.cpp"
 #include "wave.cpp"
-#include "audio.cpp"
+#include "wasapi.cpp"
 #include "camera.cpp"
 #include "rect.cpp"
 #include "bitmap.cpp"
@@ -27,14 +27,14 @@ init_paths(Arena* arena){
 }
 
 static void
-init_memory(Memory* m){
-    m->permanent_size = MB(500);
-    m->transient_size = GB(1);
-    m->size = m->permanent_size + m->transient_size;
+memory_init(){
+    memory.permanent_size = MB(500);
+    memory.transient_size = GB(1);
+    memory.size = memory.permanent_size + memory.transient_size;
 
-    m->base = os_virtual_alloc(m->size);
-    m->permanent_base = m->base;
-    m->transient_base = (u8*)m->base + m->permanent_size;
+    memory.base = os_virtual_alloc(memory.size);
+    memory.permanent_base = memory.base;
+    memory.transient_base = (u8*)memory.base + memory.permanent_size;
 }
 
 static Window
@@ -56,16 +56,14 @@ win32_window_create(const wchar* window_name, s32 width, s32 height){
 
     result.width = width;
     result.height = height;
-    result.aspect_ratio = (f32)width / (f32)height;
 
-    DWORD style = WS_OVERLAPPEDWINDOW;
-    //style &= ~WS_THICKFRAME & ~WS_MAXIMIZEBOX;
-    RECT rect = { 0, 0, 1280, 720 };
+    DWORD style = WS_OVERLAPPEDWINDOW|WS_VISIBLE;
+    RECT rect = { 0, 0, width, height };
     AdjustWindowRect(&rect, style, FALSE);
     s32 adjusted_w = rect.right - rect.left;
     s32 adjusted_h = rect.bottom - rect.top;
 
-    result.handle = CreateWindowW(L"window class", window_name, WS_OVERLAPPEDWINDOW|WS_VISIBLE, CW_USEDEFAULT, CW_USEDEFAULT, adjusted_w, adjusted_h, 0, 0, GetModuleHandle(0), 0);
+    result.handle = CreateWindowW(L"window class", window_name, style, CW_USEDEFAULT, CW_USEDEFAULT, adjusted_w, adjusted_h, 0, 0, GetModuleHandle(0), 0);
     if(!IsWindow(result.handle)){
         // todo: log error
     }
@@ -97,13 +95,14 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             events_add(&events, event);
         } break;
 
-        // TODO: mouse_pos now is probably wrong, fix it
         case WM_MOUSEMOVE:{
             Event event;
             event.type = MOUSE; // TODO: maybe have this be a KEYBOARD event
             event.mouse_pos.x = (s32)(s16)(l_param & 0xFFFF);
             event.mouse_pos.y = (s32)(s16)(l_param >> 16);
+            print("%i, %i\n", event.mouse_pos.x, event.mouse_pos.y);
 
+            // todo: dx/y is probably wrong, not working as expected
             s32 dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
             s32 dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);
             event.mouse_dx = (f32)dx / (f32)(SCREEN_WIDTH/2);
@@ -189,7 +188,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         case WM_KEYUP:{
             Event event;
             event.type = KEYBOARD;
-            event.keycode = w_param; // TODO figure out how to use this to get the right keycode
+            event.keycode = w_param;
 
             event.key_pressed = 0;
             event.alt_pressed   = alt_pressed;
@@ -209,7 +208,6 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
     return(result);
 }
 
-//static Wave wav;
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type){
     begin_profiler();
 
@@ -222,13 +220,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     init_paths(global_arena);
     random_seed(0, 1);
 
-    // D3D11 stuff
-    d3d_init(window);
+    d3d_init(window.handle, window.width, window.height);
 #if DEBUG
     d3d_init_debug_stuff();
 #endif
 
-    init_memory(&memory);
+    memory_init();
     init_clock(&clock);
     HRESULT hr = audio_init(2, 48000, 32);
     assert_hr(hr);
@@ -254,12 +251,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
     if(!memory.initialized){
         begin_timed_scope("memory.initialized");
-        pm->game_mode = GameMode_Game;
-        show_cursor(true);
-
-        init_camera();
-
-        // consider: maybe move this memory stuff to init_memory()
+        // consider: maybe move this memory stuff to memory_init()
         init_arena(&pm->arena, (u8*)memory.permanent_base + sizeof(PermanentMemory), memory.permanent_size - sizeof(PermanentMemory));
         init_arena(&tm->arena, (u8*)memory.transient_base + sizeof(TransientMemory), memory.transient_size - sizeof(TransientMemory));
 
@@ -267,23 +259,27 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         tm->frame_arena = push_arena(&tm->arena, MB(100));
         tm->assets_arena = push_arena(&tm->arena, MB(100));
 
-        // setup free entities array in reverse order
-        entities_clear(pm);
+        pm->game_mode = GameMode_Game;
 
-        load_font_ttf(global_arena, str8_literal("fonts/arial.ttf"), &global_font, 36);
+        show_cursor(true);
         load_assets(tm->assets_arena, &tm->assets);
-        //wav = load_wave(tm->assets_arena, str8_literal("sounds/blast_all.wav"));
-        //audio_play(WaveAsset_blast_all);
-        audio_play(WaveAsset_track1, 0.0f, true);
-        audio_play(WaveAsset_track3, 0.0f, true);
-        audio_play(WaveAsset_track4, 0.0f, true);
+
+        init_camera();
+        init_console(&pm->arena, FontAsset_Golos);
+        init_console_commands();
 
         init_texture_resource(&tm->assets.bitmap[BitmapAsset_Ship],   &ship_shader_resource);
         init_texture_resource(&tm->assets.bitmap[BitmapAsset_Circle], &circle_shader_resource);
         init_texture_resource(&tm->assets.bitmap[BitmapAsset_Asteroid], &asteroid_shader_resource);
 
-        init_console(&pm->arena);
-        init_console_commands();
+        current_font = FontAsset_Arial;
+
+        // setup free entities array in reverse order
+        entities_clear(pm);
+
+        audio_play(WaveAsset_track1, 0.0f, true);
+        audio_play(WaveAsset_track5, 0.0f, true);
+        audio_play(WaveAsset_track4, 0.0f, true);
 
         pm->ship = add_ship(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(75, 75));
         pm->ship_loaded = true;
@@ -321,12 +317,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             time_elapsed += clock.dt;
             simulations++;
 
-            clear_controller_pressed(&controller);
+            clear_controller_pressed();
         }
         audio_play_cursors();
 
         // command arena
-        push_clear_color(tm->render_command_arena, BACKGROUND_COLOR);
+        draw_clear_color(tm->render_command_arena, BACKGROUND_COLOR);
         // todo: also use flags here
         for(s32 index = 0; index < array_count(pm->entities); ++index){
             begin_timed_scope("command arena");
@@ -345,7 +341,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     p2 = rotate_point_deg(p2, e->deg, e->pos);
                     p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                    push_quad(tm->render_command_arena, p0, p1, p2, p3, e->color);
+                    draw_quad(tm->render_command_arena, p0, p1, p2, p3, e->color);
                 } break;
                 case EntityType_Asteroid:
                 case EntityType_Bullet:
@@ -369,12 +365,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
                     //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
-                    push_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                    draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
                     String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
                     if(e->type == EntityType_Asteroid){
                         text = str8_formatted(tm->frame_arena, "%i", e->health);
                     }
-                    //push_text(tm->render_command_arena, global_font, text, p0.x, p0.y, RED);
+                    //push_text(tm->render_command_arena, current_font, text, p0.x, p0.y, RED);
                 } break;
                 case EntityType_Ship:{
                     v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
@@ -396,9 +392,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
                     //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
-                    push_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                    draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
                     String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
-                    //push_text(tm->render_command_arena, global_font, text, p0.x, p0.y, RED);
+                    //push_text(tm->render_command_arena, current_font, text, p0.x, p0.y, RED);
                 } break;
             }
         }
@@ -406,20 +402,20 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         if(!pm->lives){
             String8 text = str8_formatted(tm->frame_arena, "GAME OVER - Score: %i", pm->score);
-            f32 width = font_string_width(global_font, text);
+            f32 width = font_string_width(current_font, text);
             f32 x = SCREEN_WIDTH/2 - width/2;
-            push_text(tm->render_command_arena, global_font, text, x, SCREEN_HEIGHT/2, ORANGE);
+            draw_text(tm->render_command_arena, current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
         }
         if(pm->score >= WIN_SCORE){
             String8 text = str8_formatted(tm->frame_arena, "CHICKEN DINNER - Score: %i", pm->score);
-            f32 width = font_string_width(global_font, text);
+            f32 width = font_string_width(current_font, text);
             f32 x = SCREEN_WIDTH/2 - width/2;
-            push_text(tm->render_command_arena, global_font, text, x, SCREEN_HEIGHT/2, ORANGE);
+            draw_text(tm->render_command_arena, current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
         }
         String8 text = str8_formatted(tm->frame_arena, "SCORE: %i/%i", pm->score, WIN_SCORE);
-        push_text(tm->render_command_arena, global_font, text, 50, 50, ORANGE);
+        draw_text(tm->render_command_arena, current_font, text, make_v2(50, 50), ORANGE);
         String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
-        push_text(tm->render_command_arena, global_font, lives, 50, 100, ORANGE);
+        draw_text(tm->render_command_arena, current_font, lives, make_v2(50, 100), ORANGE);
 
         console_draw();
 
@@ -436,7 +432,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
 
         String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
-        push_text(tm->render_command_arena, global_font, fps, SCREEN_WIDTH - 250, 50, ORANGE);
+        draw_text(tm->render_command_arena, current_font, fps, make_v2(SCREEN_WIDTH - 250, 50), ORANGE);
 
 
 
@@ -460,43 +456,43 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         pos = make_v2(100, 500);
         dim = make_v2(width1, 50);
         q = quad_from_pos(pos, dim);
-        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
+        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
 
         u32 at1 = (u32)(((f32)wave_cursors[0].at / (f32)size1) * dim.w);
         //print("at1(%i) - at2(%i) - at3(%i)\n", at1, at2, at3);
-        print("at1(%i) - at(%i) - size(%i) - div(%i)\n", at1, wave_cursors[0].at, size1, wave_cursors[0].at/size1);
+        //print("at1(%i) - at(%i) - size(%i) - div(%i)\n", at1, wave_cursors[0].at, size1, wave_cursors[0].at/size1);
         //u32 at1 = (u32)((wave_cursors[0].at * (u32)dim.w) / 700);
         q = quad_from_pos(make_v2((pos.x + (f32)at1), pos.y), make_v2(10, 50));
-        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
+        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
 
         String8 vol1_str = str8_formatted(tm->frame_arena, "vol1: %f", wave_cursors[0].volume);
-        push_text(tm->render_command_arena, global_font, vol1_str, SCREEN_WIDTH - 450, 525, RED);
+        draw_text(tm->render_command_arena, current_font, vol1_str, make_v2(SCREEN_WIDTH - 450, 525), RED);
 
         // ---------------------------------------------------------
         pos = make_v2(100, 575);
         dim = make_v2(width2, 50);
         q = quad_from_pos(pos, dim);
-        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
+        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
 
         u32 at2 = (u32)(((f32)wave_cursors[1].at / (f32)size2) * dim.w);
         q = quad_from_pos(make_v2((pos.x + (f32)at2), pos.y), make_v2(10, 50));
-        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
+        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
 
         String8 vol2_str = str8_formatted(tm->frame_arena, "vol2: %f", wave_cursors[1].volume);
-        push_text(tm->render_command_arena, global_font, vol2_str, SCREEN_WIDTH - 450, 600, RED);
+        draw_text(tm->render_command_arena, current_font, vol2_str, make_v2(SCREEN_WIDTH - 450, 600), RED);
 
         // ---------------------------------------------------------
         pos = make_v2(100, 650);
         dim = make_v2(width3, 50);
         q = quad_from_pos(pos, dim);
-        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
+        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
 
         u32 at3 = (u32)(((f32)wave_cursors[2].at / (f32)size3) * dim.w);
         q = quad_from_pos(make_v2((pos.x + (f32)at3), pos.y), make_v2(10, 50));
-        push_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
+        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
 
         String8 vol3_str = str8_formatted(tm->frame_arena, "vol3: %f", wave_cursors[2].volume);
-        push_text(tm->render_command_arena, global_font, vol3_str, SCREEN_WIDTH - 450, 675, RED);
+        draw_text(tm->render_command_arena, current_font, vol3_str, make_v2(SCREEN_WIDTH - 450, 675), RED);
 
 
 

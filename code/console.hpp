@@ -9,7 +9,7 @@ typedef enum ConsoleState{
 
 typedef struct Console{
     ConsoleState state;
-    Font font;
+    u32 font_type;
 
     f32 text_left_pad;
 
@@ -46,7 +46,7 @@ typedef struct Console{
 } Console;
 global Console console;
 
-static void init_console(Arena* arena);
+static void init_console(Arena* arena, u32 font_type);
 static bool console_is_open();
 static bool console_is_visible();
 static   u8 console_char_at_cursor();

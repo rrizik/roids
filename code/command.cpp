@@ -47,7 +47,7 @@ command_add(String8* args){
     console.output_history[console.output_history_count++] = result;
 }
 
-// todo: change this to list arg(saves, fonts, shaders, sprites)
+// todo: redo this entire function and reconsider how to are passing scratch arena
 static void
 command_saves(String8* args){
     ScratchArena scratch = begin_scratch(0);
@@ -55,7 +55,6 @@ command_saves(String8* args){
     String8Node files = {0};
     files.next = &files;
     files.prev = &files;
-    // TODO: I DONT THINK I SHOULD BE PASSING A SCRATCH HERE?
     os_dir_files(scratch.arena, &files, str8_literal("saves"));
     dll_pop_front(&files);
     dll_pop_front(&files);
@@ -87,7 +86,7 @@ parse_line_args(String8 line){
 
         u64 idx = str8_char_idx_from_left(remaining, ' ');
         String8 left_arg = str8_split_left(remaining, idx);
-        String8 arg = push_string(global_arena, left_arg); // todo: This doesn't look correct
+        String8 arg = push_string(global_arena, left_arg);
         command_args[command_args_count++] = arg;
 
         remaining = str8_advance(remaining, idx);

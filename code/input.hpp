@@ -1,48 +1,9 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-typedef struct Button{
-    bool pressed;
-    bool held;
-} Button;
-
-typedef struct Mouse{
-    v2s32 pos;
-    f32 dx;
-    f32 dy;
-    f32 wheel_direction;
-    bool tracking_leave;
-} Mouse;
-//global Mouse mouse;
-
-// todo: controller.button[EnumType_Down].pressed = blablabla;
-typedef struct Controller{
-    Mouse mouse;
-    Button up;
-    Button down;
-    Button left;
-    Button right;
-    Button shoot;
-    Button q;
-    Button e;
-    Button three;
-    Button four;
-    Button y;
-    Button h;
-    Button u;
-    Button j;
-    Button i;
-    Button k;
-    Button six;
-    Button seven;
-    Button eight;
-
-} Controller;
-global Controller controller;
-
 // CLEANUP: everything that is commented out, I dont think needs to exist.
 typedef enum KeyCode{
-    UNKOWN = 0,
+    KeyCode_None = 0,
 
     // INCOMPLETE: these need to be looked at again when we do mouse
     MOUSE_BUTTON_LEFT   = 1,
@@ -69,10 +30,10 @@ typedef enum KeyCode{
 	//KeyCode_QUOTATION =   34,
 	//KeyCode_OCTOTHORP =   35,
 	//KeyCode_DOLLAR =      36,
-	KeyCode_ARROW_LEFT =     37,
-	KeyCode_ARROW_UP =   38,
-	KeyCode_ARROW_RIGHT =  39,
-	KeyCode_ARROW_DOWN  = 40,
+	KeyCode_LEFT =     37,
+	KeyCode_UP =   38,
+	KeyCode_RIGHT =  39,
+	KeyCode_DOWN  = 40,
 	//KeyCode_CLOSE_PARENTHESIS = 41,
 	//KeyCode_ASTERISK =  42,
 	//KeyCode_PLUS_SIGN = 43,
@@ -130,7 +91,7 @@ typedef enum KeyCode{
 	//KeyCode_CARET = 94,
 	//KeyCode_UNDERSCORE = 95,
 	//KeyCode_GRAVE_ACCENT = 96,
-    KeyCode_F1 = 112,
+    KeyCode_F1 = 0x70,
     KeyCode_F2 = 113,
     KeyCode_F3 = 115,
     KeyCode_F4 = 116,
@@ -147,9 +108,37 @@ typedef enum KeyCode{
     KeyCode_COMMA = 188,
     KeyCode_PERIOD = 190,
  	KeyCode_TILDE = 192,
+
+    KeyCode_Count,
 } KeyCode;
 
-// TODO: Verify if I need this.
+
+// NOTE: Controller
+typedef struct Button{
+    bool pressed;
+    bool held;
+} Button;
+
+typedef struct Mouse{
+    v2s32 pos;
+    f32 dx;
+    f32 dy;
+    f32 wheel_direction;
+    bool tracking_leave;
+} Mouse;
+
+typedef struct Controller{
+    Mouse mouse;
+    Button button[KeyCode_Count];
+} Controller;
+global Controller controller;
+static void clear_controller_pressed();
+
+//
+// NOTE: EVENTS:
+//
+
+// TODO: I don't think I need this? I cant just assign it directly to the event.
 global bool alt_pressed;
 global bool shift_pressed;
 global bool ctrl_pressed;
@@ -193,7 +182,5 @@ static bool  events_empty(Events* events);
 static u32   mask(Events* events, u32 idx);
 static void  events_add(Events* events, Event event);
 static Event events_next(Events* events);
-static void  clear_controller_pressed(Controller* controller);
-
 
 #endif

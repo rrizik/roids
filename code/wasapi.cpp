@@ -98,6 +98,7 @@ static HRESULT audio_stop(){
 //static HRESULT audio_play_sine(f32 freq){
 //    HRESULT hr = S_OK;
 //
+//    local u32 numerator = 0;
 //    u32 padding;
 //    hr = audio_client->GetCurrentPadding(&padding);
 //    if(FAILED(hr)){
@@ -142,7 +143,7 @@ static HRESULT audio_stop(){
 //}
 
 static bool
-audio_play(WaveAsset id, f32 volume, bool loop){
+audio_play(u32 id, f32 volume, bool loop){
     Wave wave = tm->assets.waves[id];
     WaveCursor cursor = {0};
     cursor.id = id;

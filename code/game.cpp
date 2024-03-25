@@ -11,7 +11,11 @@ load_assets(Arena* arena, Assets* assets){
     assets->waves[WaveAsset_track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
     assets->waves[WaveAsset_track3] = load_wave(arena, str8_literal("sounds/track3.wav"));
     assets->waves[WaveAsset_track4] = load_wave(arena, str8_literal("sounds/track4.wav"));
+    assets->waves[WaveAsset_track5] = load_wave(arena, str8_literal("sounds/track5.wav"));
     assets->waves[WaveAsset_bullet] = load_wave(arena, str8_literal("sounds/bullet.wav"));
+
+    assets->fonts[FontAsset_Arial] = load_font_ttf(arena, str8_literal("fonts/arial.ttf"), 36);
+    assets->fonts[FontAsset_Golos] = load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), 24);
 }
 
 // todo: Move these to entity once you move PermanentMemory further up in the tool chain
@@ -328,175 +332,13 @@ handle_controller_events(Event event){
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
-            if(event.keycode == KeyCode_SPACEBAR){
-                if(!event.repeat){
-                    controller.shoot.pressed = true;
-                }
-                controller.shoot.held = true;
-                return(true);
+            if(!event.repeat){
+                controller.button[event.keycode].pressed = true;
             }
-            else if(event.keycode == KeyCode_Q){
-                if(!event.repeat){
-                    controller.q.pressed = true;
-                }
-                controller.q.held = true;
-                return(true);
-            }
-            else if(event.keycode == KeyCode_E){
-                if(!event.repeat){
-                    controller.e.pressed = true;
-                }
-                controller.e.held = true;
-                return(true);
-            }
-            if(event.keycode == KeyCode_A|| event.keycode == KeyCode_ARROW_LEFT){
-                if(!event.repeat){
-                    controller.left.pressed = true;
-                }
-                controller.left.held = true;
-                return(true);
-            }
-            if(event.keycode == KeyCode_D || event.keycode == KeyCode_ARROW_RIGHT){
-                if(!event.repeat){
-                    controller.right.pressed = true;
-                }
-                controller.right.held = true;
-                return(true);
-            }
-            if(event.keycode == KeyCode_W || event.keycode == KeyCode_ARROW_UP){
-                if(!event.repeat){
-                    controller.up.pressed = true;
-                }
-                controller.up.held = true;
-                return(true);
-            }
-            if(event.keycode == KeyCode_S || event.keycode == KeyCode_ARROW_DOWN){
-                if(!event.repeat){
-                    controller.down.pressed = true;
-                }
-                controller.down.held = true;
-            }
-            if(event.keycode == KeyCode_Y){
-                if(!event.repeat){
-                    controller.y.pressed = true;
-                }
-                controller.y.held = true;
-            }
-            if(event.keycode == KeyCode_H){
-                if(!event.repeat){
-                    controller.h.pressed = true;
-                }
-                controller.h.held = true;
-            }
-            if(event.keycode == KeyCode_U){
-                if(!event.repeat){
-                    controller.u.pressed = true;
-                }
-                controller.u.held = true;
-            }
-            if(event.keycode == KeyCode_J){
-                if(!event.repeat){
-                    controller.j.pressed = true;
-                }
-                controller.j.held = true;
-            }
-            if(event.keycode == KeyCode_I){
-                if(!event.repeat){
-                    controller.i.pressed = true;
-                }
-                controller.i.held = true;
-            }
-            if(event.keycode == KeyCode_K){
-                if(!event.repeat){
-                    controller.k.pressed = true;
-                }
-                controller.k.held = true;
-            }
-            if(event.keycode == KeyCode_SIX){
-                if(!event.repeat){
-                    controller.six.pressed = true;
-                }
-                controller.six.held = true;
-            }
-            if(event.keycode == KeyCode_SEVEN){
-                if(!event.repeat){
-                    controller.seven.pressed = true;
-                }
-                controller.seven.held = true;
-            }
-            if(event.keycode == KeyCode_EIGHT){
-                if(!event.repeat){
-                    controller.eight.pressed = true;
-                }
-                controller.eight.held = true;
-            }
+            controller.button[event.keycode].held = true;
         }
-
         else{
-            if(event.keycode == KeyCode_SPACEBAR){
-                controller.shoot.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_Q){
-                controller.q.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_E){
-                controller.e.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_W || event.keycode == KeyCode_ARROW_UP){
-                controller.up.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_A || event.keycode == KeyCode_ARROW_LEFT){
-                controller.left.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_D || event.keycode == KeyCode_ARROW_RIGHT){
-                controller.right.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_S || event.keycode == KeyCode_ARROW_DOWN){
-                controller.down.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_Y){
-                controller.y.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_H){
-                controller.h.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_U){
-                controller.u.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_J){
-                controller.j.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_I){
-                controller.i.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_K){
-                controller.k.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_SIX){
-                controller.six.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_SEVEN){
-                controller.seven.held = false;
-                return(true);
-            }
-            if(event.keycode == KeyCode_EIGHT){
-                controller.eight.held = false;
-                return(true);
-            }
+            controller.button[event.keycode].held = false;
         }
     }
     return(false);
@@ -572,49 +414,49 @@ update_game(Window* window, Memory* memory, Events* events){
             Entity* e = add_asteroid(pm, &asteroid_shader_resource, pos, dim, deg);
         }
 
-        if(controller.y.held){
+        if(controller.button[KeyCode_Y].held){
             wave_cursors[0].volume += (f32)clock.dt;
             if(wave_cursors[0].volume > 1.0f){
                 wave_cursors[0].volume = 1.0f;
             }
         }
-        if(controller.h.held){
+        if(controller.button[KeyCode_H].held){
             wave_cursors[0].volume -= (f32)clock.dt;
             if(wave_cursors[0].volume < 0.0f){
                 wave_cursors[0].volume = 0.0f;
             }
         }
-        if(controller.u.held){
+        if(controller.button[KeyCode_U].held){
             wave_cursors[1].volume += (f32)clock.dt;
             if(wave_cursors[1].volume > 1.0f){
                 wave_cursors[1].volume = 1.0f;
             }
         }
-        if(controller.j.held){
+        if(controller.button[KeyCode_J].held){
             wave_cursors[1].volume -= (f32)clock.dt;
             if(wave_cursors[1].volume < 0.0f){
                 wave_cursors[1].volume = 0.0f;
             }
         }
-        if(controller.i.held){
+        if(controller.button[KeyCode_I].held){
             wave_cursors[2].volume += (f32)clock.dt;
             if(wave_cursors[2].volume > 1.0f){
                 wave_cursors[2].volume = 1.0f;
             }
         }
-        if(controller.k.held){
+        if(controller.button[KeyCode_K].held){
             wave_cursors[2].volume -= (f32)clock.dt;
             if(wave_cursors[2].volume < 0.0f){
                 wave_cursors[2].volume = 0.0f;
             }
         }
-        if(controller.six.pressed){
+        if(controller.button[KeyCode_SIX].held){
             wave_cursors[0].at = 0;
         }
-        if(controller.seven.pressed){
+        if(controller.button[KeyCode_SEVEN].held){
             wave_cursors[1].at = 0;
         }
-        if(controller.eight.pressed){
+        if(controller.button[KeyCode_EIGHT].held){
             wave_cursors[2].at = 0;
         }
 
@@ -627,20 +469,20 @@ update_game(Window* window, Memory* memory, Events* events){
                     if(pm->ship_loaded){
 
                         // add bullet entity
-                        if(controller.shoot.pressed){
+                        if(controller.button[KeyCode_SPACEBAR].pressed){
                             add_bullet(pm, &circle_shader_resource, e->pos, make_v2(40, 8), e->deg);
                             audio_play(WaveAsset_bullet, 1.0f, false);
                             //audio_play_wav(bullet_sound);
                         }
 
                         // rotate ship
-                        if(controller.right.held){
+                        if(controller.button[KeyCode_RIGHT].held || controller.button[KeyCode_D].held){
                             f32 d = deg_from_dir(e->dir);
                             d += 200 * (f32)clock.dt;
                             e->dir = dir_from_deg(d);
                             e->deg = d;
                         }
-                        if(controller.left.held){
+                        if(controller.button[KeyCode_LEFT].held || controller.button[KeyCode_A].held){
                             f32 d = deg_from_dir(e->dir);
                             d -= 200 * (f32)clock.dt;
                             e->dir = dir_from_deg(d);
@@ -648,10 +490,10 @@ update_game(Window* window, Memory* memory, Events* events){
                         }
 
                         // increase ship velocity
-                        if(controller.up.held){
+                        if(controller.button[KeyCode_UP].held || controller.button[KeyCode_W].held){
                             e->velocity += (f32)clock.dt;
                         }
-                        if(controller.down.held){
+                        if(controller.button[KeyCode_DOWN].held || controller.button[KeyCode_S].held){
                             e->velocity -= (f32)clock.dt;
                         }
                         clamp_f32(0, 1, &e->velocity);

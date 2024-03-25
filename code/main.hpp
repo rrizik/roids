@@ -1,16 +1,32 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-#pragma comment(lib, "user32")
 
 #if DEBUG
 #define ENABLE_ASSERT 1
 #endif
 
+#pragma comment(lib, "user32")
 #include "base_inc.h"
 #include "win32_base_inc.h"
+
 #define PROFILER 1
 #include "profiler.h"
+
+#include "input.hpp"
+#include "clock.hpp"
+#include "wave.h"
+#include "wasapi.h"
+#include "camera.hpp"
+#include "rect.hpp"
+#include "bitmap.hpp"
+#include "d3d11_init.hpp"
+
+#include "font.hpp"
+#include "d3d11_render.hpp"
+#include "entity.hpp"
+#include "console.hpp"
+#include "command.hpp"
 
 static String8 build_path;
 static String8 fonts_path;
@@ -31,14 +47,13 @@ typedef struct Memory{
     bool initialized;
 } Memory;
 global Memory memory;
-static void init_memory(Memory* m);
+static void memory_init();
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 struct Window{
     s32 width;
     s32 height;
-    f32 aspect_ratio;
     HWND handle;
 };
 global Window window;
@@ -61,24 +76,11 @@ typedef enum WaveAsset{
     WaveAsset_track2,
     WaveAsset_track3,
     WaveAsset_track4,
+    WaveAsset_track5,
     WaveAsset_bullet,
 
     WaveAsset_Count,
 } WaveAsset;
-
-#include "input.hpp"
-#include "clock.hpp"
-#include "wave.h"
-#include "audio.h"
-#include "camera.hpp"
-#include "rect.hpp"
-#include "bitmap.hpp"
-#include "d3d11_init.hpp"
-#include "font.hpp"
-#include "d3d11_render.hpp"
-#include "entity.hpp"
-#include "console.hpp"
-#include "command.hpp"
 
 typedef enum BitmapAsset{
     BitmapAsset_Image,
@@ -92,10 +94,18 @@ typedef enum BitmapAsset{
     BitmapAsset_Count,
 } BitmapAsset;
 
+typedef enum FontAsset{
+    FontAsset_Arial,
+    FontAsset_Golos,
+
+    FontAsset_Count,
+} FontAsset;
+
 
 typedef struct Assets{
     Bitmap bitmap[BitmapAsset_Count];
-    Wave waves[WaveAsset_Count];
+    Wave   waves[WaveAsset_Count];
+    Font   fonts[FontAsset_Count];
 } Assets;
 
 #define WIN_SCORE 3000
@@ -131,6 +141,6 @@ typedef struct TransientMemory{
 global TransientMemory* tm;
 
 #include "game.hpp"
-static Font global_font;
+static u32 current_font;
 
 #endif

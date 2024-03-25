@@ -25,27 +25,14 @@ typedef struct RenderCommand{
     RGBA color;
 	ID3D11ShaderResourceView** texture;
 
-
-    // todo: remove this
-    f32 x;
-    f32 y;
-
-    Font font;
+    u32 font_id;
     String8 text;
-
 } RenderCommand;
 
-static void push_clear_color(Arena* arena, RGBA color);
-static void push_quad(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color);
-static void push_text(Arena* arena, Font font, String8 text, f32 x, f32 y, RGBA color);
-static void push_texture(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, ID3D11ShaderResourceView** texture);
+static void draw_clear_color(Arena* arena, RGBA color);
+static void draw_quad(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color);
+static void draw_text(Arena* arena, u32 font_id, String8 text, v2 pos, RGBA color);
+static void draw_texture(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, ID3D11ShaderResourceView** texture);
 static void draw_commands(Arena* commands);
-
-static void d3d_clear_color(RGBA color);
-static void d3d_draw_text(Font font, f32 x, f32 y, RGBA color, String8 text);
-static void d3d_draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color);
-static void d3d_draw_texture(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, ID3D11ShaderResourceView** texture);
-
-static void d3d_present();
 
 #endif

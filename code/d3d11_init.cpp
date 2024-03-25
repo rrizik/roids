@@ -55,7 +55,7 @@ d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_co
 };
 
 static void
-d3d_init(Window window){
+d3d_init(HWND window_handle, s32 width, s32 height){
     // ---------------------------------------------------------------------------------
     // Device + Context
     // ---------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ d3d_init(Window window){
     swapChainDesc.AlphaMode          = DXGI_ALPHA_MODE_UNSPECIFIED;
     swapChainDesc.Flags              = 0;
 
-    dxgiFactory->CreateSwapChainForHwnd(d3d_device, window.handle, &swapChainDesc, 0, 0, &d3d_swapchain);
+    dxgiFactory->CreateSwapChainForHwnd(d3d_device, window_handle, &swapChainDesc, 0, 0, &d3d_swapchain);
 
     // ---------------------------------------------------------------------------------
     // Frame Buffer
@@ -168,12 +168,14 @@ d3d_init(Window window){
     d3d_viewport = {0};
     d3d_viewport.TopLeftX = 0;
     d3d_viewport.TopLeftY = 0;
-    d3d_viewport.Width = (f32)window.width;
-    d3d_viewport.Height = (f32)window.height;
+    d3d_viewport.Width = (f32)width;
+    d3d_viewport.Height = (f32)height;
     d3d_viewport.MinDepth = 0;
     d3d_viewport.MaxDepth = 1.0;
 
-    // todo: move these up or down
+    // ---------------------------------------------------------------------------------
+    // Load Shaders
+    // ---------------------------------------------------------------------------------
 	d3d_load_shader(str8_literal("shaders\\2d_texture_shader.hlsl"), il_2d_textured, 3, &d3d_2d_textured_vs, &d3d_2d_textured_ps, &d3d_2d_textured_il);
 	d3d_load_shader(str8_literal("shaders\\2d_quad_shader.hlsl"), layout_2d_quad, 2, &d3d_2d_quad_vs, &d3d_2d_quad_ps, &d3d_2d_quad_il);
 
@@ -351,27 +353,5 @@ d3d_release(){
     }
 #endif
 }
-
-
-// todo: Get rid of this I think.
-//d3d_set_constant_buffer(v3 pos, v3 angle, v3 scale){
-//    f32 aspect_ratio = (f32)SCREEN_WIDTH / (f32)SCREEN_HEIGHT;
-//    D3D11_MAPPED_SUBRESOURCE mapped_subresource;
-//    d3d_context->Map(constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
-//
-//    ConstantBuffer* constants = (ConstantBuffer*)mapped_subresource.pData;
-//    //constants->transform = XMMatrixTranspose(
-//    //    XMMatrixRotationX(angle.x) *
-//    //    XMMatrixRotationY(angle.y) *
-//    //    XMMatrixRotationZ(angle.z) *
-//    //    XMMatrixScaling(scale.x, scale.y, scale.z) *
-//    //    XMMatrixTranslation(pos.x, pos.y, pos.z) *
-//    //    XMMatrixPerspectiveLH(1.0f, aspect_ratio, 1.0f, 1000.0f)
-//    //);
-//    d3d_context->Unmap(constant_buffer, 0);
-//
-//    d3d_context->VSSetConstantBuffers(0, 1, &constant_buffer);
-//}
-
 
 #endif

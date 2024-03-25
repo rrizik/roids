@@ -1,6 +1,7 @@
 #ifndef INPUT_C
 #define INPUT_C
 
+// consider: maybe I don't need this. array_count() can be computed in place
 static void
 events_init(Events* events){
     events->size = array_count(events->e);
@@ -48,27 +49,10 @@ events_next(Events* events){
 }
 
 static void
-clear_controller_pressed(Controller* controller){
-    controller->up.pressed    = false;
-    controller->down.pressed  = false;
-    controller->left.pressed  = false;
-    controller->right.pressed = false;
-    controller->shoot.pressed = false;
-    controller->q.pressed     = false;
-    controller->e.pressed     = false;
-    controller->three.pressed = false;
-    controller->four.pressed  = false;
-
-    controller->y.pressed  = false;
-    controller->h.pressed  = false;
-    controller->u.pressed  = false;
-    controller->j.pressed  = false;
-    controller->i.pressed  = false;
-    controller->k.pressed  = false;
-
-    controller->six.pressed  = false;
-    controller->seven.pressed  = false;
-    controller->eight.pressed  = false;
+clear_controller_pressed(){
+    for(s32 i=0; i < KeyCode_Count; ++i){
+        controller.button[i].pressed = false;
+    }
 }
 
 #endif

@@ -6,7 +6,7 @@
 #include <audioclient.h>
 
 typedef struct WaveCursor{
-    WaveAsset id;
+    u32 id;
     u32 at;
     f32 volume;
     bool loop;
@@ -23,7 +23,6 @@ static IAudioRenderClient *render_client;
 static WAVEFORMATEX wave_format;
 
 static u32 buffer_samples;
-//static u32 numerator = 0;
 REFERENCE_TIME default_device_period;
 REFERENCE_TIME minimum_device_period;
 
@@ -32,7 +31,7 @@ static HRESULT audio_start();
 static HRESULT audio_stop();
 //static HRESULT audio_play_sine(f32 freq);
 static HRESULT audio_play_cursors();
-static bool audio_play(WaveAsset id, f32 volume, bool loop);
+static bool audio_play(u32 id, f32 volume, bool loop);
 static void audio_release();
 
 #endif
