@@ -1,8 +1,15 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
-typedef enum {EntityFlag_Movable} EntityFlags;
-typedef enum {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
+typedef enum EntityFlag {
+    EntityFlag_None,
+    EntityFlag_Movable =    (1 << 0),
+    EntityFlag_CanCollide = (1 << 2),
+    EntityFlag_CanShoot =   (1 << 3),
+    EntityFlag_Count =      (1 << 4),
+} EntityFlag;
+
+typedef enum EntityType {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
 
 typedef struct Entity{
     Entity* next;

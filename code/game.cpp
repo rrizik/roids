@@ -66,9 +66,10 @@ add_entity(PermanentMemory *pm, EntityType type){
 }
 
 static Entity*
-add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color){
+add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color, u32 flags){
     Entity* e = add_entity(pm, EntityType_Quad);
     if(e){
+        e->flags = flags;
         e->dir = make_v2(1, 1);
         e->color = color;
         e->pos = pos;
@@ -84,9 +85,10 @@ add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color){
 }
 
 static Entity*
-add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color){
+add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color, u32 flags){
     Entity* e = add_entity(pm, EntityType_Texture);
     if(e){
+        e->flags = flags;
         e->dir = make_v2(1, 1);
         e->color = color;
         e->pos = pos;
@@ -103,9 +105,10 @@ add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 
 }
 
 static Entity*
-add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color){
+add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color, u32 flags){
     Entity* e = add_entity(pm, EntityType_Ship);
     if(e){
+        e->flags = flags;
         e->dir = make_v2(1, 1);
         e->color = color;
         e->pos = pos;
@@ -123,9 +126,10 @@ add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim
 }
 
 static Entity*
-add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color){
+add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
     Entity* e = add_entity(pm, EntityType_Bullet);
     if(e){
+        e->flags = flags;
         e->color = color;
         e->pos = pos;
         e->dim = dim;
@@ -143,9 +147,10 @@ add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 d
 }
 
 static Entity*
-add_asteroid(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color){
+add_asteroid(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
     Entity* e = add_entity(pm, EntityType_Asteroid);
     if(e){
+        e->flags = flags;
         e->color = color;
         e->pos = pos;
         e->dim = dim;
@@ -450,13 +455,13 @@ update_game(Window* window, Memory* memory, Events* events){
                 wave_cursors[2].volume = 0.0f;
             }
         }
-        if(controller.button[KeyCode_SIX].held){
+        if(controller.button[KeyCode_SIX].pressed){
             wave_cursors[0].at = 0;
         }
-        if(controller.button[KeyCode_SEVEN].held){
+        if(controller.button[KeyCode_SEVEN].pressed){
             wave_cursors[1].at = 0;
         }
-        if(controller.button[KeyCode_EIGHT].held){
+        if(controller.button[KeyCode_EIGHT].pressed){
             wave_cursors[2].at = 0;
         }
 
