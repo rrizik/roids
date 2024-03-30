@@ -3,10 +3,12 @@
 
 typedef enum EntityFlag {
     EntityFlag_None,
-    EntityFlag_Movable =    (1 << 0),
-    EntityFlag_CanCollide = (1 << 2),
-    EntityFlag_CanShoot =   (1 << 3),
-    EntityFlag_Count =      (1 << 4),
+    EntityFlag_Active =        (1 << 0),
+    EntityFlag_MoveWithCtrls = (1 << 1),
+    EntityFlag_CanCollide =    (1 << 2),
+    EntityFlag_CanShoot =      (1 << 3),
+    EntityFlag_MoveWithPhys =  (1 << 4),
+    EntityFlag_Count,
 } EntityFlag;
 
 typedef enum EntityType {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
@@ -35,7 +37,7 @@ typedef struct Entity{
     s32 damage;
     bool in_play;
 
-    ID3D11ShaderResourceView** texture;
+    u32 texture;
 } Entity;
 
 static bool has_flags(u32 flags, u32 flags_set);

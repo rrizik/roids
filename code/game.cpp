@@ -3,9 +3,16 @@
 
 static void
 load_assets(Arena* arena, Assets* assets){
-    assets->bitmap[BitmapAsset_Ship] =   load_bitmap(arena, str8_literal("sprites/ship2.bmp"));
-    assets->bitmap[BitmapAsset_Circle] = load_bitmap(arena, str8_literal("sprites/circle.bmp"));
-    assets->bitmap[BitmapAsset_Asteroid] = load_bitmap(arena, str8_literal("sprites/asteroid.bmp"));
+
+    ScratchArena scratch = begin_scratch(0);
+    Bitmap bm;
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/ship2.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Ship].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/circle.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Bullet].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/asteroid.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Asteroid].view, &bm);
+    end_scratch(scratch);
 
     assets->waves[WaveAsset_track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
     assets->waves[WaveAsset_track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
@@ -20,7 +27,7 @@ load_assets(Arena* arena, Assets* assets){
 
 // todo: Move these to entity once you move PermanentMemory further up in the tool chain
 static Entity*
-entity_from_handle(PermanentMemory* pm, EntityHandle handle){
+entity_from_handle(EntityHandle handle){
     Entity *result = 0;
     if(handle.index < (s32)array_count(pm->entities)){
         Entity *e = pm->entities + handle.index;
@@ -32,7 +39,7 @@ entity_from_handle(PermanentMemory* pm, EntityHandle handle){
 }
 
 static EntityHandle
-handle_from_entity(PermanentMemory* pm, Entity *e){
+handle_from_entity(Entity *e){
     assert(e != 0);
     EntityHandle result = {0};
     if((e >= pm->entities) && (e < (pm->entities + array_count(pm->entities)))){
@@ -43,14 +50,14 @@ handle_from_entity(PermanentMemory* pm, Entity *e){
 }
 
 static void
-remove_entity(PermanentMemory* pm, Entity* e){
+remove_entity(Entity* e){
     pm->free_entities[++pm->free_entities_at] = e->index;
     pm->entities_count--;
     *e = {0};
 }
 
 static Entity*
-add_entity(PermanentMemory *pm, EntityType type){
+add_entity(EntityType type){
     if(pm->free_entities_at < ENTITIES_MAX){
         u32 free_entity_index = pm->free_entities[pm->free_entities_at--];
         Entity *e = pm->entities + free_entity_index;
@@ -66,17 +73,15 @@ add_entity(PermanentMemory *pm, EntityType type){
 }
 
 static Entity*
-add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color, u32 flags){
-    Entity* e = add_entity(pm, EntityType_Quad);
+add_quad(v2 pos, v2 dim, RGBA color){
+    Entity* e = add_entity(EntityType_Quad);
     if(e){
-        e->flags = flags;
         e->dir = make_v2(1, 1);
         e->color = color;
         e->pos = pos;
         e->dim = dim;
         e->dir = make_v2(0, 1);
         e->deg = 90;
-        //e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
     }
     else{
         print("Failed to add entity: Quad\n");
@@ -85,17 +90,15 @@ add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color, u32 flags){
 }
 
 static Entity*
-add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color, u32 flags){
-    Entity* e = add_entity(pm, EntityType_Texture);
+add_texture(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
+    Entity* e = add_entity(EntityType_Texture);
     if(e){
-        e->flags = flags;
         e->dir = make_v2(1, 1);
         e->color = color;
         e->pos = pos;
         e->dim = dim;
         e->dir = make_v2(0, 1);
         e->deg = 90;
-        //e->origin = make_v2((pos.x + (pos.x + dim.w))/2, (pos.y + (pos.y + dim.h))/2);
         e->texture = texture;
     }
     else{
@@ -105,19 +108,23 @@ add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 
 }
 
 static Entity*
-add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color, u32 flags){
-    Entity* e = add_entity(pm, EntityType_Ship);
+add_ship(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
+    Entity* e = add_entity(EntityType_Ship);
     if(e){
-        e->flags = flags;
-        e->dir = make_v2(1, 1);
         e->color = color;
         e->pos = pos;
         e->dim = dim;
-        e->dir = make_v2(0, -1);
         e->deg = -90;
+        e->dir = make_v2(0, -1);
         e->speed = 400;
         e->velocity = 0;
         e->texture = texture;
+        if(flags == 0){
+            e->flags = EntityFlag_Active | EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot;
+        }
+        else{
+            e->flags = flags;
+        }
     }
     else{
         print("Failed to add entity: Ship\n");
@@ -126,10 +133,9 @@ add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim
 }
 
 static Entity*
-add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
-    Entity* e = add_entity(pm, EntityType_Bullet);
+add_bullet(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
+    Entity* e = add_entity(EntityType_Bullet);
     if(e){
-        e->flags = flags;
         e->color = color;
         e->pos = pos;
         e->dim = dim;
@@ -139,6 +145,12 @@ add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 d
         e->velocity = 1;
         e->damage = 50;
         e->texture = texture;
+        if(flags == 0){
+            e->flags = EntityFlag_Active | EntityFlag_MoveWithPhys | EntityFlag_CanCollide;
+        }
+        else{
+            e->flags = flags;
+        }
     }
     else{
         print("Failed to add entity: Bullet\n");
@@ -147,10 +159,9 @@ add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 d
 }
 
 static Entity*
-add_asteroid(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
-    Entity* e = add_entity(pm, EntityType_Asteroid);
+add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
+    Entity* e = add_entity(EntityType_Asteroid);
     if(e){
-        e->flags = flags;
         e->color = color;
         e->pos = pos;
         e->dim = dim;
@@ -161,6 +172,12 @@ add_asteroid(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2
         e->velocity = 1;
         e->health = (s32)dim.w;
         e->texture = texture;
+        if(flags == 0){
+            e->flags = EntityFlag_Active | EntityFlag_MoveWithPhys | EntityFlag_CanCollide;
+        }
+        else{
+            e->flags = flags;
+        }
     }
     else{
         print("Failed to add entity: Asteroid\n");
@@ -169,7 +186,7 @@ add_asteroid(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2
 }
 
 static void
-entities_clear(PermanentMemory* pm){
+entities_clear(){
     pm->free_entities_at = ENTITIES_MAX - 1;
     for(u32 i = pm->free_entities_at; i <= pm->free_entities_at; --i){
         Entity* e = pm->entities + i;
@@ -181,7 +198,7 @@ entities_clear(PermanentMemory* pm){
 }
 
 static void
-serialize_data(PermanentMemory* pm, String8 filename){
+serialize_data(String8 filename){
     ScratchArena scratch = begin_scratch(0);
     String8 full_path = str8_path_append(scratch.arena, saves_path, filename);
 
@@ -199,7 +216,7 @@ serialize_data(PermanentMemory* pm, String8 filename){
 }
 
 static void
-deserialize_data(PermanentMemory* pm, String8 filename){
+deserialize_data(String8 filename){
     ScratchArena scratch = begin_scratch(0);
     String8 full_path = str8_path_append(scratch.arena, saves_path, filename);
 
@@ -213,29 +230,29 @@ deserialize_data(PermanentMemory* pm, String8 filename){
     }
 
     String8 data = os_file_read(&pm->arena, file);
-    entities_clear(pm);
+    entities_clear();
 
     u32 offset = 0;
     while(offset < data.size){
         Entity* e = (Entity*)(data.str + offset);
         switch(e->type){
             case EntityType_Ship:{
-                Entity* ship = add_entity(pm, EntityType_Ship);
+                Entity* ship = add_entity(EntityType_Ship);
                 *ship = *e;
-                ship->texture = &ship_shader_resource;
+                ship->texture = TextureAsset_Ship;
 
                 pm->ship = ship;
                 pm->ship_loaded = true;
             } break;
             case EntityType_Bullet:{
-                Entity* bullet = add_entity(pm, EntityType_Bullet);
+                Entity* bullet = add_entity(EntityType_Bullet);
                 *bullet = *e;
-                bullet->texture = &bullet_shader_resource;
+                bullet->texture = TextureAsset_Bullet;
             } break;
             case EntityType_Asteroid:{
-                Entity* ast = add_entity(pm, EntityType_Asteroid);
+                Entity* ast = add_entity(EntityType_Asteroid);
                 *ast = *e;
-                ast->texture = &asteroid_shader_resource;
+                ast->texture = TextureAsset_Asteroid;
             } break;
         }
         offset += sizeof(Entity);
@@ -244,7 +261,6 @@ deserialize_data(PermanentMemory* pm, String8 filename){
     end_scratch(scratch);
 }
 
-static v2 dir_normalized = make_v2(0, 0);
 static bool
 handle_global_events(Event event){
     if(event.type == QUIT){
@@ -350,6 +366,27 @@ handle_controller_events(Event event){
 }
 
 static void
+reset_game(){
+    pm->lives = MAX_LIVES;
+    pm->score = 0;
+
+    pm->ship->dir = make_v2(0, -1);
+    pm->ship->pos = make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+    pm->ship->deg = -90;
+    pm->ship->velocity = 0;
+    set_flags(&pm->ship->flags, EntityFlag_Active);
+}
+
+static void
+reset_ship(){
+    pm->ship->dir = make_v2(0, -1);
+    pm->ship->pos = make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+    pm->ship->deg = -90;
+    pm->ship->velocity = 0;
+    set_flags(&pm->ship->flags, EntityFlag_Active);
+}
+
+static void
 update_game(Window* window, Memory* memory, Events* events){
 
     // NOTE: process events.
@@ -416,9 +453,12 @@ update_game(Window* window, Memory* memory, Events* events){
 
                 deg = (f32)random_range_u32(180) - 180;
             }
-            Entity* e = add_asteroid(pm, &asteroid_shader_resource, pos, dim, deg);
+            Entity* e = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
         }
 
+        if(controller.button[KeyCode_R].pressed){
+            reset_game();
+        }
         if(controller.button[KeyCode_Y].held){
             wave_cursors[0].volume += (f32)clock.dt;
             if(wave_cursors[0].volume > 1.0f){
@@ -471,13 +511,12 @@ update_game(Window* window, Memory* memory, Events* events){
 
             switch(e->type){
                 case EntityType_Ship:{
-                    if(pm->ship_loaded){
+                    if(has_flags(pm->ship->flags, EntityFlag_Active)){
 
                         // add bullet entity
                         if(controller.button[KeyCode_SPACEBAR].pressed){
-                            add_bullet(pm, &circle_shader_resource, e->pos, make_v2(40, 8), e->deg);
+                            add_bullet(TextureAsset_Bullet, e->pos, make_v2(40, 8), e->deg);
                             audio_play(WaveAsset_bullet, 1.0f, false);
-                            //audio_play_wav(bullet_sound);
                         }
 
                         // rotate ship
@@ -518,12 +557,12 @@ update_game(Window* window, Memory* memory, Events* events){
                                 if(rect_collides_rect(ast_rect, e_rect)){
                                     pm->lives -= 1;
                                     if(pm->lives){
-                                        e->pos = make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+                                        reset_ship();
                                     }
                                     else{
-                                        remove_entity(pm, e);
+                                        clear_flags(&pm->ship->flags, EntityFlag_Active);
                                     }
-                                    remove_entity(pm, ast);
+                                    remove_entity(ast);
                                     break;
                                 }
                             }
@@ -537,7 +576,7 @@ update_game(Window* window, Memory* memory, Events* events){
 
                     if((e->pos.x < 0 || e->pos.x > SCREEN_WIDTH) ||
                        (e->pos.y < 0 || e->pos.y > SCREEN_HEIGHT)){
-                        remove_entity(pm, e);
+                        remove_entity(e);
                         break;
                     }
 
@@ -556,9 +595,9 @@ update_game(Window* window, Memory* memory, Events* events){
                                 ast->color.b -= 0.4f;
                                 if(ast->health <= 0){
                                     pm->score += (u32)ast->dim.w;
-                                    remove_entity(pm, ast);
+                                    remove_entity(ast);
                                 }
-                                remove_entity(pm, e);
+                                remove_entity(e);
                                 break;
                             }
                         }
@@ -581,7 +620,7 @@ update_game(Window* window, Memory* memory, Events* events){
                     if((e->pos.x < 0 || e->pos.x > SCREEN_WIDTH) ||
                        (e->pos.y < 0 || e->pos.y > SCREEN_HEIGHT)){
                         if(e->in_play){
-                            remove_entity(pm, e);
+                            remove_entity(e);
                             break;
                         }
                     }

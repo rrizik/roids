@@ -91,7 +91,8 @@ draw_text(Arena* arena, u32 font_id, String8 text, v2 pos, RGBA color){
 }
 
 static void
-draw_texture(Arena* arena, ID3D11ShaderResourceView** texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE){
+//draw_texture(Arena* arena, ID3D11ShaderResourceView** texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE){
+draw_texture(Arena* arena, u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE){
     RenderCommand* command = push_struct(arena, RenderCommand);
     command->type = RenderCommandType_Texture;
     command->color = color;
@@ -216,6 +217,7 @@ draw_commands(Arena* commands){
                 d3d_context->Draw(6, 0);
             } break;
             case RenderCommandType_Texture:{
+                ID3D11ShaderResourceView* texture = tm->assets.textures[command->texture].view;
                 RGBA linear_color = srgb_to_linear(command->color); // gamma correction
                 Vertex3 vertices[] = {
                     { command->p0, linear_color, make_v2(0.0f, 0.0f) },
@@ -247,7 +249,7 @@ draw_commands(Arena* commands){
 
                 d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
                 d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
-                d3d_context->PSSetShaderResources(0, 1, command->texture);
+                d3d_context->PSSetShaderResources(0, 1, &texture);
 
                 d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
                 d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);

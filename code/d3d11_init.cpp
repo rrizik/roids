@@ -272,7 +272,7 @@ d3d_init(HWND window_handle, s32 width, s32 height){
 }
 
 static void
-init_texture_resource(Bitmap* bitmap, ID3D11ShaderResourceView** shader_resource){
+init_texture_resource(ID3D11ShaderResourceView** shader_resource, Bitmap* bitmap){
     D3D11_TEXTURE2D_DESC desc = {
         .Width = (u32)bitmap->width,
         .Height = (u32)bitmap->height,
@@ -291,7 +291,7 @@ init_texture_resource(Bitmap* bitmap, ID3D11ShaderResourceView** shader_resource
 
     ID3D11Texture2D* texture;
     hr = d3d_device->CreateTexture2D(&desc, &data, &texture);
-    assert_hr(hr);
+assert_hr(hr);
 
     hr = d3d_device->CreateShaderResourceView(texture, 0, shader_resource);
     assert_hr(hr);

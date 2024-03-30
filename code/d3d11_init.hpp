@@ -59,13 +59,6 @@ global ID3D11Buffer* d3d_index_buffer;
 global ID3D11Buffer* d3d_instance_buffer;
 global ID3D11Buffer* d3d_constant_buffer;
 
-//global ID3D11Texture2D* image_texture;
-//global ID3D11Texture2D* ship_texture;
-//global ID3D11Texture2D* tree_texture;
-//global ID3D11Texture2D* circle_texture;
-//global ID3D11Texture2D* bullet_texture;
-//global ID3D11Texture2D* test_texture;
-
 global ID3D11ShaderResourceView* image_shader_resource;
 global ID3D11ShaderResourceView* ship_shader_resource;
 global ID3D11ShaderResourceView* tree_shader_resource;
@@ -111,10 +104,9 @@ typedef struct Transform2D{
     DirectX::XMFLOAT2 scale;
 } Transform2D;
 
-typedef struct Texture2D{
+typedef struct Texture{
     ID3D11ShaderResourceView* view;
-    ID3D11Texture2D* tex;
-} Texture2D;
+} Texture;
 
 typedef struct Vertex3{
     v2 position;
@@ -154,7 +146,7 @@ static void d3d_init(HWND handle, s32 width, s32 height);
 static void d3d_init_debug_stuff();
 static void d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_count, ID3D11VertexShader** d3d_vs, ID3D11PixelShader** d3d_ps, ID3D11InputLayout** d3d_il);
 static void d3d_load_shader2(String8 shader_path, ID3D11VertexShader** d3d_vs, ID3D11PixelShader** d3d_ps);
-static void init_texture_resource(Bitmap* bitmap, ID3D11ShaderResourceView** shader_resource);
+static void init_texture_resource(ID3D11ShaderResourceView** shader_resource, Bitmap* bitmap);
 static void d3d_release();
 
 #endif

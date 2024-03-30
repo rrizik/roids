@@ -7,9 +7,10 @@ load_font_ttf(Arena* arena, String8 path, f32 size){
     File file = os_file_open(path, GENERIC_READ, OPEN_EXISTING);
     assert_h(file.handle); // todo: replace all these asserts with if checks so it doesn't explode
 
+    ScratchArena scratch = begin_scratch(0);
     // init font
     Font result = {0};
-    String8 file_data =  os_file_read(arena, file);
+    String8 file_data =  os_file_read(scratch.arena, file);
     if(!stbtt_InitFont(&result.info, (u8*)file_data.str, 0)){
         result.succeed = false;
         return(result);
@@ -23,7 +24,6 @@ load_font_ttf(Arena* arena, String8 path, f32 size){
     result.first_char = 32;
     result.size = size;
     s32 stride = result.texture_w * 4;
-    ScratchArena scratch = begin_scratch(0);
 
     // u8 data single channel as alpha
     String8 bitmap_a;
@@ -70,12 +70,13 @@ load_font_ttf(Arena* arena, String8 path, f32 size){
         .pSysMem = bitmap_rgba.str,
         .SysMemPitch = (u32)stride,
     };
-
-    hr = d3d_device->CreateTexture2D(&desc, &shader_data, &result.atlas.tex);
+    ID3D11Texture2D* texture;
+    hr = d3d_device->CreateTexture2D(&desc, &shader_data, &texture);
     assert_hr(hr);
-    hr = d3d_device->CreateShaderResourceView(result.atlas.tex, 0, &result.atlas.view);
+    hr = d3d_device->CreateShaderResourceView(texture, 0, &result.atlas.view);
     assert_hr(hr);
 
+    texture->Release();
     os_file_close(file);
     end_scratch(scratch);
     return(result);

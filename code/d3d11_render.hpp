@@ -23,7 +23,8 @@ typedef struct RenderCommand{
     s32 width;
 
     RGBA color;
-	ID3D11ShaderResourceView** texture;
+	//ID3D11ShaderResourceView** texture;
+	u32 texture;
 
     u32 font_id;
     String8 text;

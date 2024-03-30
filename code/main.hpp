@@ -82,17 +82,28 @@ typedef enum WaveAsset{
     WaveAsset_Count,
 } WaveAsset;
 
-typedef enum BitmapAsset{
-    BitmapAsset_Image,
-    BitmapAsset_Ship,
-    BitmapAsset_Tree,
-    BitmapAsset_Circle,
-    BitmapAsset_Bullet,
-    BitmapAsset_Test,
-    BitmapAsset_Asteroid,
+//typedef enum BitmapAsset{
+//    BitmapAsset_Image,
+//    BitmapAsset_Ship,
+//    BitmapAsset_Tree,
+//    BitmapAsset_Circle,
+//    BitmapAsset_Bullet,
+//    BitmapAsset_Test,
+//    BitmapAsset_Asteroid,
+//
+//    BitmapAsset_Count,
+//} BitmapAsset;
 
-    BitmapAsset_Count,
-} BitmapAsset;
+typedef enum TextureAsset{
+    TextureAsset_Ship,
+    TextureAsset_Bullet,
+    TextureAsset_Asteroid,
+
+    TextureAsset_Font_Arial,
+    TextureAsset_Font_Golos,
+
+    TextureAsset_Count,
+} TextureAsset;
 
 typedef enum FontAsset{
     FontAsset_Arial,
@@ -103,11 +114,13 @@ typedef enum FontAsset{
 
 
 typedef struct Assets{
-    Bitmap bitmap[BitmapAsset_Count];
-    Wave   waves[WaveAsset_Count];
-    Font   fonts[FontAsset_Count];
+    //Bitmap  bitmap[BitmapAsset_Count];
+    Wave    waves[WaveAsset_Count];
+    Font    fonts[FontAsset_Count];
+    Texture textures[TextureAsset_Count];
 } Assets;
 
+#define MAX_LIVES 3
 #define WIN_SCORE 3000
 #define ENTITIES_MAX 4096
 typedef struct PermanentMemory{

@@ -45,7 +45,8 @@ typedef struct Font{
     f32 size;
     stbtt_packedchar packed_chars[256];
 
-    Texture2D atlas;
+    Texture atlas;
+    u32 texture;
     bool succeed;
 } Font;
 

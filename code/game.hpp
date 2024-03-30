@@ -9,26 +9,29 @@ typedef enum GameMode{
 
 static void load_assets(Arena* arena, Assets* assets);
 
-static Bitmap* get_bitmap(Assets* assets, BitmapAsset id);
+//static Bitmap* get_bitmap(Assets* assets, BitmapAsset id);
 
-// todo: PermanentMemory is global, stop passing it around
-static Entity* entity_from_handle(PermanentMemory* pm, EntityHandle handle);
-static EntityHandle handle_from_entity(PermanentMemory* pm, Entity *e);
+// todo: is global, stop passing it around
+static Entity* entity_from_handle(EntityHandle handle);
+static EntityHandle handle_from_entity(Entity *e);
 
-static    void remove_entity(PermanentMemory* pm, Entity* e);
-static Entity* add_entity(PermanentMemory *pm, EntityType type);
-static Entity* add_quad(PermanentMemory* pm, v2 pos, v2 dim, RGBA color);
-static Entity* add_texture(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color=WHITE);
-static Entity* add_ship(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, RGBA color=WHITE);
-static Entity* add_bullet(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE);
-static Entity* add_asteroid(PermanentMemory* pm, ID3D11ShaderResourceView** texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE);
+static    void remove_entity(Entity* e);
+static Entity* add_entity(EntityType type);
+static Entity* add_quad(v2 pos, v2 dim, RGBA color);
+static Entity* add_texture(u32 texture, v2 pos, v2 dim, RGBA color=WHITE, u32 flags = 0);
+static Entity* add_ship(u32 texture, v2 pos, v2 dim, RGBA color=WHITE, u32 flags = 0);
+static Entity* add_bullet(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE, u32 flags = 0);
+static Entity* add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE, u32 flags = 0);
 
-static void entities_clear(PermanentMemory* pm);
-static void serialize_data(PermanentMemory* pm, String8 filename);
-static void deserialize_data(PermanentMemory* pm, String8 filename);
+static void entities_clear();
+static void serialize_data(String8 filename);
+static void deserialize_data(String8 filename);
 static bool handle_global_events(Event event);
 static bool handle_camera_events(Event event);
 static bool handle_controller_events(Event event);
+
+static void reset_game(void);
+static void reset_ship(void);
 
 static void update_game(Window* window, Memory* memory, Events* events);
 

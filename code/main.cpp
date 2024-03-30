@@ -268,22 +268,22 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_console(&pm->arena, FontAsset_Golos);
         init_console_commands();
 
-        init_texture_resource(&tm->assets.bitmap[BitmapAsset_Ship],   &ship_shader_resource);
-        init_texture_resource(&tm->assets.bitmap[BitmapAsset_Circle], &circle_shader_resource);
-        init_texture_resource(&tm->assets.bitmap[BitmapAsset_Asteroid], &asteroid_shader_resource);
+        //init_texture_resource(&tm->assets.bitmap[BitmapAsset_Ship],   &ship_shader_resource);
+        //init_texture_resource(&tm->assets.bitmap[BitmapAsset_Circle], &circle_shader_resource);
+        //init_texture_resource(&tm->assets.bitmap[BitmapAsset_Asteroid], &asteroid_shader_resource);
 
         current_font = FontAsset_Arial;
 
         // setup free entities array in reverse order
-        entities_clear(pm);
+        entities_clear();
 
         audio_play(WaveAsset_track1, 0.0f, true);
         audio_play(WaveAsset_track5, 0.0f, true);
         audio_play(WaveAsset_track4, 0.0f, true);
 
-        pm->ship = add_ship(pm, &ship_shader_resource, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(75, 75));
+        pm->ship = add_ship(TextureAsset_Ship, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(75, 75));
         pm->ship_loaded = true;
-        pm->lives = 3;
+        pm->lives = MAX_LIVES;
 
         memory.initialized = true;
     }
@@ -327,75 +327,77 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         for(s32 index = 0; index < array_count(pm->entities); ++index){
             begin_timed_scope("command arena");
             Entity *e = pm->entities + index;
+            if(has_flags(e->flags, EntityFlag_Active)){
 
-            switch(e->type){
-                case EntityType_Quad:{
-                    v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
-                    v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
-                    v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
-                    v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+                switch(e->type){
+                    case EntityType_Quad:{
+                        v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
+                        v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
+                        v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
+                        v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
 
-                    //f32 deg = deg_from_dir(e->dir);
-                    p0 = rotate_point_deg(p0, e->deg, e->pos);
-                    p1 = rotate_point_deg(p1, e->deg, e->pos);
-                    p2 = rotate_point_deg(p2, e->deg, e->pos);
-                    p3 = rotate_point_deg(p3, e->deg, e->pos);
+                        //f32 deg = deg_from_dir(e->dir);
+                        p0 = rotate_point_deg(p0, e->deg, e->pos);
+                        p1 = rotate_point_deg(p1, e->deg, e->pos);
+                        p2 = rotate_point_deg(p2, e->deg, e->pos);
+                        p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                    draw_quad(tm->render_command_arena, p0, p1, p2, p3, e->color);
-                } break;
-                case EntityType_Asteroid:
-                case EntityType_Bullet:
-                case EntityType_Texture:{
-                    v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
-                    v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
-                    v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
-                    v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+                        draw_quad(tm->render_command_arena, p0, p1, p2, p3, e->color);
+                    } break;
+                    case EntityType_Asteroid:
+                    case EntityType_Bullet:
+                    case EntityType_Texture:{
+                        v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
+                        v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
+                        v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
+                        v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
 
-                    Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
-                                            make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
-                    //push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
+                        Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
+                                                make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
+                        //push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
 
-                    p0 = rotate_point_deg(p0, e->deg, e->pos);
-                    p1 = rotate_point_deg(p1, e->deg, e->pos);
-                    p2 = rotate_point_deg(p2, e->deg, e->pos);
-                    p3 = rotate_point_deg(p3, e->deg, e->pos);
+                        p0 = rotate_point_deg(p0, e->deg, e->pos);
+                        p1 = rotate_point_deg(p1, e->deg, e->pos);
+                        p2 = rotate_point_deg(p2, e->deg, e->pos);
+                        p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                    //push_line(tm->render_command_arena, p0, p1, 2, GREEN);
-                    //push_line(tm->render_command_arena, p1, p2, 2, GREEN);
-                    //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
-                    //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
+                        //push_line(tm->render_command_arena, p0, p1, 2, GREEN);
+                        //push_line(tm->render_command_arena, p1, p2, 2, GREEN);
+                        //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
+                        //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
-                    draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
-                    String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
-                    if(e->type == EntityType_Asteroid){
-                        text = str8_formatted(tm->frame_arena, "%i", e->health);
-                    }
-                    //push_text(tm->render_command_arena, current_font, text, p0.x, p0.y, RED);
-                } break;
-                case EntityType_Ship:{
-                    v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
-                    v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
-                    v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
-                    v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+                        draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                        String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
+                        if(e->type == EntityType_Asteroid){
+                            text = str8_formatted(tm->frame_arena, "%i", e->health);
+                        }
+                        //push_text(tm->render_command_arena, current_font, text, p0.x, p0.y, RED);
+                    } break;
+                    case EntityType_Ship:{
+                        v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
+                        v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
+                        v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
+                        v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
 
-                    Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
-                                            make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
-                    //push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
+                        Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
+                                                make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
+                        //push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
 
-                    p0 = rotate_point_deg(p0, e->deg, e->pos);
-                    p1 = rotate_point_deg(p1, e->deg, e->pos);
-                    p2 = rotate_point_deg(p2, e->deg, e->pos);
-                    p3 = rotate_point_deg(p3, e->deg, e->pos);
+                        p0 = rotate_point_deg(p0, e->deg, e->pos);
+                        p1 = rotate_point_deg(p1, e->deg, e->pos);
+                        p2 = rotate_point_deg(p2, e->deg, e->pos);
+                        p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                    //push_line(tm->render_command_arena, p0, p1, 2, GREEN);
-                    //push_line(tm->render_command_arena, p1, p2, 2, GREEN);
-                    //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
-                    //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
+                        //push_line(tm->render_command_arena, p0, p1, 2, GREEN);
+                        //push_line(tm->render_command_arena, p1, p2, 2, GREEN);
+                        //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
+                        //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
-                    draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
-                    String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
-                    //push_text(tm->render_command_arena, current_font, text, p0.x, p0.y, RED);
-                } break;
+                        draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                        String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
+                        //push_text(tm->render_command_arena, current_font, text, p0.x, p0.y, RED);
+                    } break;
+                }
             }
         }
 
