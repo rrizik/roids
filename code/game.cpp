@@ -198,6 +198,18 @@ entities_clear(){
 }
 
 static void
+entities_clear_exclude_ship(){
+    pm->free_entities_at = ENTITIES_MAX - 1;
+    for(u32 i = pm->free_entities_at; i <= pm->free_entities_at; --i){
+        if(i != pm->ship->index){
+            pm->free_entities[i] = pm->free_entities_at - i;
+            pm->generation[i] = 0;
+        }
+    }
+    pm->entities_count = 0;
+}
+
+static void
 serialize_data(String8 filename){
     ScratchArena scratch = begin_scratch(0);
     String8 full_path = str8_path_append(scratch.arena, saves_path, filename);
@@ -458,6 +470,17 @@ update_game(Window* window, Memory* memory, Events* events){
 
         if(controller.button[KeyCode_R].pressed){
             reset_game();
+            //entities_clear_exclude_ship();
+            //for(s32 i=0; i < array_count(pm->entities); i++){
+            //    if(i != (s32)pm->ship->index){
+            //        print("in - %i, %i\n", i, pm->ship->index);
+            //        Entity* e = pm->entities + i;
+            //        remove_entity(e);
+            //    }
+            //    else{
+            //        print("out - %i, %i\n", i, pm->ship->index);
+            //    }
+            //}
         }
         if(controller.button[KeyCode_Y].held){
             wave_cursors[0].volume += (f32)clock.dt;
