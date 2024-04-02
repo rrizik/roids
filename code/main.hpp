@@ -77,22 +77,14 @@ typedef enum WaveAsset{
     WaveAsset_track3,
     WaveAsset_track4,
     WaveAsset_track5,
-    WaveAsset_bullet,
+    WaveAsset_rail1,
+    WaveAsset_rail2,
+    WaveAsset_rail3,
+    WaveAsset_rail4,
+    WaveAsset_rail5,
 
     WaveAsset_Count,
 } WaveAsset;
-
-//typedef enum BitmapAsset{
-//    BitmapAsset_Image,
-//    BitmapAsset_Ship,
-//    BitmapAsset_Tree,
-//    BitmapAsset_Circle,
-//    BitmapAsset_Bullet,
-//    BitmapAsset_Test,
-//    BitmapAsset_Asteroid,
-//
-//    BitmapAsset_Count,
-//} BitmapAsset;
 
 typedef enum TextureAsset{
     TextureAsset_Ship,
@@ -114,7 +106,6 @@ typedef enum FontAsset{
 
 
 typedef struct Assets{
-    //Bitmap  bitmap[BitmapAsset_Count];
     Wave    waves[WaveAsset_Count];
     Font    fonts[FontAsset_Count];
     Texture textures[TextureAsset_Count];
@@ -122,7 +113,7 @@ typedef struct Assets{
 
 #define MAX_LIVES 3
 #define WIN_SCORE 3000
-#define ENTITIES_MAX 4096
+#define ENTITIES_MAX 50
 typedef struct PermanentMemory{
     Arena arena;
     u32 game_mode; // GameMode

@@ -22,4 +22,11 @@ zero_entity_handle(){
     return(result);
 }
 
+static Rect
+rect_from_entity(Entity* e){
+    Rect result = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
+                            make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
+    return(result);
+}
+
 #endif

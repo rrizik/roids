@@ -100,7 +100,6 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             event.type = MOUSE; // TODO: maybe have this be a KEYBOARD event
             event.mouse_pos.x = (s32)(s16)(l_param & 0xFFFF);
             event.mouse_pos.y = (s32)(s16)(l_param >> 16);
-            print("%i, %i\n", event.mouse_pos.x, event.mouse_pos.y);
 
             // todo: dx/y is probably wrong, not working as expected
             s32 dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
@@ -267,10 +266,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_camera();
         init_console(&pm->arena, FontAsset_Golos);
         init_console_commands();
-
-        //init_texture_resource(&tm->assets.bitmap[BitmapAsset_Ship],   &ship_shader_resource);
-        //init_texture_resource(&tm->assets.bitmap[BitmapAsset_Circle], &circle_shader_resource);
-        //init_texture_resource(&tm->assets.bitmap[BitmapAsset_Asteroid], &asteroid_shader_resource);
 
         current_font = FontAsset_Arial;
 
