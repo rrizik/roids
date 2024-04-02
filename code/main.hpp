@@ -146,5 +146,6 @@ global TransientMemory* tm;
 
 #include "game.hpp"
 static u32 current_font;
+static v2 dir_vector = {0, 0};
 
 #endif

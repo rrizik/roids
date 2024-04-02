@@ -24,6 +24,7 @@ typedef struct Entity{
     v2 pos;
     v2 dim;
     v2 dir;
+    v2 accel_dir;
     f32 deg;
     v2 scale;
     RGBA color;

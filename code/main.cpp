@@ -493,9 +493,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
 
 
-
-
-
         // draw everything
         draw_commands(tm->render_command_arena);
 		simulations = 0;
