@@ -8,6 +8,7 @@ typedef enum EntityFlag {
     EntityFlag_CanShoot =      (1 << 3),
     EntityFlag_MoveWithPhys =  (1 << 4),
     EntityFlag_IsProjectile =  (1 << 5),
+    EntityFlag_Wrapping =      (1 << 6),
 } EntityFlag;
 
 typedef enum EntityType {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;

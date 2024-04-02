@@ -279,6 +279,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         pm->ship = add_ship(TextureAsset_Ship, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(75, 75));
         pm->ship_loaded = true;
         pm->lives = MAX_LIVES;
+        pm->asteroids_to_kill = 10;
 
         memory.initialized = true;
     }

@@ -130,6 +130,8 @@ typedef struct PermanentMemory{
     s32 score;
     s32 lives;
 
+    s32 asteroids_to_kill;
+
     f64 spawn_t;
 } PermanentMemory, State;
 global PermanentMemory* pm;
@@ -146,6 +148,5 @@ global TransientMemory* tm;
 
 #include "game.hpp"
 static u32 current_font;
-static v2 dir_vector = {0, 0};
 
 #endif

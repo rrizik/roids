@@ -123,12 +123,12 @@ add_ship(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
         e->dim = dim;
         e->deg = -90;
         e->dir = make_v2(0, -1);
-        e->accel_dir = e->dir;
+        e->accel_dir = make_v2(0, 0);
         e->speed = 200;
         e->velocity = 0;
         e->texture = texture;
         if(flags == 0){
-            set_flags(&e->flags, EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot);
+            set_flags(&e->flags, EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
         }
         else{
             set_flags(&e->flags, flags);
@@ -181,7 +181,7 @@ add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
         e->health = (s32)dim.w;
         e->texture = texture;
         if(flags == 0){
-            set_flags(&e->flags, EntityFlag_MoveWithPhys | EntityFlag_CanCollide);
+            set_flags(&e->flags, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_Wrapping);
         }
         else{
             set_flags(&e->flags, flags);
@@ -517,23 +517,34 @@ update_game(Window* window, Memory* memory, Events* events){
 
                 deg = (f32)random_range_u32(180) - 180;
             }
-            //Entity* e = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
+            if(pm->asteroids_to_kill > 0){
+                Entity* e = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
+                pm->asteroids_to_kill -= 1;
+            }
         }
 
-        if(pm->ship->pos.x - pm->ship->dim.w/2 > SCREEN_WIDTH){
-            pm->ship->pos.x = 0 - pm->ship->dim.w/2;
-        }
-        if(pm->ship->pos.x + pm->ship->dim.w/2 < 0){
-            pm->ship->pos.x = SCREEN_WIDTH + pm->ship->dim.w/2;
-        }
-        if(pm->ship->pos.y - pm->ship->dim.h/2 > SCREEN_HEIGHT){
-            pm->ship->pos.y = 0 - pm->ship->dim.h/2;
-        }
-        if(pm->ship->pos.y + pm->ship->dim.h/2 < 0){
-            pm->ship->pos.y = SCREEN_HEIGHT + pm->ship->dim.h/2;
+        // flag loop
+        for(s32 i = 0; i < array_count(pm->entities); ++i){
+            Entity *e = pm->entities + i;
+
+            if(has_flags(e->flags, EntityFlag_Wrapping)){
+                if(e->pos.x - e->dim.w/2 > SCREEN_WIDTH){
+                    e->pos.x = 0 - e->dim.w/2;
+                }
+                if(e->pos.x + e->dim.w/2 < 0){
+                    e->pos.x = SCREEN_WIDTH + e->dim.w/2;
+                }
+                if(e->pos.y - e->dim.h/2 > SCREEN_HEIGHT){
+                    e->pos.y = 0 - e->dim.h/2;
+                }
+                if(e->pos.y + e->dim.h/2 < 0){
+                    e->pos.y = SCREEN_HEIGHT + e->dim.h/2;
+                }
+            }
+
         }
 
-        print("dir(%f, %f)\n", dir_vector.x, dir_vector.y);
+        // type loop
         for(s32 i = 0; i < array_count(pm->entities); ++i){
             Entity *e = pm->entities + i;
 
@@ -648,17 +659,17 @@ update_game(Window* window, Memory* memory, Events* events){
                     e->pos.x += (e->dir.x * e->velocity * e->speed) * (f32)clock.dt;
                     e->pos.y += (e->dir.y * e->velocity * e->speed) * (f32)clock.dt;
 
-                    if((e->pos.x > 0 && e->pos.x < SCREEN_WIDTH) &&
-                       (e->pos.y > 0 && e->pos.y < SCREEN_HEIGHT)){
-                        e->in_play = true;
-                    }
-                    if((e->pos.x < 0 || e->pos.x > SCREEN_WIDTH) ||
-                       (e->pos.y < 0 || e->pos.y > SCREEN_HEIGHT)){
-                        if(e->in_play){
-                            remove_entity(e);
-                            break;
-                        }
-                    }
+                    //if((e->pos.x > 0 && e->pos.x < SCREEN_WIDTH) &&
+                    //   (e->pos.y > 0 && e->pos.y < SCREEN_HEIGHT)){
+                    //    e->in_play = true;
+                    //}
+                    //if((e->pos.x < 0 || e->pos.x > SCREEN_WIDTH) ||
+                    //   (e->pos.y < 0 || e->pos.y > SCREEN_HEIGHT)){
+                    //    if(e->in_play){
+                    //        remove_entity(e);
+                    //        break;
+                    //    }
+                    //}
                 } break;
             }
         }
