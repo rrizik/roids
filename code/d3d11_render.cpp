@@ -274,7 +274,7 @@ draw_commands(Arena* commands){
                 Font* font = &tm->assets.fonts[command->font_id];
                 RGBA linear_color = srgb_to_linear(command->color);
 
-                ScratchArena scratch = begin_scratch(0);
+                ScratchArena scratch = begin_scratch();
                 u64 allocation_size = command->text.size * 6;
                 Vertex3* buffer = push_array(scratch.arena, Vertex3, allocation_size);
 

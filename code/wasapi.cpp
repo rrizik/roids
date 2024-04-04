@@ -179,7 +179,7 @@ static HRESULT audio_play_cursors(){
     f32* buffer_f32 = (f32*)buffer;
     for(s32 cursor_i=0; cursor_i < (s32)wave_cursors_count; ++cursor_i){
         WaveCursor* cursor = wave_cursors + cursor_i;
-        Wave* wave = tm->assets.waves[cursor->id];
+        Wave* wave = tm->assets.waves + cursor->id;
 
         u32 wave_remainder = wave->sample_count - cursor->at;
         u32 iter_size = wave_remainder > available_samples ? available_samples : wave_remainder;

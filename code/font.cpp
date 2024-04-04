@@ -2,15 +2,18 @@
 #define FONT_C
 
 static Font
-load_font_ttf(Arena* arena, String8 path, f32 size){
+load_font_ttf(Arena* arena, String8 filename, f32 size){
     // open file
-    File file = os_file_open(path, GENERIC_READ, OPEN_EXISTING);
-    assert_h(file.handle); // todo: replace all these asserts with if checks so it doesn't explode
 
-    ScratchArena scratch = begin_scratch(0);
+    ScratchArena scratch = begin_scratch();
+    String8 full_path = str8_concatenate(scratch.arena, build_path, filename);
+    File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
+    end_scratch(scratch);
+    assert_h(file.handle);
+
     // init font
     Font result = {0};
-    String8 file_data =  os_file_read(scratch.arena, file);
+    String8 file_data =  os_file_read(arena, file); // stb ttf fonts need to remain loaded in memory. todo: ask HMH about how to get around this. Afterall, I've already created the texture.
     if(!stbtt_InitFont(&result.info, (u8*)file_data.str, 0)){
         result.succeed = false;
         return(result);

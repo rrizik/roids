@@ -21,7 +21,7 @@ d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_co
     u32 shader_compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
-    ScratchArena scratch = begin_scratch(0);
+    ScratchArena scratch = begin_scratch();
     //String8 utf8_shader_path = str8_path_append(scratch.arena, path_shaders, shader_file);
     String16 utf16_shader_path = os_utf8_utf16(scratch.arena, shader_path);
 

@@ -22,9 +22,9 @@ init_levels(){
 }
 
 static void
-load_assets(Arena* arena, Assets* assets){
+load_assets(Arena* arena){
 
-    ScratchArena scratch = begin_scratch(0);
+    ScratchArena scratch = begin_scratch();
     Bitmap bm;
     bm = load_bitmap(scratch.arena, str8_literal("sprites/ship2.bmp"));
     init_texture_resource(&tm->assets.textures[TextureAsset_Ship].view, &bm);
@@ -34,20 +34,20 @@ load_assets(Arena* arena, Assets* assets){
     init_texture_resource(&tm->assets.textures[TextureAsset_Asteroid].view, &bm);
     end_scratch(scratch);
 
-    assets->waves[WaveAsset_track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
-    assets->waves[WaveAsset_track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
-    assets->waves[WaveAsset_track3] = load_wave(arena, str8_literal("sounds/track3.wav"));
-    assets->waves[WaveAsset_track4] = load_wave(arena, str8_literal("sounds/track4.wav"));
-    assets->waves[WaveAsset_track5] = load_wave(arena, str8_literal("sounds/track5.wav"));
-    assets->waves[WaveAsset_rail1] =  load_wave(arena, str8_literal("sounds/rail1.wav"));
-    assets->waves[WaveAsset_rail2] =  load_wave(arena, str8_literal("sounds/rail2.wav"));
-    assets->waves[WaveAsset_rail3] =  load_wave(arena, str8_literal("sounds/rail3.wav"));
-    assets->waves[WaveAsset_rail4] =  load_wave(arena, str8_literal("sounds/rail4.wav"));
-    assets->waves[WaveAsset_rail5] =  load_wave(arena, str8_literal("sounds/rail5.wav"));
+    tm->assets.waves[WaveAsset_track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
+    tm->assets.waves[WaveAsset_track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
+    tm->assets.waves[WaveAsset_track3] = load_wave(arena, str8_literal("sounds/track3.wav"));
+    tm->assets.waves[WaveAsset_track4] = load_wave(arena, str8_literal("sounds/track4.wav"));
+    tm->assets.waves[WaveAsset_track5] = load_wave(arena, str8_literal("sounds/track5.wav"));
+    tm->assets.waves[WaveAsset_rail1] = load_wave(arena, str8_literal("sounds/rail1.wav"));
+    tm->assets.waves[WaveAsset_rail2] = load_wave(arena, str8_literal("sounds/rail2.wav"));
+    tm->assets.waves[WaveAsset_rail3] = load_wave(arena, str8_literal("sounds/rail3.wav"));
+    tm->assets.waves[WaveAsset_rail4] = load_wave(arena, str8_literal("sounds/rail4.wav"));
+    tm->assets.waves[WaveAsset_rail5] = load_wave(arena, str8_literal("sounds/rail5.wav"));
 
-    assets->fonts[FontAsset_Arial] =    load_font_ttf(arena, str8_literal("fonts/arial.ttf"), 36);
-    assets->fonts[FontAsset_Golos] =    load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), 36);
-    assets->fonts[FontAsset_Consolas] = load_font_ttf(arena, str8_literal("fonts/consola.ttf"), 36);
+    tm->assets.fonts[FontAsset_Arial] =    load_font_ttf(arena, str8_literal("fonts/arial.ttf"), 36);
+    tm->assets.fonts[FontAsset_Golos] =    load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), 36);
+    tm->assets.fonts[FontAsset_Consolas] = load_font_ttf(arena, str8_literal("fonts/consola.ttf"), 36);
 }
 
 // todo: Move these to entity once you move PermanentMemory further up in the tool chain
@@ -229,7 +229,7 @@ entities_clear(){
 
 static void
 serialize_data(String8 filename){
-    ScratchArena scratch = begin_scratch(0);
+    ScratchArena scratch = begin_scratch();
     String8 full_path = str8_path_append(scratch.arena, saves_path, filename);
 
     File file = os_file_open(full_path, GENERIC_WRITE, CREATE_NEW);
@@ -247,7 +247,7 @@ serialize_data(String8 filename){
 
 static void
 deserialize_data(String8 filename){
-    ScratchArena scratch = begin_scratch(0);
+    ScratchArena scratch = begin_scratch();
     String8 full_path = str8_path_append(scratch.arena, saves_path, filename);
 
     File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);

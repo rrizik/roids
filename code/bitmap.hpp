@@ -71,6 +71,5 @@ typedef struct BitScanResult{
 
 static BitScanResult find_first_set_bit(u32 value);
 static Bitmap load_bitmap(Arena* arena, String8 filename);
-static void u32_buffer_from_u8_buffer(String8* channel_1, String8* channel_4);
 
 #endif

@@ -261,8 +261,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         pm->game_mode = GameMode_Game;
 
         show_cursor(true);
-        pm->assets = push_struct(tm->assets_arena, Assets);
-        load_assets(tm->asset_arena, &tm->assets);
+        load_assets(tm->asset_arena);
 
         init_camera();
         init_console(&pm->arena, FontAsset_Golos);

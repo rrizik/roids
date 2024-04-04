@@ -50,7 +50,7 @@ command_add(String8* args){
 // todo: redo this entire function and reconsider how to are passing scratch arena
 static void
 command_saves(String8* args){
-    ScratchArena scratch = begin_scratch(0);
+    ScratchArena scratch = begin_scratch();
 
     String8Node files = {0};
     files.next = &files;

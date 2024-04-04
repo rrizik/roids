@@ -107,7 +107,7 @@ typedef struct TransientMemory{
     Arena *render_command_arena;
     Arena *asset_arena;
 
-    Assets* assets;
+    Assets assets;
 } TransientMemory;
 global TransientMemory* tm;
 

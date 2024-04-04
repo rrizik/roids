@@ -58,7 +58,7 @@ static void
 input_add_char(u8 c){
     if(console.input_count < INPUT_COUNT_MAX){
         if(console.cursor_index < console.input_count){
-            ScratchArena scratch = begin_scratch(0);
+            ScratchArena scratch = begin_scratch();
 
             String8 left = {
                 .str = push_array(scratch.arena, u8, (u32)console.cursor_index),
@@ -95,7 +95,7 @@ input_remove_char(){
     u8 c = 0;
     if(console.input_count > 0 && console.cursor_index > 0){
         if(console.cursor_index < console.input_count){
-            ScratchArena scratch = begin_scratch(0);
+            ScratchArena scratch = begin_scratch();
 
             String8 left = {
                 .str = push_array(scratch.arena, u8, (u32)(console.cursor_index-1)),
