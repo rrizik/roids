@@ -119,14 +119,18 @@ draw_commands(Arena* commands){
             } break;
             case RenderCommandType_Quad:{
                 RGBA linear_color = srgb_to_linear(command->color); // gamma correction
+                v2 p0_round = round_v2(command->p0);
+                v2 p1_round = round_v2(command->p1);
+                v2 p2_round = round_v2(command->p2);
+                v2 p3_round = round_v2(command->p3);
                 Vertex2 vertices[] = {
-                    { command->p0, linear_color },
-                    { command->p1, linear_color },
-                    { command->p2, linear_color },
+                    { p0_round, linear_color },
+                    { p1_round, linear_color },
+                    { p2_round, linear_color },
 
-                    { command->p0, linear_color },
-                    { command->p2, linear_color },
-                    { command->p3, linear_color },
+                    { p0_round, linear_color },
+                    { p2_round, linear_color },
+                    { p3_round, linear_color },
                 };
 
                 //----vertex buffer----

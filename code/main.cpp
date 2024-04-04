@@ -256,18 +256,19 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         tm->render_command_arena = push_arena(&tm->arena, MB(100));
         tm->frame_arena = push_arena(&tm->arena, MB(100));
-        tm->assets_arena = push_arena(&tm->arena, MB(100));
+        tm->asset_arena = push_arena(&tm->arena, MB(100));
 
         pm->game_mode = GameMode_Game;
 
         show_cursor(true);
-        load_assets(tm->assets_arena, &tm->assets);
+        pm->assets = push_struct(tm->assets_arena, Assets);
+        load_assets(tm->asset_arena, &tm->assets);
 
         init_camera();
         init_console(&pm->arena, FontAsset_Golos);
         init_console_commands();
 
-        current_font = FontAsset_Arial;
+        pm->current_font = FontAsset_Arial;
 
         // setup free entities array in reverse order
         entities_clear();
@@ -279,7 +280,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         pm->ship = add_ship(TextureAsset_Ship, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(75, 75));
         pm->ship_loaded = true;
         pm->lives = MAX_LIVES;
-        pm->asteroids_to_kill = 10;
+
+        pm->level_index = 0;
+        init_levels();
+        pm->current_level = &pm->levels[0];
 
         memory.initialized = true;
     }
@@ -320,6 +324,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         // command arena
         draw_clear_color(tm->render_command_arena, BACKGROUND_COLOR);
         // todo: also use flags here
+        print("%i, %i\n", pm->level_index, MAX_LEVELS);
         for(s32 index = 0; index < array_count(pm->entities); ++index){
             begin_timed_scope("command arena");
             Entity *e = pm->entities + index;
@@ -350,7 +355,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
                         Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
                                                 make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
-                        //push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
 
                         p0 = rotate_point_deg(p0, e->deg, e->pos);
                         p1 = rotate_point_deg(p1, e->deg, e->pos);
@@ -363,11 +367,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                         //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
                         draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
-                        String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
-                        if(e->type == EntityType_Asteroid){
-                            text = str8_formatted(tm->frame_arena, "%i", e->health);
-                        }
-                        //push_text(tm->render_command_arena, current_font, text, p0.x, p0.y, RED);
                     } break;
                     case EntityType_Ship:{
                         v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
@@ -377,7 +376,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
                         Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
                                                 make_v2(e->pos.x + e->dim.x/2, e->pos.y + e->dim.h/2));
-                        //push_quad(tm->render_command_arena, e_rect.min, make_v2(e_rect.x1, e_rect.y0), e_rect.max, make_v2(e_rect.x0, e_rect.y1), ORANGE);
 
                         p0 = rotate_point_deg(p0, e->deg, e->pos);
                         p1 = rotate_point_deg(p1, e->deg, e->pos);
@@ -390,8 +388,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                         //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
                         draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
-                        String8 text = str8_formatted(tm->frame_arena, "%i", e->index);
-                        //push_text(tm->render_command_arena, current_font, text, p0.x, p0.y, RED);
                     } break;
                 }
             }
@@ -400,23 +396,24 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         if(!pm->lives){
             String8 text = str8_formatted(tm->frame_arena, "GAME OVER - Score: %i", pm->score);
-            f32 width = font_string_width(current_font, text);
+            f32 width = font_string_width(pm->current_font, text);
             f32 x = SCREEN_WIDTH/2 - width/2;
-            draw_text(tm->render_command_arena, current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
+            draw_text(tm->render_command_arena, pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
         }
         if(pm->score >= WIN_SCORE){
             String8 text = str8_formatted(tm->frame_arena, "CHICKEN DINNER - Score: %i", pm->score);
-            f32 width = font_string_width(current_font, text);
+            f32 width = font_string_width(pm->current_font, text);
             f32 x = SCREEN_WIDTH/2 - width/2;
-            draw_text(tm->render_command_arena, current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
+            draw_text(tm->render_command_arena, pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
         }
-        String8 text = str8_formatted(tm->frame_arena, "SCORE: %i/%i", pm->score, WIN_SCORE);
-        draw_text(tm->render_command_arena, current_font, text, make_v2(50, 50), ORANGE);
+        String8 score = str8_formatted(tm->frame_arena, "SCORE: %i", pm->score);
+        draw_text(tm->render_command_arena, pm->current_font, score, make_v2(50, 50), ORANGE);
         String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
-        draw_text(tm->render_command_arena, current_font, lives, make_v2(50, 100), ORANGE);
+        f32 width = font_string_width(pm->current_font, lives);
+        f32 sw = SCREEN_WIDTH;
+        draw_text(tm->render_command_arena, pm->current_font, lives, make_v2(sw - width, 50), ORANGE);
 
         console_draw();
-
 
         frame_count++;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
@@ -426,73 +423,20 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             frame_count = 0;
         }
 
-        //print("frame: at/size %i/%i\nrender: at/size %i/%i\n------------------------------\n", tm->frame_arena->at, tm->frame_arena->size, tm->render_command_arena->at, tm->render_command_arena->size);
         //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
 
         String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
-        draw_text(tm->render_command_arena, current_font, fps, make_v2(SCREEN_WIDTH - 250, 50), ORANGE);
+        draw_text(tm->render_command_arena, pm->current_font, fps, make_v2(SCREEN_WIDTH - 250, SCREEN_HEIGHT - 20), ORANGE);
 
+        Level* level = pm->current_level;
+        String8 level_str = str8_formatted(tm->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", pm->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
+        draw_text(tm->render_command_arena, pm->current_font, level_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
 
-
-
-
-        u32 size1 = tm->assets.waves[wave_cursors[0].id].sample_count;
-        u32 size2 = tm->assets.waves[wave_cursors[1].id].sample_count;
-        u32 size3 = tm->assets.waves[wave_cursors[2].id].sample_count;
-        u32 largest_width = size1 > size2 ? size1 : size2;
-        largest_width = largest_width > size3 ? largest_width : size3;
-
-        f32 width1 = ((f32)size1 / (f32)largest_width) * 700;
-        f32 width2 = ((f32)size2 / (f32)largest_width) * 700;
-        f32 width3 = ((f32)size3 / (f32)largest_width) * 700;
-
-        v2 pos;
-        v2 dim;
-        Quad q = {0};
-
-        // ---------------------------------------------------------
-        pos = make_v2(100, 500);
-        dim = make_v2(width1, 50);
-        q = quad_from_pos(pos, dim);
-        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
-
-        u32 at1 = (u32)(((f32)wave_cursors[0].at / (f32)size1) * dim.w);
-        //print("at1(%i) - at2(%i) - at3(%i)\n", at1, at2, at3);
-        //print("at1(%i) - at(%i) - size(%i) - div(%i)\n", at1, wave_cursors[0].at, size1, wave_cursors[0].at/size1);
-        //u32 at1 = (u32)((wave_cursors[0].at * (u32)dim.w) / 700);
-        q = quad_from_pos(make_v2((pos.x + (f32)at1), pos.y), make_v2(10, 50));
-        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
-
-        String8 vol1_str = str8_formatted(tm->frame_arena, "vol1: %f", wave_cursors[0].volume);
-        draw_text(tm->render_command_arena, current_font, vol1_str, make_v2(SCREEN_WIDTH - 450, 525), RED);
-
-        // ---------------------------------------------------------
-        pos = make_v2(100, 575);
-        dim = make_v2(width2, 50);
-        q = quad_from_pos(pos, dim);
-        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
-
-        u32 at2 = (u32)(((f32)wave_cursors[1].at / (f32)size2) * dim.w);
-        q = quad_from_pos(make_v2((pos.x + (f32)at2), pos.y), make_v2(10, 50));
-        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
-
-        String8 vol2_str = str8_formatted(tm->frame_arena, "vol2: %f", wave_cursors[1].volume);
-        draw_text(tm->render_command_arena, current_font, vol2_str, make_v2(SCREEN_WIDTH - 450, 600), RED);
-
-        // ---------------------------------------------------------
-        pos = make_v2(100, 650);
-        dim = make_v2(width3, 50);
-        q = quad_from_pos(pos, dim);
-        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, ORANGE);
-
-        u32 at3 = (u32)(((f32)wave_cursors[2].at / (f32)size3) * dim.w);
-        q = quad_from_pos(make_v2((pos.x + (f32)at3), pos.y), make_v2(10, 50));
-        draw_quad(tm->render_command_arena, q.p0, q.p1, q.p2, q.p3, TEAL);
-
-        String8 vol3_str = str8_formatted(tm->frame_arena, "vol3: %f", wave_cursors[2].volume);
-        draw_text(tm->render_command_arena, current_font, vol3_str, make_v2(SCREEN_WIDTH - 450, 675), RED);
-
-
+        f32 size = font_char_width(pm->current_font, 'L');
+        pm->current_font = FontAsset_Golos;
+        size = font_char_width(pm->current_font, 'L');
+        pm->current_font = FontAsset_Consolas;
+        size = font_char_width(pm->current_font, 'L');
 
         // draw everything
         draw_commands(tm->render_command_arena);

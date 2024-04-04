@@ -1,6 +1,54 @@
 #ifndef GAME_H
 #define GAME_H
 
+typedef enum WaveAsset{
+    WaveAsset_track1,
+    WaveAsset_track2,
+    WaveAsset_track3,
+    WaveAsset_track4,
+    WaveAsset_track5,
+    WaveAsset_rail1,
+    WaveAsset_rail2,
+    WaveAsset_rail3,
+    WaveAsset_rail4,
+    WaveAsset_rail5,
+
+    WaveAsset_Count,
+} WaveAsset;
+
+typedef enum TextureAsset{
+    TextureAsset_Ship,
+    TextureAsset_Bullet,
+    TextureAsset_Asteroid,
+
+    TextureAsset_Font_Arial,
+    TextureAsset_Font_Golos,
+
+    TextureAsset_Count,
+} TextureAsset;
+
+typedef enum FontAsset{
+    FontAsset_Arial,
+    FontAsset_Golos,
+    FontAsset_Consolas,
+
+    FontAsset_Count,
+} FontAsset;
+
+typedef struct Assets{
+    Wave    waves[WaveAsset_Count];
+    Font    fonts[FontAsset_Count];
+    Texture textures[TextureAsset_Count];
+} Assets;
+
+typedef struct Level{
+    s32 asteroid_spawned;
+    s32 asteroid_destroyed;
+    s32 asteroid_count_max;
+} Level;
+
+static void init_levels();
+
 typedef enum GameMode{
     GameMode_FirstPerson,
     GameMode_Editor,

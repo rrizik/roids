@@ -23,7 +23,6 @@ load_font_ttf(Arena* arena, String8 path, f32 size){
     result.texture_h = 1024;
     result.first_char = 32;
     result.size = size;
-    s32 stride = result.texture_w * 4;
 
     // u8 data single channel as alpha
     String8 bitmap_a;
@@ -68,7 +67,7 @@ load_font_ttf(Arena* arena, String8 path, f32 size){
 
     D3D11_SUBRESOURCE_DATA shader_data = {
         .pSysMem = bitmap_rgba.str,
-        .SysMemPitch = (u32)stride,
+        .SysMemPitch = (u32)(result.texture_w * 4),
     };
     ID3D11Texture2D* texture;
     hr = d3d_device->CreateTexture2D(&desc, &shader_data, &texture);

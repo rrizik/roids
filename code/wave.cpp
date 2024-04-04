@@ -2,15 +2,18 @@
 #define WAVE_CPP
 
 // todo: samples to bytes - bytes to samples. Maybe
-static Wave load_wave(Arena* arena, String8 filename){
-    Wave result = {0};
+static Wave*
+load_wave(Arena* arena, String8 filename){
+    //Wave result = {0};
+    Wave* result = push_struct(arena, Wave);
 
     ScratchArena scratch = begin_scratch(0);
     String8 full_path = str8_concatenate(scratch.arena, build_path, filename);
     File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
+    end_scratch(scratch);
     assert_h(file.handle);
 
-    String8 data = os_file_read(scratch.arena, file);
+    String8 data = os_file_read(arena, file);
     WaveHeader* header = (WaveHeader*)data.str;
 
     u8* chunks = data.str + sizeof(WaveHeader);
@@ -26,12 +29,13 @@ static Wave load_wave(Arena* arena, String8 filename){
         }
         else if(str8_compare(str8(c->chunk_id, 3), chunk_ids[ChunkId_FMT])){
             WaveFormat* format = (WaveFormat*)((u8*)c + sizeof(ChunkInfo));
-            result.format = *format;
+            result->format = *format;
             fmt_found = true;
         }
         else if(str8_compare(str8(c->chunk_id, 4), chunk_ids[ChunkId_DATA])){
-            result.sample_count = c->chunk_size / result.format.block_align; // convert size from bytes to samples
-            result.base = (u16*)((u8*)c + sizeof(ChunkInfo));
+            result->sample_count = c->chunk_size / result->format.block_align; // convert size from bytes to samples
+            result->base = push_array(arena, u16, c->chunk_size);
+            //result->base = (u16*)((u8*)c + sizeof(ChunkInfo));
             data_found = true;
         }
         else if((u8*)c > (data.str + data.size)){

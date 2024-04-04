@@ -14,6 +14,7 @@ typedef enum EntityFlag {
 typedef enum EntityType {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
 
 typedef struct Entity{
+    Entity* parent;
     Entity* next;
     Entity* prev;
 

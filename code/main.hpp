@@ -71,46 +71,8 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
 global f32 g_angle = 0;
 global f32 g_angle_t = 0;
 
-typedef enum WaveAsset{
-    WaveAsset_track1,
-    WaveAsset_track2,
-    WaveAsset_track3,
-    WaveAsset_track4,
-    WaveAsset_track5,
-    WaveAsset_rail1,
-    WaveAsset_rail2,
-    WaveAsset_rail3,
-    WaveAsset_rail4,
-    WaveAsset_rail5,
-
-    WaveAsset_Count,
-} WaveAsset;
-
-typedef enum TextureAsset{
-    TextureAsset_Ship,
-    TextureAsset_Bullet,
-    TextureAsset_Asteroid,
-
-    TextureAsset_Font_Arial,
-    TextureAsset_Font_Golos,
-
-    TextureAsset_Count,
-} TextureAsset;
-
-typedef enum FontAsset{
-    FontAsset_Arial,
-    FontAsset_Golos,
-
-    FontAsset_Count,
-} FontAsset;
-
-
-typedef struct Assets{
-    Wave    waves[WaveAsset_Count];
-    Font    fonts[FontAsset_Count];
-    Texture textures[TextureAsset_Count];
-} Assets;
-
+#include "game.hpp"
+#define MAX_LEVELS 3
 #define MAX_LIVES 3
 #define WIN_SCORE 3000
 #define ENTITIES_MAX 50
@@ -130,8 +92,11 @@ typedef struct PermanentMemory{
     s32 score;
     s32 lives;
 
-    s32 asteroids_to_kill;
+    Level levels[MAX_LEVELS];
+    s32 level_index;
+    Level* current_level;
 
+    u32 current_font;
     f64 spawn_t;
 } PermanentMemory, State;
 global PermanentMemory* pm;
@@ -140,13 +105,11 @@ typedef struct TransientMemory{
     Arena arena;
     Arena *frame_arena;
     Arena *render_command_arena;
-    Arena *assets_arena;
+    Arena *asset_arena;
 
-    Assets assets;
+    Assets* assets;
 } TransientMemory;
 global TransientMemory* tm;
 
-#include "game.hpp"
-static u32 current_font;
 
 #endif
