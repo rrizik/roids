@@ -6,7 +6,7 @@ init_levels(){
     Level* level = 0;
 
     level = pm->levels + 0;
-    level->asteroid_count_max = 3;
+    level->asteroid_count_max = 12;
     level->asteroid_spawned = 0;
     level->asteroid_destroyed = 0;
 
@@ -147,6 +147,7 @@ add_ship(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
         e->accel_dir = make_v2(0, 0);
         e->speed = 200;
         e->velocity = 0;
+        e->shoot_t = 1;
         e->texture = texture;
         if(flags == 0){
             set_flags(&e->flags, EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
@@ -630,11 +631,18 @@ update_game(Window* window, Memory* memory, Events* events){
             }
 
             if(has_flags(e->flags, EntityFlag_MoveWithCtrls)){
-                if(controller.button[KeyCode_SPACEBAR].pressed){
-                    Entity* child_e = add_bullet(TextureAsset_Bullet, e->pos, make_v2(40, 8), e->deg);
-                    child_e->parent = e;
-                    u32 random_rail = random_range_u32(5) + 5; // hard coded for now, 5 rails
-                    audio_play(random_rail, 0.1f, false);
+                if(controller.button[KeyCode_SPACEBAR].held){
+                    e->shoot_t += (f32)clock.dt;
+                    if(e->shoot_t >= 0.1f){
+                        e->shoot_t = 0.0;
+                        Entity* child_e = add_bullet(TextureAsset_Bullet, e->pos, make_v2(40, 8), e->deg);
+                        child_e->parent = e;
+                        u32 random_rail = random_range_u32(5) + 5; // hard coded for now, 5 rails
+                        audio_play(random_rail, 0.0f, false);
+                    }
+                }
+                else{
+                    e->shoot_t = 1;
                 }
 
                 // rotate left right
@@ -710,35 +718,37 @@ update_game(Window* window, Memory* memory, Events* events){
                     for(s32 idx = 0; idx < array_count(pm->entities); ++idx){
                         Entity *collide_e = pm->entities + idx;
 
-                        if(collide_e != e->parent){
-                            if(collide_e->type == EntityType_Asteroid){
-                                Rect collide_e_rect = rect_from_entity(collide_e);
+                        if(collide_e == e->parent){
+                            continue;
+                        }
+                        if(collide_e->type == EntityType_Asteroid){
+                            Rect collide_e_rect = rect_from_entity(collide_e);
 
-                                if(rect_collides_rect(collide_e_rect, rect_e)){
-                                    collide_e->health -= e->damage;
-                                    collide_e->color.r += 0.2f;
-                                    collide_e->color.g -= 0.4f;
-                                    collide_e->color.b -= 0.4f;
-                                    if(collide_e->health <= 0){
-                                        pm->score += (u32)collide_e->dim.w;
-                                        pm->current_level->asteroid_destroyed++;
-
-                                        if(collide_e->dim.w > 85){
-                                            collide_e->dim.w -= 50;
-                                            collide_e->dim.h -= 50;
-                                            for(s32 splint_i=0; splint_i < 3; ++splint_i){
-                                                collide_e->deg = random_range_f32(359);
-                                                add_asteroid(TextureAsset_Asteroid, collide_e->pos, collide_e->dim, collide_e->deg);
-                                                pm->current_level->asteroid_spawned++;
-                                                pm->current_level->asteroid_count_max++;
-                                            }
-                                        }
-                                        remove_entity(collide_e);
-                                    }
-                                    remove_entity(e);
-                                    break;
-                                }
+                            if(!rect_collides_rect(collide_e_rect, rect_e)){
+                                continue;
                             }
+                            collide_e->health -= e->damage;
+                            collide_e->color.r += 0.2f;
+                            collide_e->color.g -= 0.4f;
+                            collide_e->color.b -= 0.4f;
+                            if(collide_e->health <= 0){
+                                pm->score += (u32)collide_e->dim.w;
+                                pm->current_level->asteroid_destroyed++;
+
+                                //if(collide_e->dim.w > 100){
+                                //    collide_e->dim.w -= 50;
+                                //    collide_e->dim.h -= 50;
+                                //    for(s32 splint_i=0; splint_i < 3; ++splint_i){
+                                //        collide_e->deg = random_range_f32(359);
+                                //        add_asteroid(TextureAsset_Asteroid, collide_e->pos, collide_e->dim, collide_e->deg);
+                                //        pm->current_level->asteroid_spawned++;
+                                //        pm->current_level->asteroid_count_max++;
+                                //    }
+                                //}
+                                remove_entity(collide_e);
+                            }
+                            remove_entity(e);
+                            break;
                         }
                     }
                 } break;

@@ -33,6 +33,7 @@ typedef struct Entity{
 
     f32 speed;
     f32 rot_speed;
+    f32 shoot_t;
     f32 velocity;
 
     s32 health;

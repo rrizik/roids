@@ -277,10 +277,11 @@ draw_commands(Arena* commands){
                 u64 allocation_size = command->text.size * 6;
                 Vertex3* buffer = push_array(scratch.arena, Vertex3, allocation_size);
 
-                Vertex3* vertex = buffer;
+                //Vertex3* vertex = buffer;
                 f32 start_x = command->p0.x;
                 f32 y_offset = 0;
                 stbtt_aligned_quad quad;
+                u32 vertex_count = 0;
                 for(s32 i=0; i < command->text.size; ++i){
                     u8* character = command->text.str + i;
                     if(*character == '\n'){
@@ -303,13 +304,13 @@ draw_commands(Arena* commands){
                         //p2 = rotate_point_deg(p2, g_angle, origin);
                         //p3 = rotate_point_deg(p3, g_angle, origin);
 
-                        *vertex++ = { p0, linear_color, make_v2(quad.s0, quad.t0) };
-                        *vertex++ = { p1, linear_color, make_v2(quad.s1, quad.t0) };
-                        *vertex++ = { p2, linear_color, make_v2(quad.s1, quad.t1) };
+                        buffer[vertex_count++] = { p0, linear_color, make_v2(quad.s0, quad.t0) };
+                        buffer[vertex_count++] = { p1, linear_color, make_v2(quad.s1, quad.t0) };
+                        buffer[vertex_count++] = { p2, linear_color, make_v2(quad.s1, quad.t1) };
 
-                        *vertex++ = { p0, linear_color, make_v2(quad.s0, quad.t0) };
-                        *vertex++ = { p2, linear_color, make_v2(quad.s1, quad.t1) };
-                        *vertex++ = { p3, linear_color, make_v2(quad.s0, quad.t1) };
+                        buffer[vertex_count++] = { p0, linear_color, make_v2(quad.s0, quad.t0) };
+                        buffer[vertex_count++] = { p2, linear_color, make_v2(quad.s1, quad.t1) };
+                        buffer[vertex_count++] = { p3, linear_color, make_v2(quad.s0, quad.t1) };
                     }
                 }
 
@@ -346,7 +347,7 @@ draw_commands(Arena* commands){
                 d3d_context->VSSetShader(d3d_2d_textured_vs, 0, 0);
                 d3d_context->PSSetShader(d3d_2d_textured_ps, 0, 0);
 
-                d3d_context->Draw((UINT)allocation_size, 0);
+                d3d_context->Draw((UINT)vertex_count, 0);
                 end_scratch(scratch);
             } break;
         }

@@ -306,7 +306,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
-        arena_free(tm->render_command_arena);
         // simulation
         accumulator += frame_time;
         while(accumulator >= clock.dt){
@@ -445,9 +444,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         // draw everything
         draw_commands(tm->render_command_arena);
+        arena_free(tm->frame_arena);
+        arena_free(tm->render_command_arena);
 		simulations = 0;
         total_frames++;
-        arena_free(tm->frame_arena);
     }
     d3d_release();
     end_profiler();
