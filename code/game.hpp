@@ -82,6 +82,7 @@ static void reset_game(void);
 static void reset_ship(void);
 
 static void update_game(Window* window, Memory* memory, Events* events);
+static bool game_won();
 
 #endif
 

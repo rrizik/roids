@@ -45,7 +45,7 @@ load_assets(Arena* arena){
     tm->assets.waves[WaveAsset_rail4] = load_wave(arena, str8_literal("sounds/rail4.wav"));
     tm->assets.waves[WaveAsset_rail5] = load_wave(arena, str8_literal("sounds/rail5.wav"));
 
-    tm->assets.fonts[FontAsset_Arial] =    load_font_ttf(arena, str8_literal("fonts/arial.ttf"), 36);
+    tm->assets.fonts[FontAsset_Arial] =    load_font_ttf(arena, str8_literal("fonts/arial.ttf"), 24);
     tm->assets.fonts[FontAsset_Golos] =    load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), 36);
     tm->assets.fonts[FontAsset_Consolas] = load_font_ttf(arena, str8_literal("fonts/consola.ttf"), 36);
 }
@@ -417,6 +417,20 @@ reset_ship(){
     set_flags(&pm->ship->flags, EntityFlag_Active);
 }
 
+static bool
+game_won(){
+    if(pm->level_index < MAX_LEVELS){
+        return(false);
+    }
+
+    Level level = pm->levels[pm->level_index];
+    if(level.asteroid_destroyed < level.asteroid_spawned){
+        return(false);
+    }
+
+    return(true);
+}
+
 static void
 update_game(Window* window, Memory* memory, Events* events){
 
@@ -500,14 +514,14 @@ update_game(Window* window, Memory* memory, Events* events){
     d3d_context->Unmap(d3d_constant_buffer, 0);
 
     console_update();
-    if(pm->game_mode == GameMode_Game && pm->score < WIN_SCORE){
+    if(pm->game_mode == GameMode_Game && !game_won()){
         Level* level = pm->current_level;
         Entity* ship = pm->ship;
         Rect ship_rect = rect_from_entity(ship);
         if(level->asteroid_spawned == level->asteroid_count_max &&
            level->asteroid_spawned == level->asteroid_destroyed){
-            if(pm->level_index < MAX_LEVELS - 1){
-                pm->level_index++;
+            pm->level_index++;
+            if(pm->level_index < MAX_LEVELS){
                 pm->current_level = &pm->levels[pm->level_index];
             }
         }
@@ -551,7 +565,7 @@ update_game(Window* window, Memory* memory, Events* events){
                 deg = (f32)random_range_u32(180) - 180;
             }
             if(pm->current_level->asteroid_spawned < pm->current_level->asteroid_count_max){
-                //Entity* e = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
+                Entity* e = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
                 pm->current_level->asteroid_spawned++;
             }
         }

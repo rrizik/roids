@@ -95,6 +95,7 @@ typedef struct PermanentMemory{
     Level levels[MAX_LEVELS];
     s32 level_index;
     Level* current_level;
+    Font* font;
 
     u32 current_font;
     f64 spawn_t;
@@ -110,6 +111,8 @@ typedef struct TransientMemory{
     Assets assets;
 } TransientMemory;
 global TransientMemory* tm;
+
+f32 text_padding = 20;
 
 
 #endif

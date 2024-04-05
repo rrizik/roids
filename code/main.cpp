@@ -264,10 +264,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         load_assets(tm->asset_arena);
 
         init_camera();
-        init_console(&pm->arena, FontAsset_Golos);
+        init_console(&pm->arena, FontAsset_Arial);
         init_console_commands();
 
         pm->current_font = FontAsset_Arial;
+        pm->font = &tm->assets.fonts[FontAsset_Arial];
 
         // setup free entities array in reverse order
         entities_clear();
@@ -282,7 +283,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         pm->level_index = 0;
         init_levels();
-        pm->current_level = &pm->levels[0];
+        pm->current_level = &pm->levels[pm->level_index];
 
         memory.initialized = true;
     }
@@ -392,6 +393,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
         }
 
+        Font* font = &tm->assets.fonts[pm->current_font];
 
         if(!pm->lives){
             String8 text = str8_formatted(tm->frame_arena, "GAME OVER - Score: %i", pm->score);
@@ -399,20 +401,21 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             f32 x = SCREEN_WIDTH/2 - width/2;
             draw_text(tm->render_command_arena, pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
         }
-        if(pm->score >= WIN_SCORE){
+        if(game_won()){
             String8 text = str8_formatted(tm->frame_arena, "CHICKEN DINNER - Score: %i", pm->score);
             f32 width = font_string_width(pm->current_font, text);
             f32 x = SCREEN_WIDTH/2 - width/2;
             draw_text(tm->render_command_arena, pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
         }
         String8 score = str8_formatted(tm->frame_arena, "SCORE: %i", pm->score);
-        draw_text(tm->render_command_arena, pm->current_font, score, make_v2(50, 50), ORANGE);
+        draw_text(tm->render_command_arena, pm->current_font, score, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale)), ORANGE);
+        String8 level_str = str8_formatted(tm->frame_arena, "LEVEL: %i", pm->level_index + 1);
+        draw_text(tm->render_command_arena, pm->current_font, level_str, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale) + ((f32)font->vertical_offset * font->scale)), ORANGE);
         String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
         f32 width = font_string_width(pm->current_font, lives);
-        f32 sw = SCREEN_WIDTH;
-        draw_text(tm->render_command_arena, pm->current_font, lives, make_v2(sw - width, 50), ORANGE);
+        draw_text(tm->render_command_arena, pm->current_font, lives, make_v2(SCREEN_WIDTH - width - text_padding, ((f32)(font->ascent) * font->scale) + text_padding), ORANGE);
 
-        console_draw();
+        console_draw(); // todo: Fix bug where artifacts are drawing because this is being called her rather than at the end
 
         frame_count++;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
@@ -423,19 +426,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         }
 
         //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
-
-        String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
-        draw_text(tm->render_command_arena, pm->current_font, fps, make_v2(SCREEN_WIDTH - 250, SCREEN_HEIGHT - 20), ORANGE);
-
+        //String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
+        //draw_text(tm->render_command_arena, pm->current_font, fps, make_v2(SCREEN_WIDTH - text_padding - font_string_width(pm->current_font, fps), SCREEN_HEIGHT - text_padding), ORANGE);
         Level* level = pm->current_level;
-        String8 level_str = str8_formatted(tm->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", pm->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
-        draw_text(tm->render_command_arena, pm->current_font, level_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
-
-        f32 size = font_char_width(pm->current_font, 'L');
-        pm->current_font = FontAsset_Golos;
-        size = font_char_width(pm->current_font, 'L');
-        pm->current_font = FontAsset_Consolas;
-        size = font_char_width(pm->current_font, 'L');
+        String8 info_str = str8_formatted(tm->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", pm->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
+        draw_text(tm->render_command_arena, pm->current_font, info_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
 
         // draw everything
         draw_commands(tm->render_command_arena);

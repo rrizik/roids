@@ -270,7 +270,6 @@ draw_commands(Arena* commands){
                 d3d_context->Draw(6, 0);
             } break;
             case RenderCommandType_Text:{
-                //d3d_draw_text(command->font_id,  command->p0, command->color, command->text);
                 Font* font = &tm->assets.fonts[command->font_id];
                 RGBA linear_color = srgb_to_linear(command->color);
 
