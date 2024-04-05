@@ -565,7 +565,7 @@ update_game(Window* window, Memory* memory, Events* events){
                 deg = (f32)random_range_u32(180) - 180;
             }
             if(pm->current_level->asteroid_spawned < pm->current_level->asteroid_count_max){
-                Entity* e = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
+                add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
                 pm->current_level->asteroid_spawned++;
             }
         }
@@ -684,6 +684,7 @@ update_game(Window* window, Memory* memory, Events* events){
                         e->pos.x += (e->accel_dir.x * e->velocity * e->speed) * (f32)clock.dt;
                         e->pos.y += (e->accel_dir.y * e->velocity * e->speed) * (f32)clock.dt;
 
+#if 0
                         for(s32 idx = 0; idx < array_count(pm->entities); ++idx){
                             Entity *collide_e = pm->entities + idx;
                             if(collide_e->type == EntityType_Asteroid){
@@ -700,6 +701,7 @@ update_game(Window* window, Memory* memory, Events* events){
                                 }
                             }
                         }
+#endif
                     }
 
                 } break;
@@ -719,8 +721,19 @@ update_game(Window* window, Memory* memory, Events* events){
                                     collide_e->color.b -= 0.4f;
                                     if(collide_e->health <= 0){
                                         pm->score += (u32)collide_e->dim.w;
-                                        remove_entity(collide_e);
                                         pm->current_level->asteroid_destroyed++;
+
+                                        if(collide_e->dim.w > 85){
+                                            collide_e->dim.w -= 50;
+                                            collide_e->dim.h -= 50;
+                                            for(s32 splint_i=0; splint_i < 3; ++splint_i){
+                                                collide_e->deg = random_range_f32(359);
+                                                add_asteroid(TextureAsset_Asteroid, collide_e->pos, collide_e->dim, collide_e->deg);
+                                                pm->current_level->asteroid_spawned++;
+                                                pm->current_level->asteroid_count_max++;
+                                            }
+                                        }
+                                        remove_entity(collide_e);
                                     }
                                     remove_entity(e);
                                     break;

@@ -366,7 +366,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                         //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
                         //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
+
                         draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                        String8 text = str8_formatted(tm->frame_arena, "size: %i", (s32)e->dim.w);
+                        draw_text(tm->render_command_arena, pm->current_font, text, e->pos, ORANGE);
                     } break;
                     case EntityType_Ship:{
                         v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
@@ -400,6 +403,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             f32 width = font_string_width(pm->current_font, text);
             f32 x = SCREEN_WIDTH/2 - width/2;
             draw_text(tm->render_command_arena, pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
+
+            text = str8_literal("R - restart");
+            width = font_string_width(pm->current_font, text);
+            x = SCREEN_WIDTH/2 - width/2;
+            draw_text(tm->render_command_arena, pm->current_font, text, make_v2(x,
+                        SCREEN_HEIGHT/2 + ((f32)font->vertical_offset * font->scale)), ORANGE);
         }
         if(game_won()){
             String8 text = str8_formatted(tm->frame_arena, "CHICKEN DINNER - Score: %i", pm->score);
@@ -409,11 +418,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         }
         String8 score = str8_formatted(tm->frame_arena, "SCORE: %i", pm->score);
         draw_text(tm->render_command_arena, pm->current_font, score, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale)), ORANGE);
-        String8 level_str = str8_formatted(tm->frame_arena, "LEVEL: %i", pm->level_index + 1);
-        draw_text(tm->render_command_arena, pm->current_font, level_str, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale) + ((f32)font->vertical_offset * font->scale)), ORANGE);
+
         String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
         f32 width = font_string_width(pm->current_font, lives);
         draw_text(tm->render_command_arena, pm->current_font, lives, make_v2(SCREEN_WIDTH - width - text_padding, ((f32)(font->ascent) * font->scale) + text_padding), ORANGE);
+
+        String8 level_str = str8_formatted(tm->frame_arena, "LEVEL: %i", pm->level_index + 1);
+        draw_text(tm->render_command_arena, pm->current_font, level_str, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale) + ((f32)font->vertical_offset * font->scale)), ORANGE);
 
         console_draw(); // todo: Fix bug where artifacts are drawing because this is being called her rather than at the end
 
