@@ -6,7 +6,7 @@ init_levels(){
     Level* level = 0;
 
     level = pm->levels + 0;
-    level->asteroid_count_max = 12;
+    level->asteroid_count_max = 3;
     level->asteroid_spawned = 0;
     level->asteroid_destroyed = 0;
 
@@ -16,7 +16,7 @@ init_levels(){
     level->asteroid_destroyed = 0;
 
     level = pm->levels + 2;
-    level->asteroid_count_max = 10;
+    level->asteroid_count_max = 7;
     level->asteroid_spawned = 0;
     level->asteroid_destroyed = 0;
 }
@@ -32,6 +32,17 @@ load_assets(Arena* arena){
     init_texture_resource(&tm->assets.textures[TextureAsset_Bullet].view, &bm);
     bm = load_bitmap(scratch.arena, str8_literal("sprites/asteroid.bmp"));
     init_texture_resource(&tm->assets.textures[TextureAsset_Asteroid].view, &bm);
+
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/flame1.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Flame1].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/flame2.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Flame2].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/flame3.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Flame3].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/flame4.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Flame4].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/flame5.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Flame5].view, &bm);
     end_scratch(scratch);
 
     tm->assets.waves[WaveAsset_track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
@@ -77,7 +88,7 @@ handle_from_entity(Entity *e){
 static void
 remove_entity(Entity* e){
     e->type = EntityType_None; // todo: remove this
-    clear_flags(&e->flags, EntityFlag_Active);
+    clear_flags(e, EntityFlag_Active);
     pm->free_entities[++pm->free_entities_at] = e->index;
     pm->entities_count--;
     *e = {0};
@@ -89,7 +100,7 @@ add_entity(EntityType type){
         u32 free_entity_index = pm->free_entities[pm->free_entities_at--];
         Entity *e = pm->entities + free_entity_index;
         e->index = free_entity_index;
-        set_flags(&e->flags, EntityFlag_Active);
+        set_flags(e, EntityFlag_Active);
         pm->generation[e->index]++;
         pm->entities_count++;
         e->generation = pm->generation[e->index]; // CONSIDER: this might not be necessary
@@ -150,10 +161,10 @@ add_ship(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
         e->shoot_t = 1;
         e->texture = texture;
         if(flags == 0){
-            set_flags(&e->flags, EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
+            set_flags(e, EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
         }
         else{
-            set_flags(&e->flags, flags);
+            set_flags(e, flags);
         }
     }
     else{
@@ -176,10 +187,10 @@ add_bullet(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
         e->damage = 50;
         e->texture = texture;
         if(flags == 0){
-            set_flags(&e->flags, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_IsProjectile);
+            set_flags(e, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_IsProjectile);
         }
         else{
-            set_flags(&e->flags, flags);
+            set_flags(e, flags);
         }
     }
     else{
@@ -203,10 +214,10 @@ add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
         e->health = (s32)dim.w;
         e->texture = texture;
         if(flags == 0){
-            set_flags(&e->flags, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_Wrapping);
+            set_flags(e, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_Wrapping);
         }
         else{
-            set_flags(&e->flags, flags);
+            set_flags(e, flags);
         }
     }
     else{
@@ -221,7 +232,7 @@ entities_clear(){
     for(u32 i = pm->free_entities_at; i <= pm->free_entities_at; --i){
         Entity* e = pm->entities + i;
         e->type = EntityType_None;
-        clear_flags(&e->flags, EntityFlag_Active);
+        clear_flags(e, EntityFlag_Active);
         pm->free_entities[i] = pm->free_entities_at - i;
         pm->generation[i] = 0;
     }
@@ -415,7 +426,7 @@ reset_ship(){
     pm->ship->dir = dir_from_deg(pm->ship->deg);
     pm->ship->accel_dir = make_v2(0, 0);
     pm->ship->velocity = 0;
-    set_flags(&pm->ship->flags, EntityFlag_Active);
+    set_flags(pm->ship, EntityFlag_Active);
 }
 
 static bool
@@ -456,7 +467,7 @@ update_game(Window* window, Memory* memory, Events* events){
         reset_game();
         for(s32 i=0; i < array_count(pm->entities); i++){
             Entity* e = pm->entities + i;
-            if(has_flags(e->flags, EntityFlag_Active) && e != pm->ship){
+            if(has_flags(e, EntityFlag_Active) && e != pm->ship){
                 remove_entity(e);
             }
         }
@@ -574,7 +585,7 @@ update_game(Window* window, Memory* memory, Events* events){
         // flag loop
         for(s32 i = 0; i < array_count(pm->entities); ++i){
             Entity *e = pm->entities + i;
-            if(!has_flags(e->flags, EntityFlag_Active)){
+            if(!has_flags(e, EntityFlag_Active)){
                 continue;
             }
             Rect rect_e = rect_from_entity(e);
@@ -602,7 +613,7 @@ update_game(Window* window, Memory* memory, Events* events){
             //        }
             //    }
             //}
-            if(has_flags(e->flags, EntityFlag_Wrapping)){
+            if(has_flags(e, EntityFlag_Wrapping)){
                 if(e->pos.x - e->dim.w/2 > SCREEN_WIDTH){
                     e->pos.x = 0 - e->dim.w/2;
                 }
@@ -625,12 +636,19 @@ update_game(Window* window, Memory* memory, Events* events){
                 }
             }
 
-            if(has_flags(e->flags, EntityFlag_MoveWithPhys)){
+            if(has_flags(e, EntityFlag_MoveWithPhys)){
                 e->pos.x += (e->dir.x * e->velocity * e->speed) * (f32)clock.dt;
                 e->pos.y += (e->dir.y * e->velocity * e->speed) * (f32)clock.dt;
             }
 
-            if(has_flags(e->flags, EntityFlag_MoveWithCtrls)){
+            if(has_flags(e, EntityFlag_Particle)){
+                e->particle_t -= (f32)clock.dt;
+                if(e->particle_t < 0){
+                    remove_entity(e);
+                }
+            }
+
+            if(has_flags(e, EntityFlag_MoveWithCtrls)){
                 if(controller.button[KeyCode_SPACEBAR].held){
                     e->shoot_t += (f32)clock.dt;
                     if(e->shoot_t >= 0.1f){
@@ -638,7 +656,7 @@ update_game(Window* window, Memory* memory, Events* events){
                         Entity* child_e = add_bullet(TextureAsset_Bullet, e->pos, make_v2(40, 8), e->deg);
                         child_e->parent = e;
                         u32 random_rail = random_range_u32(5) + 5; // hard coded for now, 5 rails
-                        audio_play(random_rail, 0.0f, false);
+                        audio_play(random_rail, 0.1f, false);
                     }
                 }
                 else{
@@ -661,6 +679,7 @@ update_game(Window* window, Memory* memory, Events* events){
 
                 // increase velocity
                 if(controller.button[KeyCode_UP].held || controller.button[KeyCode_W].held){
+                    e->accelerating = true;
                     e->velocity += (f32)clock.dt;
                     if(e->velocity > 1){
                         e->velocity = 1;
@@ -671,6 +690,7 @@ update_game(Window* window, Memory* memory, Events* events){
                     clamp_f32(-1, 1, &e->accel_dir.y);
                 }
                 else{
+                    e->accelerating = false;
                     e->velocity -= (f32)clock.dt/4;
                     if(e->velocity < 0){
                         e->velocity = 0;
@@ -687,7 +707,7 @@ update_game(Window* window, Memory* memory, Events* events){
             switch(e->type){
                 case EntityType_Ship:{
 
-                    if(has_flags(pm->ship->flags, EntityFlag_Active)){
+                    if(has_flags(pm->ship, EntityFlag_Active)){
                         // move ship
                         e->pos.x += (e->accel_dir.x * e->velocity * e->speed) * (f32)clock.dt;
                         e->pos.y += (e->accel_dir.y * e->velocity * e->speed) * (f32)clock.dt;
@@ -715,6 +735,9 @@ update_game(Window* window, Memory* memory, Events* events){
                 } break;
                 case EntityType_Bullet:{
                     Rect rect_e = rect_from_entity(e);
+                    if(!has_flags(e, EntityFlag_CanCollide)){
+                        break;
+                    }
                     for(s32 idx = 0; idx < array_count(pm->entities); ++idx){
                         Entity *collide_e = pm->entities + idx;
 
@@ -724,31 +747,44 @@ update_game(Window* window, Memory* memory, Events* events){
                         if(collide_e->type == EntityType_Asteroid){
                             Rect collide_e_rect = rect_from_entity(collide_e);
 
-                            if(!rect_collides_rect(collide_e_rect, rect_e)){
-                                continue;
-                            }
-                            collide_e->health -= e->damage;
-                            collide_e->color.r += 0.2f;
-                            collide_e->color.g -= 0.4f;
-                            collide_e->color.b -= 0.4f;
-                            if(collide_e->health <= 0){
-                                pm->score += (u32)collide_e->dim.w;
-                                pm->current_level->asteroid_destroyed++;
+                            if(rect_collides_rect(collide_e_rect, rect_e)){
 
-                                //if(collide_e->dim.w > 100){
-                                //    collide_e->dim.w -= 50;
-                                //    collide_e->dim.h -= 50;
-                                //    for(s32 splint_i=0; splint_i < 3; ++splint_i){
-                                //        collide_e->deg = random_range_f32(359);
-                                //        add_asteroid(TextureAsset_Asteroid, collide_e->pos, collide_e->dim, collide_e->deg);
-                                //        pm->current_level->asteroid_spawned++;
-                                //        pm->current_level->asteroid_count_max++;
-                                //    }
-                                //}
-                                remove_entity(collide_e);
+                                collide_e->health -= e->damage;
+                                collide_e->color.r += 0.2f;
+                                collide_e->color.g -= 0.4f;
+                                collide_e->color.b -= 0.4f;
+                                if(collide_e->health <= 0){
+                                    pm->score += (u32)collide_e->dim.w;
+                                    pm->current_level->asteroid_destroyed++;
+
+                                    if(collide_e->dim.w > 100){
+                                        collide_e->dim.w -= 50;
+                                        collide_e->dim.h -= 50;
+                                        for(s32 splint_i=0; splint_i < 3; ++splint_i){
+                                            collide_e->deg = random_range_f32(360);
+                                            add_asteroid(TextureAsset_Asteroid, collide_e->pos, collide_e->dim, collide_e->deg);
+                                            pm->current_level->asteroid_spawned++;
+                                            pm->current_level->asteroid_count_max++;
+                                        }
+                                    }
+
+                                    remove_entity(collide_e);
+                                }
+
+                                s32 p_count = (s32)random_range_u32(5) + 5;
+                                for(s32 p_idx = 0; p_idx < p_count; p_idx++){
+                                    f32 deg = random_range_f32(360);
+                                    Entity* e_p = add_bullet(TextureAsset_Bullet, e->pos, make_v2(10, 2), deg);
+                                    clear_flags(e_p, EntityFlag_CanCollide);
+                                    set_flags(e_p, EntityFlag_Particle);
+                                    e_p->parent = pm->ship;
+                                    e_p->particle_t = 0.175f;
+                                }
+                                u32 random_rail = random_range_u32(5) + 5; // hard coded for now, 5 rails
+                                //audio_play(random_rail, 0.1f, false);
+                                remove_entity(e);
+                                break;
                             }
-                            remove_entity(e);
-                            break;
                         }
                     }
                 } break;

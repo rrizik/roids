@@ -9,6 +9,7 @@ typedef enum EntityFlag {
     EntityFlag_MoveWithPhys =  (1 << 4),
     EntityFlag_IsProjectile =  (1 << 5),
     EntityFlag_Wrapping =      (1 << 6),
+    EntityFlag_Particle =      (1 << 7),
 } EntityFlag;
 
 typedef enum EntityType {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
@@ -39,13 +40,15 @@ typedef struct Entity{
     s32 health;
     s32 damage;
     bool in_play;
+    f32 particle_t;
+    bool accelerating;
 
     u32 texture;
 } Entity;
 
-static bool has_flags(u32 flags, u32 flags_set);
-static void set_flags(u32* flags, u32 flags_set);
-static void clear_flags(u32* flags, u32 flags_set);
+static bool has_flags(Entity* e, u32 flags);
+static void set_flags(Entity* e, u32 flags);
+static void clear_flags(Entity* e, u32 flags);
 
 typedef struct EntityHandle{
     u32 index;

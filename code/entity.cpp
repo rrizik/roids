@@ -2,18 +2,19 @@
 #define ENTITY_C
 
 static bool
-has_flags(u32 flags, u32 flags_set){
-    return((flags & flags_set) == flags_set);
+has_flags(Entity* e, u32 flags){
+    bool result = (e->flags & flags) == flags;
+    return(result);
 }
 
 static void
-set_flags(u32* flags, u32 flags_set){
-    *flags |= flags_set;
+set_flags(Entity* e, u32 flags){
+    e->flags |= flags;
 }
 
 static void
-clear_flags(u32* flags, u32 flags_set){
-    *flags &= ~flags_set;
+clear_flags(Entity* e, u32 flags){
+    e->flags &= ~flags;
 }
 
 static EntityHandle

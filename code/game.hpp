@@ -21,6 +21,12 @@ typedef enum TextureAsset{
     TextureAsset_Bullet,
     TextureAsset_Asteroid,
 
+    TextureAsset_Flame1,
+    TextureAsset_Flame2,
+    TextureAsset_Flame3,
+    TextureAsset_Flame4,
+    TextureAsset_Flame5,
+
     TextureAsset_Font_Arial,
     TextureAsset_Font_Golos,
 

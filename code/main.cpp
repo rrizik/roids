@@ -327,7 +327,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         for(s32 index = 0; index < array_count(pm->entities); ++index){
             begin_timed_scope("command arena");
             Entity *e = pm->entities + index;
-            if(has_flags(e->flags, EntityFlag_Active)){
+            if(has_flags(e, EntityFlag_Active)){
 
                 switch(e->type){
                     case EntityType_Quad:{
@@ -367,8 +367,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
 
                         draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
-                        String8 text = str8_formatted(tm->frame_arena, "size: %i", (s32)e->dim.w);
-                        draw_text(tm->render_command_arena, pm->current_font, text, e->pos, ORANGE);
                     } break;
                     case EntityType_Ship:{
                         v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
@@ -390,6 +388,20 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                         //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
 
                         draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+
+                        if(pm->ship->accelerating){
+                            p0.x += (100 * (-e->dir.x));
+                            p0.y += (100 * (-e->dir.y));
+                            p1.x += (40 * (-e->dir.x));
+                            p1.y += (40 * (-e->dir.y));
+                            p2.x += (40 * (-e->dir.x));
+                            p2.y += (40 * (-e->dir.y));
+                            p3.x += (100 * (-e->dir.x));
+                            p3.y += (100 * (-e->dir.y));
+                            u32 random_flame = random_range_u32(5) + 3;
+                            draw_texture(tm->render_command_arena, random_flame, p0, p1, p2, p3, e->color);
+                        }
+
                     } break;
                 }
             }
@@ -438,9 +450,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
         //String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
         //draw_text(tm->render_command_arena, pm->current_font, fps, make_v2(SCREEN_WIDTH - text_padding - font_string_width(pm->current_font, fps), SCREEN_HEIGHT - text_padding), ORANGE);
-        Level* level = pm->current_level;
-        String8 info_str = str8_formatted(tm->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", pm->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
-        draw_text(tm->render_command_arena, pm->current_font, info_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
+        //Level* level = pm->current_level;
+        //String8 info_str = str8_formatted(tm->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", pm->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
+        //draw_text(tm->render_command_arena, pm->current_font, info_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
 
         // draw everything
         draw_commands(tm->render_command_arena);

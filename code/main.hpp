@@ -75,7 +75,7 @@ global f32 g_angle_t = 0;
 #define MAX_LEVELS 3
 #define MAX_LIVES 3
 #define WIN_SCORE 3000
-#define ENTITIES_MAX 50
+#define ENTITIES_MAX 4096
 typedef struct PermanentMemory{
     Arena arena;
     u32 game_mode; // GameMode

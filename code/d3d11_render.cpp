@@ -277,7 +277,6 @@ draw_commands(Arena* commands){
                 u64 allocation_size = command->text.size * 6;
                 Vertex3* buffer = push_array(scratch.arena, Vertex3, allocation_size);
 
-                //Vertex3* vertex = buffer;
                 f32 start_x = command->p0.x;
                 f32 y_offset = 0;
                 stbtt_aligned_quad quad;
