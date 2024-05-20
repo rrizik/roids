@@ -20,7 +20,7 @@ load_font_ttf(Arena* arena, String8 filename, f32 size){
     }
     result.scale = stbtt_ScaleForPixelHeight(&result.info, size);
     stbtt_GetFontVMetrics(&result.info, &result.ascent, &result.descent, &result.line_gap);
-    result.vertical_offset = result.ascent - result.descent + result.line_gap;
+    result.vertical_offset = round_f32_s32((f32)(result.ascent - result.descent + result.line_gap) * result.scale); // note: I don't see value in keeping this in unscaled.
 
     result.texture_w = 1024;
     result.texture_h = 1024;

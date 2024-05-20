@@ -1,4 +1,6 @@
-#pragma once
+#ifndef PROFILER_TIMER
+#define PROFILER_TIMER __rdtsc()
+#endif
 
 ///////////////////////////////
 // NOTE: Profiler
@@ -10,10 +12,6 @@
 
 #ifndef PROFILER
 #define PROFILER 0
-#endif
-
-#ifndef PROFILER_TIMER
-#define PROFILER_TIMER __rdtsc()
 #endif
 
 #if PROFILER
@@ -76,7 +74,7 @@ print_anchor_data(u64 total_cpu_elapsed, u64 cpu_freq){
         ProfileAnchor *anchor = profile_anchors + anchor_index;
         if(anchor->tsc_elapsed_inclusive){
             f64 percent = 100.0 * ((f64)anchor->tsc_elapsed_exclusive / (f64)total_cpu_elapsed);
-            print("  %s[%llu]: %llu (%.2f%%", anchor->label.str, anchor->hit_count, anchor->tsc_elapsed_exclusive, percent);
+            print("  %s[%llu]: %llu (%.2f%%", anchor->label.str, anchor->hit_count, anchor->tsc_elapsed_exclusive/anchor->hit_count, percent);
             if(anchor->tsc_elapsed_inclusive != anchor->tsc_elapsed_exclusive){
                 f64 percent_with_children = 100.0 * ((f64)anchor->tsc_elapsed_inclusive / (f64)total_cpu_elapsed);
                 print(", %.2f%% w/children", percent_with_children);

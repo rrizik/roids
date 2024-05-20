@@ -25,6 +25,7 @@ static void
 load_assets(Arena* arena){
 
     ScratchArena scratch = begin_scratch();
+
     Bitmap bm;
     bm = load_bitmap(scratch.arena, str8_literal("sprites/ship2.bmp"));
     init_texture_resource(&tm->assets.textures[TextureAsset_Ship].view, &bm);
@@ -43,18 +44,32 @@ load_assets(Arena* arena){
     init_texture_resource(&tm->assets.textures[TextureAsset_Flame4].view, &bm);
     bm = load_bitmap(scratch.arena, str8_literal("sprites/flame5.bmp"));
     init_texture_resource(&tm->assets.textures[TextureAsset_Flame5].view, &bm);
+
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion1.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion1].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion2.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion2].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion3.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion3].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion4.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion4].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion5.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion5].view, &bm);
+    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion6.bmp"));
+    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion6].view, &bm);
+
     end_scratch(scratch);
 
-    tm->assets.waves[WaveAsset_track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
-    tm->assets.waves[WaveAsset_track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
-    tm->assets.waves[WaveAsset_track3] = load_wave(arena, str8_literal("sounds/track3.wav"));
-    tm->assets.waves[WaveAsset_track4] = load_wave(arena, str8_literal("sounds/track4.wav"));
-    tm->assets.waves[WaveAsset_track5] = load_wave(arena, str8_literal("sounds/track5.wav"));
-    tm->assets.waves[WaveAsset_rail1] = load_wave(arena, str8_literal("sounds/rail1.wav"));
-    tm->assets.waves[WaveAsset_rail2] = load_wave(arena, str8_literal("sounds/rail2.wav"));
-    tm->assets.waves[WaveAsset_rail3] = load_wave(arena, str8_literal("sounds/rail3.wav"));
-    tm->assets.waves[WaveAsset_rail4] = load_wave(arena, str8_literal("sounds/rail4.wav"));
-    tm->assets.waves[WaveAsset_rail5] = load_wave(arena, str8_literal("sounds/rail5.wav"));
+    tm->assets.waves[WaveAsset_Track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
+    tm->assets.waves[WaveAsset_Track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
+    tm->assets.waves[WaveAsset_Track3] = load_wave(arena, str8_literal("sounds/track3.wav"));
+    tm->assets.waves[WaveAsset_Track4] = load_wave(arena, str8_literal("sounds/track4.wav"));
+    tm->assets.waves[WaveAsset_Track5] = load_wave(arena, str8_literal("sounds/track5.wav"));
+    tm->assets.waves[WaveAsset_Rail1] =  load_wave(arena, str8_literal("sounds/rail1.wav"));
+    tm->assets.waves[WaveAsset_Rail2] =  load_wave(arena, str8_literal("sounds/rail2.wav"));
+    tm->assets.waves[WaveAsset_Rail3] =  load_wave(arena, str8_literal("sounds/rail3.wav"));
+    tm->assets.waves[WaveAsset_Rail4] =  load_wave(arena, str8_literal("sounds/rail4.wav"));
+    tm->assets.waves[WaveAsset_Rail5] =  load_wave(arena, str8_literal("sounds/rail5.wav"));
 
     tm->assets.fonts[FontAsset_Arial] =    load_font_ttf(arena, str8_literal("fonts/arial.ttf"), 24);
     tm->assets.fonts[FontAsset_Golos] =    load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), 36);
@@ -160,6 +175,12 @@ add_ship(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
         e->velocity = 0;
         e->shoot_t = 1;
         e->texture = texture;
+        e->collision_type = CollisionType_Explode;
+        e->exploding = false;
+        e->explosion_tex = TextureAsset_Explosion1;
+        e->explosion_t = 0.0f;
+        e->immune_t = 0.0f;
+        e->immune = true;
         if(flags == 0){
             set_flags(e, EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
         }
@@ -186,6 +207,7 @@ add_bullet(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
         e->velocity = 1;
         e->damage = 50;
         e->texture = texture;
+        e->collision_type = CollisionType_Splinter;
         if(flags == 0){
             set_flags(e, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_IsProjectile);
         }
@@ -213,6 +235,7 @@ add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
         e->velocity = 1;
         e->health = (s32)dim.w;
         e->texture = texture;
+        e->collision_type = CollisionType_HealthOrSplinter;
         if(flags == 0){
             set_flags(e, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_Wrapping);
         }
@@ -426,7 +449,12 @@ reset_ship(){
     pm->ship->dir = dir_from_deg(pm->ship->deg);
     pm->ship->accel_dir = make_v2(0, 0);
     pm->ship->velocity = 0;
-    set_flags(pm->ship, EntityFlag_Active);
+    pm->ship->exploding = false;
+    pm->ship->explosion_tex = TextureAsset_Explosion1;
+    pm->ship->texture = TextureAsset_Ship;
+    pm->ship->immune = true;
+    pm->ship->immune_t = 0.0f;
+    set_flags(pm->ship, EntityFlag_Active | EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
 }
 
 static bool
@@ -577,42 +605,35 @@ update_game(Window* window, Memory* memory, Events* events){
                 deg = (f32)random_range_u32(180) - 180;
             }
             if(pm->current_level->asteroid_spawned < pm->current_level->asteroid_count_max){
-                add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
+                Entity* asteroid = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
                 pm->current_level->asteroid_spawned++;
             }
         }
 
-        // flag loop
+        // flag looptypedef enum EntityType {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
+
         for(s32 i = 0; i < array_count(pm->entities); ++i){
+            begin_timed_scope("flag_loop");
             Entity *e = pm->entities + i;
             if(!has_flags(e, EntityFlag_Active)){
                 continue;
             }
-            Rect rect_e = rect_from_entity(e);
+            Rect e_rect = rect_from_entity(e);
 
-            //if(has_flags(e->flags, EntityFlag_CanCollide)){
+            //if(!has_flags(e, EntityFlag_CanCollide)){
             //    for(s32 j = 0; j < array_count(pm->entities); ++j){
-            //        Entity *collide_e = pm->entities + j;
+            //        Entity *e_inner = pm->entities + j;
+            //        if(e == e_inner->parent){
+            //            continue;
+            //        }
 
-            //        if(collide_e != e->parent){
-            //            Rect collide_e_rect = rect_from_entity(collide_e);
+            //        Rect e_inner_rect = rect_from_entity(e_inner);
+            //        if(rect_collides_rect(e_inner_rect, e_rect)){
 
-            //            if(rect_collides_rect(collide_e_rect, rect_e)){
-            //                collide_e->health -= e->damage;
-            //                collide_e->color.r += 0.2f;
-            //                collide_e->color.g -= 0.4f;
-            //                collide_e->color.b -= 0.4f;
-            //                if(collide_e->health <= 0){
-            //                    pm->score += (u32)collide_e->dim.w;
-            //                    remove_entity(collide_e);
-            //                    current_level.asteroid_destroyed++;
-            //                }
-            //                remove_entity(e);
-            //                break;
-            //            }
             //        }
             //    }
             //}
+
             if(has_flags(e, EntityFlag_Wrapping)){
                 if(e->pos.x - e->dim.w/2 > SCREEN_WIDTH){
                     e->pos.x = 0 - e->dim.w/2;
@@ -642,8 +663,10 @@ update_game(Window* window, Memory* memory, Events* events){
             }
 
             if(has_flags(e, EntityFlag_Particle)){
-                e->particle_t -= (f32)clock.dt;
-                if(e->particle_t < 0){
+                if(e->dim.w > 0){
+                    e->dim.w -= (f32)clock.dt * 40;
+                }
+                else{
                     remove_entity(e);
                 }
             }
@@ -653,7 +676,8 @@ update_game(Window* window, Memory* memory, Events* events){
                     e->shoot_t += (f32)clock.dt;
                     if(e->shoot_t >= 0.1f){
                         e->shoot_t = 0.0;
-                        Entity* child_e = add_bullet(TextureAsset_Bullet, e->pos, make_v2(40, 8), e->deg);
+                        v2 pos = make_v2(e->pos.x + (50 * e->dir.x), e->pos.y + (50 * e->dir.y));
+                        Entity* child_e = add_bullet(TextureAsset_Bullet, pos, make_v2(40, 8), e->deg);
                         child_e->parent = e;
                         u32 random_rail = random_range_u32(5) + 5; // hard coded for now, 5 rails
                         audio_play(random_rail, 0.1f, false);
@@ -699,8 +723,18 @@ update_game(Window* window, Memory* memory, Events* events){
             }
         }
 
+        // todo: batch work loads to complete a frame rather than looping over entities
+        // so loop over entities to do 1 kind of work
+        //
+        // player input
+        // collison
+        // physics step
+        //
+        // 64 byte cache lines
+        //
         // type loop
         for(s32 i = 0; i < array_count(pm->entities); ++i){
+            begin_timed_scope("type_loop");
             Entity *e = pm->entities + i;
             Rect e_rect = rect_from_entity(e);
 
@@ -708,30 +742,55 @@ update_game(Window* window, Memory* memory, Events* events){
                 case EntityType_Ship:{
 
                     if(has_flags(pm->ship, EntityFlag_Active)){
-                        // move ship
-                        e->pos.x += (e->accel_dir.x * e->velocity * e->speed) * (f32)clock.dt;
-                        e->pos.y += (e->accel_dir.y * e->velocity * e->speed) * (f32)clock.dt;
-
-#if 0
-                        for(s32 idx = 0; idx < array_count(pm->entities); ++idx){
-                            Entity *collide_e = pm->entities + idx;
-                            if(collide_e->type == EntityType_Asteroid){
-                                Rect collide_e_rect = rect_from_entity(collide_e);
-                                if(rect_collides_rect(e_rect, collide_e_rect)){
-                                    pm->lives -= 1;
+                        if(e->exploding){
+                            e->accelerating = false;
+                            e->texture = e->explosion_tex;
+                            e->explosion_t += (f32)clock.dt;
+                            if(e->explosion_t >= 0.030f){
+                                if(e->texture != TextureAsset_Explosion6){
+                                    e->explosion_tex++;
+                                }
+                                else{
                                     if(pm->lives){
                                         reset_ship();
                                     } else{
-                                        clear_flags(&pm->ship->flags, EntityFlag_Active);
+                                        clear_flags(pm->ship, EntityFlag_Active);
                                     }
-                                    remove_entity(collide_e);
-                                    break;
                                 }
+                                e->explosion_t = 0.0f;
                             }
                         }
-#endif
-                    }
+                        else{
+                            // move ship
+                            e->pos.x += (e->accel_dir.x * e->velocity * e->speed) * (f32)clock.dt;
+                            e->pos.y += (e->accel_dir.y * e->velocity * e->speed) * (f32)clock.dt;
 
+                            //if(e->immune_t < 2){
+                            //    e->immune_t += (f32)clock.dt;
+                            //}
+                            //else{
+                            //    e->immune = false;
+                            //}
+#if 1
+                            if(!e->immune){
+                                for(s32 idx = 0; idx < array_count(pm->entities); ++idx){
+                                    Entity *collide_e = pm->entities + idx;
+                                    if(collide_e->type == EntityType_Asteroid){
+                                        Rect collide_e_rect = rect_from_entity(collide_e);
+                                        if(rect_collides_rect(e_rect, collide_e_rect)){
+                                            pm->lives -= 1;
+                                            e->exploding = true;
+                                            clear_flags(e, EntityFlag_MoveWithCtrls);
+                                            pm->current_level->asteroid_destroyed++;
+                                            remove_entity(collide_e);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+#endif
+                        }
+                    }
                 } break;
                 case EntityType_Bullet:{
                     Rect rect_e = rect_from_entity(e);
@@ -753,10 +812,10 @@ update_game(Window* window, Memory* memory, Events* events){
                                 collide_e->color.r += 0.2f;
                                 collide_e->color.g -= 0.4f;
                                 collide_e->color.b -= 0.4f;
-                                if(collide_e->health <= 0){
-                                    pm->score += (u32)collide_e->dim.w;
-                                    pm->current_level->asteroid_destroyed++;
 
+                                // asteroid destroyed and splinter
+                                // todo: maybe this should be on death handling or something
+                                if(collide_e->health <= 0){
                                     if(collide_e->dim.w > 100){
                                         collide_e->dim.w -= 50;
                                         collide_e->dim.h -= 50;
@@ -768,13 +827,17 @@ update_game(Window* window, Memory* memory, Events* events){
                                         }
                                     }
 
+                                    pm->score += (u32)collide_e->dim.w;
+                                    pm->current_level->asteroid_destroyed++;
                                     remove_entity(collide_e);
                                 }
 
+                                // bullet particles
                                 s32 p_count = (s32)random_range_u32(5) + 5;
                                 for(s32 p_idx = 0; p_idx < p_count; p_idx++){
                                     f32 deg = random_range_f32(360);
-                                    Entity* e_p = add_bullet(TextureAsset_Bullet, e->pos, make_v2(10, 2), deg);
+                                    v2 dim = make_v2(10, 2);
+                                    Entity* e_p = add_bullet(TextureAsset_Bullet, e->pos, dim, deg);
                                     clear_flags(e_p, EntityFlag_CanCollide);
                                     set_flags(e_p, EntityFlag_Particle);
                                     e_p->parent = pm->ship;

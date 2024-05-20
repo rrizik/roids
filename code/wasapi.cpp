@@ -95,53 +95,6 @@ static HRESULT audio_stop(){
     return(hr);
 }
 
-//static HRESULT audio_play_sine(f32 freq){
-//    HRESULT hr = S_OK;
-//
-//    local u32 numerator = 0;
-//    u32 padding;
-//    hr = audio_client->GetCurrentPadding(&padding);
-//    if(FAILED(hr)){
-//        assert_hr(hr);
-//        return(hr);
-//    }
-//    u32 available_size = buffer_size - padding;
-//
-//    u8* buffer;
-//    hr = render_client->GetBuffer(available_size, &buffer);
-//    if(FAILED(hr)){
-//        assert_hr(hr);
-//        return(hr);
-//    }
-//
-//    static f32 time;
-//    for(u32 i=0; i < available_size; ++i){
-//        time = (f32)((f32)(numerator++ % buffer_size) / (f32)buffer_size);
-//
-//        f32 sine_value = sin_f32((2.0f * PI_f32 * freq * time));
-//
-//        // scale the sine value to the range -0.nf to 0.nf
-//        sine_value *= 0.03f;
-//
-//        f32* buffer_f32 = (f32*)buffer;
-//        if(wave_format.nChannels == 2){
-//            buffer_f32[i * wave_format.nChannels] = sine_value;
-//            buffer_f32[(i * wave_format.nChannels) + 1] = sine_value;
-//        }
-//        else{
-//            buffer_f32[i * wave_format.nChannels] = sine_value;
-//        }
-//    }
-//
-//    hr = render_client->ReleaseBuffer(available_size, 0);
-//    if (FAILED(hr)) {
-//        assert_hr(hr);
-//        return(hr);
-//    }
-//
-//    return(hr);
-//}
-
 static bool
 audio_play(u32 id, f32 volume, bool loop){
     WaveCursor cursor = {0};
@@ -219,5 +172,53 @@ audio_release(){
 
     render_client->Release();
 }
+
+//static HRESULT audio_play_sine(f32 freq){
+//    HRESULT hr = S_OK;
+//
+//    local u32 numerator = 0;
+//    u32 padding;
+//    hr = audio_client->GetCurrentPadding(&padding);
+//    if(FAILED(hr)){
+//        assert_hr(hr);
+//        return(hr);
+//    }
+//    u32 available_size = buffer_size - padding;
+//
+//    u8* buffer;
+//    hr = render_client->GetBuffer(available_size, &buffer);
+//    if(FAILED(hr)){
+//        assert_hr(hr);
+//        return(hr);
+//    }
+//
+//    static f32 time;
+//    for(u32 i=0; i < available_size; ++i){
+//        time = (f32)((f32)(numerator++ % buffer_size) / (f32)buffer_size);
+//
+//        f32 sine_value = sin_f32((2.0f * PI_f32 * freq * time));
+//
+//        // scale the sine value to the range -0.nf to 0.nf
+//        sine_value *= 0.03f;
+//
+//        f32* buffer_f32 = (f32*)buffer;
+//        if(wave_format.nChannels == 2){
+//            buffer_f32[i * wave_format.nChannels] = sine_value;
+//            buffer_f32[(i * wave_format.nChannels) + 1] = sine_value;
+//        }
+//        else{
+//            buffer_f32[i * wave_format.nChannels] = sine_value;
+//        }
+//    }
+//
+//    hr = render_client->ReleaseBuffer(available_size, 0);
+//    if (FAILED(hr)) {
+//        assert_hr(hr);
+//        return(hr);
+//    }
+//
+//    return(hr);
+//}
+
 
 #endif

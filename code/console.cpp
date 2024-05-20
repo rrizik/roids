@@ -270,7 +270,8 @@ console_draw(){
         Font* font = &tm->assets.fonts[console.font_type];
 
         // rect setup
-        f32 y = -((f32)font->vertical_offset * font->scale);
+        f32 y = (f32)(-font->vertical_offset);
+        //f32 y = -((f32)font->vertical_offset * font->scale);
         v2 output_p0 = make_v2(0                , y);
         v2 output_p1 = make_v2((f32)window.width, y);
         v2 output_p2 = make_v2((f32)window.width, (console.open_t * (f32)window.height) + y);
@@ -278,8 +279,8 @@ console_draw(){
 
         v2 input_p0 = make_v2(0                , output_p2.y);
         v2 input_p1 = make_v2((f32)window.width, output_p2.y);
-        v2 input_p2 = make_v2((f32)window.width, output_p2.y + (f32)font->vertical_offset * font->scale);
-        v2 input_p3 = make_v2(0                , output_p2.y + (f32)font->vertical_offset * font->scale);
+        v2 input_p2 = make_v2((f32)window.width, output_p2.y + (f32)font->vertical_offset);
+        v2 input_p3 = make_v2(0                , output_p2.y + (f32)font->vertical_offset);
 
         String8 str = str8(console.input, (u64)console.cursor_index);
 
@@ -308,7 +309,7 @@ console_draw(){
                 if(output_pos_y < (f32)window.height){
                     String8 next_string = console.output_history[i];
                     draw_text(tm->render_command_arena, console.font_type, next_string, make_v2(console.text_left_pad, output_pos_y), console.output_color);
-                    output_pos_y -= (f32)font->vertical_offset * font->scale;
+                    output_pos_y -= (f32)font->vertical_offset;
                 }
             }
         }

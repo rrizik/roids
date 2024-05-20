@@ -284,7 +284,7 @@ draw_commands(Arena* commands){
                 for(s32 i=0; i < command->text.size; ++i){
                     u8* character = command->text.str + i;
                     if(*character == '\n'){
-                        y_offset += (f32)font->vertical_offset * font->scale;
+                        y_offset += (f32)font->vertical_offset;
                         command->p0.x = start_x;
                     }
                     else{

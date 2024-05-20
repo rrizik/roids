@@ -1,6 +1,9 @@
 #ifndef ENTITY_H
 #define ENTITY_H
 
+// originator of another entity
+// handle to originator, entity cant collide with its originator
+// collision layers (1,2,3,4,5)
 typedef enum EntityFlag {
     EntityFlag_Active =        (1 << 0),
     EntityFlag_MoveWithCtrls = (1 << 1),
@@ -12,6 +15,15 @@ typedef enum EntityFlag {
     EntityFlag_Particle =      (1 << 7),
 } EntityFlag;
 
+typedef enum CollisionType {
+    CollisionType_None,
+    CollisionType_Explode,
+    CollisionType_Health,
+    CollisionType_Splinter,
+    CollisionType_HealthOrSplinter,
+    CollisionType_Count,
+} CollisionType;
+
 typedef enum EntityType {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
 
 typedef struct Entity{
@@ -21,6 +33,7 @@ typedef struct Entity{
 
     EntityType type;
     u32 flags;
+    u32 collision_type;
     u32 index;
     u32 generation;
 
@@ -42,6 +55,11 @@ typedef struct Entity{
     bool in_play;
     f32 particle_t;
     bool accelerating;
+    bool exploding;
+    u32  explosion_tex;
+    f32 explosion_t;
+    f32 immune_t;
+    bool immune;
 
     u32 texture;
 } Entity;

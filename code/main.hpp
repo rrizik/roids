@@ -27,6 +27,9 @@
 #include "entity.hpp"
 #include "console.hpp"
 #include "command.hpp"
+#include "ui.hpp"
+
+#include "ui.cpp"
 
 static String8 build_path;
 static String8 fonts_path;
@@ -58,6 +61,7 @@ struct Window{
 };
 global Window window;
 static Window win32_window_create(const wchar* window_name, s32 width, s32 height);
+#include "game.hpp"
 
 global bool should_quit;
 global Arena* global_arena = os_make_arena(MB(100));
@@ -68,10 +72,6 @@ static void init_paths(Arena* arena);
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type);
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param);
 
-global f32 g_angle = 0;
-global f32 g_angle_t = 0;
-
-#include "game.hpp"
 #define MAX_LEVELS 3
 #define MAX_LIVES 3
 #define WIN_SCORE 3000
