@@ -103,7 +103,7 @@ handle_from_entity(Entity *e){
 static void
 remove_entity(Entity* e){
     e->type = EntityType_None; // todo: remove this
-    clear_flags(e, EntityFlag_Active);
+    clear_flags(&e->flags, EntityFlag_Active);
     pm->free_entities[++pm->free_entities_at] = e->index;
     pm->entities_count--;
     *e = {0};
@@ -115,7 +115,7 @@ add_entity(EntityType type){
         u32 free_entity_index = pm->free_entities[pm->free_entities_at--];
         Entity *e = pm->entities + free_entity_index;
         e->index = free_entity_index;
-        set_flags(e, EntityFlag_Active);
+        set_flags(&e->flags, EntityFlag_Active);
         pm->generation[e->index]++;
         pm->entities_count++;
         e->generation = pm->generation[e->index]; // CONSIDER: this might not be necessary
@@ -181,11 +181,13 @@ add_ship(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
         e->explosion_t = 0.0f;
         e->immune_t = 0.0f;
         e->immune = true;
+        e->death_type = DeathType_Animate;
+        e->health = 1;
         if(flags == 0){
-            set_flags(e, EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
+            set_flags(&e->flags, EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
         }
         else{
-            set_flags(e, flags);
+            set_flags(&e->flags, flags);
         }
     }
     else{
@@ -207,16 +209,48 @@ add_bullet(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
         e->velocity = 1;
         e->damage = 50;
         e->texture = texture;
-        e->collision_type = CollisionType_Splinter;
+        e->collision_type = CollisionType_SplinterOnDeath;
+        e->death_type = DeathType_Particle;
+        e->health = 1;
         if(flags == 0){
-            set_flags(e, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_IsProjectile);
+            set_flags(&e->flags, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_IsProjectile);
         }
         else{
-            set_flags(e, flags);
+            set_flags(&e->flags, flags);
         }
     }
     else{
         print("Failed to add entity: Bullet\n");
+    }
+    return(e);
+}
+
+static Entity*
+add_bullet_particle(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
+    Entity* e = add_entity(EntityType_Particle);
+    if(e){
+        e->color = color;
+        e->pos = pos;
+        e->dim = dim;
+        e->deg = deg;
+        e->dir = dir_from_deg(deg);
+        e->speed = 500;
+        e->velocity = 1;
+        e->damage = 50;
+        e->texture = texture;
+        e->collision_type = CollisionType_SplinterOnDeath;
+        e->death_type = DeathType_Particle;
+        e->particle_type = ParticleType_Bullet;
+        e->health = 1;
+        if(flags == 0){
+            set_flags(&e->flags, EntityFlag_MoveWithPhys | EntityFlag_Particle);
+        }
+        else{
+            set_flags(&e->flags, flags);
+        }
+    }
+    else{
+        print("Failed to add entity: Bullet Particle\n");
     }
     return(e);
 }
@@ -236,11 +270,12 @@ add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
         e->health = (s32)dim.w;
         e->texture = texture;
         e->collision_type = CollisionType_HealthOrSplinter;
+        e->death_type = DeathType_Crumble;
         if(flags == 0){
-            set_flags(e, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_Wrapping);
+            set_flags(&e->flags, EntityFlag_MoveWithPhys | EntityFlag_CanCollide | EntityFlag_Wrapping);
         }
         else{
-            set_flags(e, flags);
+            set_flags(&e->flags, flags);
         }
     }
     else{
@@ -255,7 +290,7 @@ entities_clear(){
     for(u32 i = pm->free_entities_at; i <= pm->free_entities_at; --i){
         Entity* e = pm->entities + i;
         e->type = EntityType_None;
-        clear_flags(e, EntityFlag_Active);
+        clear_flags(&e->flags, EntityFlag_Active);
         pm->free_entities[i] = pm->free_entities_at - i;
         pm->generation[i] = 0;
     }
@@ -454,7 +489,8 @@ reset_ship(){
     pm->ship->texture = TextureAsset_Ship;
     pm->ship->immune = true;
     pm->ship->immune_t = 0.0f;
-    set_flags(pm->ship, EntityFlag_Active | EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
+    pm->ship->health = 1;
+    set_flags(&pm->ship->flags, EntityFlag_Active | EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
 }
 
 static bool
@@ -495,55 +531,10 @@ update_game(Window* window, Memory* memory, Events* events){
         reset_game();
         for(s32 i=0; i < array_count(pm->entities); i++){
             Entity* e = pm->entities + i;
-            if(has_flags(e, EntityFlag_Active) && e != pm->ship){
+            if(has_flags(e->flags, EntityFlag_Active) && e != pm->ship){
                 remove_entity(e);
             }
         }
-    }
-    if(controller.button[KeyCode_Y].held){
-        wave_cursors[0].volume += (f32)clock.dt;
-        if(wave_cursors[0].volume > 1.0f){
-            wave_cursors[0].volume = 1.0f;
-        }
-    }
-    if(controller.button[KeyCode_H].held){
-        wave_cursors[0].volume -= (f32)clock.dt;
-        if(wave_cursors[0].volume < 0.0f){
-            wave_cursors[0].volume = 0.0f;
-        }
-    }
-    if(controller.button[KeyCode_U].held){
-        wave_cursors[1].volume += (f32)clock.dt;
-        if(wave_cursors[1].volume > 1.0f){
-            wave_cursors[1].volume = 1.0f;
-        }
-    }
-    if(controller.button[KeyCode_J].held){
-        wave_cursors[1].volume -= (f32)clock.dt;
-        if(wave_cursors[1].volume < 0.0f){
-            wave_cursors[1].volume = 0.0f;
-        }
-    }
-    if(controller.button[KeyCode_I].held){
-        wave_cursors[2].volume += (f32)clock.dt;
-        if(wave_cursors[2].volume > 1.0f){
-            wave_cursors[2].volume = 1.0f;
-        }
-    }
-    if(controller.button[KeyCode_K].held){
-        wave_cursors[2].volume -= (f32)clock.dt;
-        if(wave_cursors[2].volume < 0.0f){
-            wave_cursors[2].volume = 0.0f;
-        }
-    }
-    if(controller.button[KeyCode_SIX].pressed){
-        wave_cursors[0].at = 0;
-    }
-    if(controller.button[KeyCode_SEVEN].pressed){
-        wave_cursors[1].at = 0;
-    }
-    if(controller.button[KeyCode_EIGHT].pressed){
-        wave_cursors[2].at = 0;
     }
 
     //----constant buffer----
@@ -555,9 +546,77 @@ update_game(Window* window, Memory* memory, Events* events){
 
     console_update();
     if(pm->game_mode == GameMode_Game && !game_won()){
-        Level* level = pm->current_level;
-        Entity* ship = pm->ship;
+        Level* level   = pm->current_level;
+        Entity* ship   = pm->ship;
         Rect ship_rect = rect_from_entity(ship);
+
+        if(ship->immune_t < 2){
+            ship->immune_t += (f32)clock.dt;
+        }
+        else{
+            ship->immune = false;
+        }
+
+        // ship behavior
+        if(has_flags(ship->flags, EntityFlag_Active)){
+            if(has_flags(ship->flags, EntityFlag_MoveWithCtrls)){
+                ship->pos.x += (ship->accel_dir.x * ship->velocity * ship->speed) * (f32)clock.dt;
+                ship->pos.y += (ship->accel_dir.y * ship->velocity * ship->speed) * (f32)clock.dt;
+
+                if(controller.button[KeyCode_SPACEBAR].held){
+                    ship->shoot_t += (f32)clock.dt;
+                    if(ship->shoot_t >= 0.1f){
+                        ship->shoot_t = 0.0;
+                        v2 pos = make_v2(ship->pos.x + (50 * ship->dir.x), ship->pos.y + (50 * ship->dir.y));
+                        Entity* child_e = add_bullet(TextureAsset_Bullet, pos, make_v2(40, 8), ship->deg);
+                        child_e->origin = ship;
+
+                        // play rail audio
+                        u32 random_rail = random_range_u32(5) + 5; // hard coded for now, 5 rails
+                        audio_play(random_rail, 0.1f, false);
+                    }
+                }
+                else{
+                    ship->shoot_t = 1;
+                }
+
+                // rotate left right
+                if(controller.button[KeyCode_RIGHT].held || controller.button[KeyCode_D].held){
+                    f32 d = deg_from_dir(ship->dir);
+                    d += 200 * (f32)clock.dt;
+                    ship->deg = d;
+                    ship->dir = dir_from_deg(d);
+                }
+                if(controller.button[KeyCode_LEFT].held || controller.button[KeyCode_A].held){
+                    f32 d = deg_from_dir(ship->dir);
+                    d -= 200 * (f32)clock.dt;
+                    ship->deg = d;
+                    ship->dir = dir_from_deg(d);
+                }
+
+                // increase velocity
+                if(controller.button[KeyCode_UP].held || controller.button[KeyCode_W].held){
+                    ship->accelerating = true;
+                    ship->velocity += (f32)clock.dt;
+                    if(ship->velocity > 1){
+                        ship->velocity = 1;
+                    }
+                    ship->accel_dir.x += ship->dir.x/100;
+                    ship->accel_dir.y += ship->dir.y/100;
+                    clamp_f32(-1, 1, &ship->accel_dir.x);
+                    clamp_f32(-1, 1, &ship->accel_dir.y);
+                }
+                else{
+                    ship->accelerating = false;
+                    ship->velocity -= (f32)clock.dt/4;
+                    if(ship->velocity < 0){
+                        ship->velocity = 0;
+                    }
+                }
+            }
+        }
+
+        // advance level
         if(level->asteroid_spawned == level->asteroid_count_max &&
            level->asteroid_spawned == level->asteroid_destroyed){
             pm->level_index++;
@@ -566,6 +625,7 @@ update_game(Window* window, Memory* memory, Events* events){
             }
         }
 
+        // spawn asteroids
         pm->spawn_t += clock.dt;
         if(pm->spawn_t >= 0.5f){
             pm->spawn_t = 0.0;
@@ -610,31 +670,21 @@ update_game(Window* window, Memory* memory, Events* events){
             }
         }
 
-        // flag looptypedef enum EntityType {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
-
+        // 64 byte cache lines
+        // resolve entity motion
         for(s32 i = 0; i < array_count(pm->entities); ++i){
-            begin_timed_scope("flag_loop");
+            begin_timed_scope("entity_motion");
             Entity *e = pm->entities + i;
-            if(!has_flags(e, EntityFlag_Active)){
+            if(!has_flags(e->flags, EntityFlag_Active)){
                 continue;
             }
-            Rect e_rect = rect_from_entity(e);
 
-            //if(!has_flags(e, EntityFlag_CanCollide)){
-            //    for(s32 j = 0; j < array_count(pm->entities); ++j){
-            //        Entity *e_inner = pm->entities + j;
-            //        if(e == e_inner->parent){
-            //            continue;
-            //        }
+            if(has_flags(e->flags, EntityFlag_MoveWithPhys)){
+                e->pos.x += (e->dir.x * e->velocity * e->speed) * (f32)clock.dt;
+                e->pos.y += (e->dir.y * e->velocity * e->speed) * (f32)clock.dt;
+            }
 
-            //        Rect e_inner_rect = rect_from_entity(e_inner);
-            //        if(rect_collides_rect(e_inner_rect, e_rect)){
-
-            //        }
-            //    }
-            //}
-
-            if(has_flags(e, EntityFlag_Wrapping)){
+            if(has_flags(e->flags, EntityFlag_Wrapping)){
                 if(e->pos.x - e->dim.w/2 > SCREEN_WIDTH){
                     e->pos.x = 0 - e->dim.w/2;
                 }
@@ -656,82 +706,88 @@ update_game(Window* window, Memory* memory, Events* events){
                    remove_entity(e);
                 }
             }
+        }
 
-            if(has_flags(e, EntityFlag_MoveWithPhys)){
-                e->pos.x += (e->dir.x * e->velocity * e->speed) * (f32)clock.dt;
-                e->pos.y += (e->dir.y * e->velocity * e->speed) * (f32)clock.dt;
+        // resolve death
+        for(s32 i = 0; i < array_count(pm->entities); ++i){
+            begin_timed_scope("entity_motion");
+            Entity *e = pm->entities + i;
+            if(!has_flags(e->flags, EntityFlag_Active)){
+                continue;
             }
 
-            if(has_flags(e, EntityFlag_Particle)){
-                if(e->dim.w > 0){
-                    e->dim.w -= (f32)clock.dt * 40;
-                }
-                else{
-                    remove_entity(e);
-                }
-            }
+            //if(e->dead){
+            //}
+            if(e->health <= 0){
+                switch(e->death_type){
+                    case DeathType_Crumble:{
+                        if(e->dim.w > 100){
+                            e->dim.w -= 50;
+                            e->dim.h -= 50;
+                            for(s32 splint_i=0; splint_i < 3; ++splint_i){
+                                e->deg = random_range_f32(360);
+                                add_asteroid(TextureAsset_Asteroid, e->pos, e->dim, e->deg);
+                                pm->current_level->asteroid_spawned++;
+                                pm->current_level->asteroid_count_max++;
+                            }
+                        }
 
-            if(has_flags(e, EntityFlag_MoveWithCtrls)){
-                if(controller.button[KeyCode_SPACEBAR].held){
-                    e->shoot_t += (f32)clock.dt;
-                    if(e->shoot_t >= 0.1f){
-                        e->shoot_t = 0.0;
-                        v2 pos = make_v2(e->pos.x + (50 * e->dir.x), e->pos.y + (50 * e->dir.y));
-                        Entity* child_e = add_bullet(TextureAsset_Bullet, pos, make_v2(40, 8), e->deg);
-                        child_e->parent = e;
-                        u32 random_rail = random_range_u32(5) + 5; // hard coded for now, 5 rails
-                        audio_play(random_rail, 0.1f, false);
-                    }
-                }
-                else{
-                    e->shoot_t = 1;
-                }
-
-                // rotate left right
-                if(controller.button[KeyCode_RIGHT].held || controller.button[KeyCode_D].held){
-                    f32 d = deg_from_dir(e->dir);
-                    d += 200 * (f32)clock.dt;
-                    e->deg = d;
-                    e->dir = dir_from_deg(d);
-                }
-                if(controller.button[KeyCode_LEFT].held || controller.button[KeyCode_A].held){
-                    f32 d = deg_from_dir(e->dir);
-                    d -= 200 * (f32)clock.dt;
-                    e->deg = d;
-                    e->dir = dir_from_deg(d);
-                }
-
-                // increase velocity
-                if(controller.button[KeyCode_UP].held || controller.button[KeyCode_W].held){
-                    e->accelerating = true;
-                    e->velocity += (f32)clock.dt;
-                    if(e->velocity > 1){
-                        e->velocity = 1;
-                    }
-                    e->accel_dir.x += e->dir.x/100;
-                    e->accel_dir.y += e->dir.y/100;
-                    clamp_f32(-1, 1, &e->accel_dir.x);
-                    clamp_f32(-1, 1, &e->accel_dir.y);
-                }
-                else{
-                    e->accelerating = false;
-                    e->velocity -= (f32)clock.dt/4;
-                    if(e->velocity < 0){
-                        e->velocity = 0;
-                    }
+                        pm->score += (u32)e->dim.w;
+                        pm->current_level->asteroid_destroyed++;
+                        remove_entity(e);
+                    } break;
+                    case DeathType_Particle:{
+                        s32 p_count = (s32)random_range_u32(5) + 5;
+                        for(s32 p_idx = 0; p_idx < p_count; p_idx++){
+                            f32 deg = random_range_f32(360);
+                            v2 dim = make_v2(10, 2);
+                            Entity* e_p = add_bullet_particle(TextureAsset_Bullet, e->pos, dim, deg);
+                            e_p->parent = pm->ship;
+                            e_p->particle_t = 0.175f;
+                        }
+                        remove_entity(e);
+                    } break;
+                    case DeathType_Animate:{
+                    } break;
                 }
             }
         }
 
-        // todo: batch work loads to complete a frame rather than looping over entities
-        // so loop over entities to do 1 kind of work
-        //
-        // player input
-        // collison
-        // physics step
-        //
-        // 64 byte cache lines
-        //
+        // resolve particles
+        for(s32 i = 0; i < array_count(pm->entities); ++i){
+            Entity *e = pm->entities + i;
+            if(!has_flags(e->flags, EntityFlag_Active)){
+                continue;
+            }
+
+            if(has_flags(e->flags, EntityFlag_Particle)){
+                switch(e->particle_type){
+                    case ParticleType_Bullet:{
+                        if(e->dim.w > 0){
+                            e->dim.w -= (f32)clock.dt * 40;
+                        }
+                        else{
+                            remove_entity(e);
+                        }
+                    }
+                }
+            }
+        }
+            //Rect e_rect = rect_from_entity(e);
+            //if(!has_flags(e, EntityFlag_CanCollide)){
+            //    for(s32 j = 0; j < array_count(pm->entities); ++j){
+            //        Entity *e_inner = pm->entities + j;
+            //        if(e == e_inner->parent){
+            //            continue;
+            //        }
+
+            //        Rect e_inner_rect = rect_from_entity(e_inner);
+            //        if(rect_collides_rect(e_inner_rect, e_rect)){
+
+            //        }
+            //    }
+            //}
+
         // type loop
         for(s32 i = 0; i < array_count(pm->entities); ++i){
             begin_timed_scope("type_loop");
@@ -741,7 +797,7 @@ update_game(Window* window, Memory* memory, Events* events){
             switch(e->type){
                 case EntityType_Ship:{
 
-                    if(has_flags(pm->ship, EntityFlag_Active)){
+                    if(has_flags(pm->ship->flags, EntityFlag_Active)){
                         if(e->exploding){
                             e->accelerating = false;
                             e->texture = e->explosion_tex;
@@ -754,23 +810,14 @@ update_game(Window* window, Memory* memory, Events* events){
                                     if(pm->lives){
                                         reset_ship();
                                     } else{
-                                        clear_flags(pm->ship, EntityFlag_Active);
+                                        clear_flags(&pm->ship->flags, EntityFlag_Active);
                                     }
                                 }
                                 e->explosion_t = 0.0f;
                             }
                         }
                         else{
-                            // move ship
-                            e->pos.x += (e->accel_dir.x * e->velocity * e->speed) * (f32)clock.dt;
-                            e->pos.y += (e->accel_dir.y * e->velocity * e->speed) * (f32)clock.dt;
 
-                            //if(e->immune_t < 2){
-                            //    e->immune_t += (f32)clock.dt;
-                            //}
-                            //else{
-                            //    e->immune = false;
-                            //}
 #if 1
                             if(!e->immune){
                                 for(s32 idx = 0; idx < array_count(pm->entities); ++idx){
@@ -779,8 +826,12 @@ update_game(Window* window, Memory* memory, Events* events){
                                         Rect collide_e_rect = rect_from_entity(collide_e);
                                         if(rect_collides_rect(e_rect, collide_e_rect)){
                                             pm->lives -= 1;
+                                            if(pm->lives == 0){
+                                                e->dead = true;
+                                            }
+                                            e->health = 0;
                                             e->exploding = true;
-                                            clear_flags(e, EntityFlag_MoveWithCtrls);
+                                            clear_flags(&e->flags, EntityFlag_MoveWithCtrls);
                                             pm->current_level->asteroid_destroyed++;
                                             remove_entity(collide_e);
                                             break;
@@ -794,13 +845,13 @@ update_game(Window* window, Memory* memory, Events* events){
                 } break;
                 case EntityType_Bullet:{
                     Rect rect_e = rect_from_entity(e);
-                    if(!has_flags(e, EntityFlag_CanCollide)){
+                    if(!has_flags(e->flags, EntityFlag_CanCollide)){
                         break;
                     }
                     for(s32 idx = 0; idx < array_count(pm->entities); ++idx){
                         Entity *collide_e = pm->entities + idx;
 
-                        if(collide_e == e->parent){
+                        if(collide_e == e->origin){
                             continue;
                         }
                         if(collide_e->type == EntityType_Asteroid){
@@ -813,39 +864,8 @@ update_game(Window* window, Memory* memory, Events* events){
                                 collide_e->color.g -= 0.4f;
                                 collide_e->color.b -= 0.4f;
 
-                                // asteroid destroyed and splinter
-                                // todo: maybe this should be on death handling or something
-                                if(collide_e->health <= 0){
-                                    if(collide_e->dim.w > 100){
-                                        collide_e->dim.w -= 50;
-                                        collide_e->dim.h -= 50;
-                                        for(s32 splint_i=0; splint_i < 3; ++splint_i){
-                                            collide_e->deg = random_range_f32(360);
-                                            add_asteroid(TextureAsset_Asteroid, collide_e->pos, collide_e->dim, collide_e->deg);
-                                            pm->current_level->asteroid_spawned++;
-                                            pm->current_level->asteroid_count_max++;
-                                        }
-                                    }
-
-                                    pm->score += (u32)collide_e->dim.w;
-                                    pm->current_level->asteroid_destroyed++;
-                                    remove_entity(collide_e);
-                                }
-
-                                // bullet particles
-                                s32 p_count = (s32)random_range_u32(5) + 5;
-                                for(s32 p_idx = 0; p_idx < p_count; p_idx++){
-                                    f32 deg = random_range_f32(360);
-                                    v2 dim = make_v2(10, 2);
-                                    Entity* e_p = add_bullet(TextureAsset_Bullet, e->pos, dim, deg);
-                                    clear_flags(e_p, EntityFlag_CanCollide);
-                                    set_flags(e_p, EntityFlag_Particle);
-                                    e_p->parent = pm->ship;
-                                    e_p->particle_t = 0.175f;
-                                }
-                                u32 random_rail = random_range_u32(5) + 5; // hard coded for now, 5 rails
-                                //audio_play(random_rail, 0.1f, false);
-                                remove_entity(e);
+                                e->health = 0;
+                                e->dead = true;
                                 break;
                             }
                         }
@@ -858,7 +878,6 @@ update_game(Window* window, Memory* memory, Events* events){
         }
     }
 }
-// todo: flags for entities, no types
 
 #endif
 

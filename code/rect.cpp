@@ -155,4 +155,15 @@ static Quad quad_from_pos(v2 pos, v2 dim){
     return(result);
 }
 
+static Quad
+quad_from_rect(Rect rect){
+    Quad result = {0};
+    result.p0 = make_v2(rect.x0, rect.y0);
+    result.p1 = make_v2(rect.x1, rect.y0);
+    result.p2 = make_v2(rect.x1, rect.y1);
+    result.p3 = make_v2(rect.x0, rect.y1);
+
+    return(result);
+}
+
 #endif

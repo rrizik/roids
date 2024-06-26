@@ -21,7 +21,6 @@
 #include "rect.hpp"
 #include "bitmap.hpp"
 #include "d3d11_init.hpp"
-
 #include "font.hpp"
 #include "d3d11_render.hpp"
 #include "entity.hpp"
@@ -29,7 +28,12 @@
 #include "command.hpp"
 #include "ui.hpp"
 
+#include "input.cpp"
+#include "clock.cpp"
+#include "camera.cpp"
+#include "rect.cpp"
 #include "ui.cpp"
+#include "entity.cpp"
 
 static String8 build_path;
 static String8 fonts_path;

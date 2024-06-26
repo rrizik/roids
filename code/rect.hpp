@@ -38,5 +38,6 @@ static Rect rect_calc_border(Rect rect, s32 border_size);
 
 static Quad quad_from_pos(v2 pos, v2 dim);
 static Quad quad_from_pos_center(v2 pos, v2 dim);
+static Quad quad_from_rect(Rect rect);
 
 #endif

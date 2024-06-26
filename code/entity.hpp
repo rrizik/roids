@@ -19,19 +19,34 @@ typedef enum CollisionType {
     CollisionType_None,
     CollisionType_Explode,
     CollisionType_Health,
-    CollisionType_Splinter,
+    CollisionType_SplinterOnDeath,
     CollisionType_HealthOrSplinter,
     CollisionType_Count,
 } CollisionType;
 
-typedef enum EntityType {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid} EntityType;
+typedef enum DeathType{
+    DeathType_Crumble,
+    DeathType_Particle,
+    DeathType_Animate
+} DeathType;
+
+typedef enum ParticleType{
+    ParticleType_Exhaust,
+    ParticleType_Bullet,
+} ParticleType;
+
+typedef enum EntityType {EntityType_None, EntityType_Quad, EntityType_Texture, EntityType_Text, EntityType_Line, EntityType_Ship, EntityType_Bullet, EntityType_Asteroid, EntityType_Particle} EntityType;
 
 typedef struct Entity{
+    Entity* origin;
     Entity* parent;
     Entity* next;
     Entity* prev;
 
     EntityType type;
+    DeathType death_type;
+    ParticleType particle_type;
+
     u32 flags;
     u32 collision_type;
     u32 index;
@@ -61,12 +76,13 @@ typedef struct Entity{
     f32 immune_t;
     bool immune;
 
+    bool dead;
     u32 texture;
 } Entity;
 
-static bool has_flags(Entity* e, u32 flags);
-static void set_flags(Entity* e, u32 flags);
-static void clear_flags(Entity* e, u32 flags);
+static bool has_flags(u32 rflags, u32 lflags);
+static void set_flags(u32* rflags, u32 lflags);
+static void clear_flags(u32* rflags, u32 lflags);
 
 typedef struct EntityHandle{
     u32 index;

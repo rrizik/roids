@@ -82,6 +82,7 @@ static Entity* add_quad(v2 pos, v2 dim, RGBA color);
 static Entity* add_texture(u32 texture, v2 pos, v2 dim, RGBA color=WHITE, u32 flags = 0);
 static Entity* add_ship(u32 texture, v2 pos, v2 dim, RGBA color=WHITE, u32 flags = 0);
 static Entity* add_bullet(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE, u32 flags = 0);
+static Entity* add_bullet_particle(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE, u32 flags = 0);
 static Entity* add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE, u32 flags = 0);
 
 static void entities_clear();

@@ -1,14 +1,9 @@
 #include "main.hpp"
 
 // todo: move header includes here
-#include "input.cpp"
-#include "clock.cpp"
 #include "wave.cpp"
-#include "wasapi.cpp"
-#include "camera.cpp"
-#include "rect.cpp"
 #include "bitmap.cpp"
-#include "entity.cpp"
+#include "wasapi.cpp"
 #include "d3d11_init.cpp"
 #include "d3d11_render.cpp"
 #include "font.cpp"
@@ -281,7 +276,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         pm->ship_loaded = true;
         pm->lives = MAX_LIVES;
 
-        pm->level_index = 2;
+        pm->level_index = 0;
         init_levels();
         pm->current_level = &pm->levels[pm->level_index];
 
@@ -306,56 +301,70 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
+        // implicitely define size
+        // implicitely define sizing kind
+        // recusively calculate the size of each button
+        // then draw
+        UI_Layout* layout1 = ui_make_layout(tm->frame_arena, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(100, 200), str8_literal("layout1"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        ui_push_layout(tm->frame_arena, layout1);
+        ui_push_size_kind(ui_sizing_sum(), ui_sizing_sum());
+        //if(ui_button(tm->frame_arena, str8_literal("button 1"))){
+        //}
+        //if(ui_button(tm->frame_arena, str8_literal("button 2"))){
+        //}
+        //if(ui_button(tm->frame_arena, str8_literal("button 3"))){
+        //}
+
         // don't know where everything is yet on first frame, hence looking at previous frame
-        UI_Layout* layout1 = ui_make_layout(tm->frame_arena, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), str8_literal("layout1"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        ui_select_layout(layout1);
+        //UI_Layout* layout1 = ui_make_layout(tm->frame_arena, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), str8_literal("layout1"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //push_layout(tm->frame_arena, layout1);
 
-        UI_Layout* layout2 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout2"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        ui_select_layout(layout2);
-        if(ui_button(tm->frame_arena, str8_literal("button 1"))){
-        }
-        if(ui_button(tm->frame_arena, str8_literal("button 2"))){
-        }
-        if(ui_button(tm->frame_arena, str8_literal("button 3"))){
-        }
+        //UI_Layout* layout2 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout2"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //push_layout(tm->frame_arena, layout2);
+        //if(ui_button(tm->frame_arena, str8_literal("button 1"))){
+        //}
+        //if(ui_button(tm->frame_arena, str8_literal("button 2"))){
+        //}
+        //if(ui_button(tm->frame_arena, str8_literal("button 3"))){
+        //}
+        //pop_layout();
 
-        ui_select_layout(layout1);
-        if(ui_button(tm->frame_arena, str8_literal("button 4"))){
-        }
-        if(ui_button(tm->frame_arena, str8_literal("button 5"))){
-        }
+        //if(ui_button(tm->frame_arena, str8_literal("button 4"))){
+        //}
+        //if(ui_button(tm->frame_arena, str8_literal("button 5"))){
+        //}
 
-        UI_Layout* layout3 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout3"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        ui_select_layout(layout3);
-        if(ui_button(tm->frame_arena, str8_literal("button 6"))){
-        }
-        if(ui_button(tm->frame_arena, str8_literal("button 7"))){
-        }
+        //UI_Layout* layout3 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout3"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //push_layout(tm->frame_arena, layout3);
+        //if(ui_button(tm->frame_arena, str8_literal("button 6"))){
+        //}
+        //if(ui_button(tm->frame_arena, str8_literal("button 7"))){
+        //}
+        //pop_layout();
 
-        ui_select_layout(layout1);
-        if(ui_button(tm->frame_arena, str8_literal("button 8"))){
-        }
+        //if(ui_button(tm->frame_arena, str8_literal("button 8"))){
+        //}
 
-        UI_Layout* layout4 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout4"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        ui_select_layout(layout4);
-        if(ui_button(tm->frame_arena, str8_literal("button 9"))){
-        }
+        //UI_Layout* layout4 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout4"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //push_layout(tm->frame_arena, layout4);
+        //if(ui_button(tm->frame_arena, str8_literal("button 9"))){
+        //}
 
-        UI_Layout* layout5 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout5"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        ui_select_layout(layout5);
-        if(ui_button(tm->frame_arena, str8_literal("button 10"))){
-        }
-        if(ui_button(tm->frame_arena, str8_literal("button 11"))){
-        }
+        //UI_Layout* layout5 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout5"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //push_layout(tm->frame_arena, layout5);
+        //if(ui_button(tm->frame_arena, str8_literal("button 10"))){
+        //}
+        //if(ui_button(tm->frame_arena, str8_literal("button 11"))){
+        //}
+        //pop_layout();
 
-        ui_select_layout(layout4);
-        if(ui_button(tm->frame_arena, str8_literal("button 12"))){
-        }
+        //if(ui_button(tm->frame_arena, str8_literal("button 12"))){
+        //}
 
-        UI_Layout* layout6 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout6"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        ui_select_layout(layout6);
-        if(ui_button(tm->frame_arena, str8_literal("button 13"))){
-        }
+        //UI_Layout* layout6 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout6"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //push_layout(tm->frame_arena, layout6);
+        //if(ui_button(tm->frame_arena, str8_literal("button 13"))){
+        //}
 
         // simulation
         accumulator += frame_time;
@@ -369,7 +378,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
             clear_controller_pressed();
         }
-        print("sims %i\n", simulations);
+        //print("sims %i\n", simulations);
         audio_play_cursors();
 
         // command arena
@@ -378,7 +387,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         for(s32 index = 0; index < array_count(pm->entities); ++index){
             begin_timed_scope("build command arena");
             Entity *e = pm->entities + index;
-            if(has_flags(e, EntityFlag_Active)){
+            if(has_flags(e->flags, EntityFlag_Active)){
 
                 switch(e->type){
                     case EntityType_Quad:{
@@ -397,10 +406,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     } break;
                     case EntityType_Asteroid:
                     case EntityType_Bullet:
+                    case EntityType_Particle:
                     case EntityType_Texture:{
-                        if(has_flags(e, EntityFlag_Particle)){
-                            u32 a = 1;
-                        }
                         v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
                         v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
                         v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
@@ -502,7 +509,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         String8 level_str = str8_formatted(tm->frame_arena, "LEVEL: %i", pm->level_index + 1);
         draw_text(tm->render_command_arena, pm->current_font, level_str, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale) + ((f32)font->vertical_offset)), ORANGE);
 
-        console_draw(); // todo: Fix bug where artifacts are drawing because this is being called her rather than at the end
+        console_draw();
 
         frame_count++;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
@@ -519,16 +526,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         Level* level = pm->current_level;
         String8 info_str = str8_formatted(tm->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", pm->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
         //draw_text(tm->render_command_arena, pm->current_font, info_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
-        //
 
         s32 found_count = 0;
         for(s32 i=0; i < array_count(pm->entities); i++){
             Entity* e = pm->entities + i;
             if(e->type == EntityType_Asteroid){
-                if(has_flags(e, EntityFlag_Active)){
-                    String8 str = str8_formatted(tm->frame_arena, "Asteroids - (%f, %f)", e->pos.x, e->pos.y);
+                if(has_flags(e->flags, EntityFlag_Active)){
+                    String8 str = str8_formatted(tm->frame_arena, "Asteroids - (%i)", e->health);
                     f32 str_width = font_string_width(pm->current_font, str);
-                    //draw_text(arena, font, str, pos, color);
                     //draw_text(tm->render_command_arena, pm->current_font, str, make_v2(SCREEN_WIDTH - str_width, (f32)(100 + (found_count * pm->font->vertical_offset))), TEAL);
                     found_count++;
                 }
@@ -537,10 +542,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         // layout loop first
         // iterate over tree and draw it
-        traverse_ui(layout1);
-        print("------\n");
-        traverse_ui_reverse(layout1);
-        //while(node->
+        //print("------\n");
+        ui_traverse(layout1);
+        //print("------\n");
+        //traverse_ui_reverse(tm->render_command_arena, layout1, pm->current_font);
+        ui_traverse_reverse(layout1);
 
         // draw everything
         draw_commands(tm->render_command_arena);
@@ -548,6 +554,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         arena_free(tm->render_command_arena);
 		simulations = 0;
         total_frames++;
+        top_layout = 0;
         //end_profiler();
     }
 
