@@ -4,8 +4,8 @@
 static UI_Layout*
 ui_make_layout(Arena* arena, v2 pos, v2 size, String8 str, UI_LayoutFlags flags){
     UI_Layout* result = push_struct(arena, UI_Layout);
-    if(top_layout != 0){
-        UI_Layout* top_layout = ui_get_top_layout();
+    if(ui_layout_top != 0){
+        UI_Layout* top_layout = ui_top_layout();
         result->parent = top_layout;
         if(top_layout->first == 0){
             top_layout->first = result;
@@ -30,7 +30,7 @@ ui_make_layout(Arena* arena, v2 pos, v2 size, String8 str, UI_LayoutFlags flags)
 static bool
 ui_button(Arena* arena, String8 str){
     UI_Layout* result = push_struct(arena, UI_Layout);
-    UI_Layout* top_layout = ui_get_top_layout();
+    UI_Layout* top_layout = ui_top_layout();
     result->parent = top_layout;
     if(top_layout->first == 0){
         top_layout->first = result;
@@ -94,32 +94,6 @@ ui_traverse_reverse(UI_Layout* node){
     UI_Layout* node_prev = node->prev;
     //traverse_ui_reverse(arena, node_prev, font);
     ui_traverse_reverse(node_prev);
-}
-
-static void
-ui_push_layout(Arena* arena, UI_Layout* layout){
-    LayoutNode* node = push_struct(arena, LayoutNode);
-    node->layout = layout;
-    node->next = top_layout;
-    top_layout = node;
-}
-
-static void
-ui_pop_layout(){
-    top_layout = top_layout->next;
-}
-
-static UI_Layout*
-ui_get_top_layout(){
-    return(top_layout->layout);
-}
-
-static void
-ui_push_size_kind(UI_Size x_size, UI_Size y_size){
-    UI_Layout* layout = ui_get_top_layout();
-
-    //layout->size[0] = x_size;
-    //layout->size[1] = y_size;
 }
 
 static UI_Size

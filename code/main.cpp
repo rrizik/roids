@@ -307,62 +307,61 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         // then draw
         UI_Layout* layout1 = ui_make_layout(tm->frame_arena, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(100, 200), str8_literal("layout1"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
         ui_push_layout(tm->frame_arena, layout1);
-        ui_push_size_kind(ui_sizing_sum(), ui_sizing_sum());
-        //if(ui_button(tm->frame_arena, str8_literal("button 1"))){
-        //}
-        //if(ui_button(tm->frame_arena, str8_literal("button 2"))){
-        //}
-        //if(ui_button(tm->frame_arena, str8_literal("button 3"))){
-        //}
+        if(ui_button(tm->frame_arena, str8_literal("button 1"))){
+        }
+        if(ui_button(tm->frame_arena, str8_literal("button 2"))){
+        }
+        if(ui_button(tm->frame_arena, str8_literal("button 3"))){
+        }
 
         // don't know where everything is yet on first frame, hence looking at previous frame
-        //UI_Layout* layout1 = ui_make_layout(tm->frame_arena, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), str8_literal("layout1"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //push_layout(tm->frame_arena, layout1);
+        //UI_Layout* layout1 = ui_make_layout(tm->frame_arena, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(0, 0), str8_literal("layout1"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //ui_push_layout(tm->frame_arena, layout1);
 
-        //UI_Layout* layout2 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout2"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //push_layout(tm->frame_arena, layout2);
+        //UI_Layout* layout2 = ui_make_layout(tm->frame_arena, make_v2(0,0), make_v2(0, 0), str8_literal("layout2"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //ui_push_layout(tm->frame_arena, layout2);
         //if(ui_button(tm->frame_arena, str8_literal("button 1"))){
         //}
         //if(ui_button(tm->frame_arena, str8_literal("button 2"))){
         //}
         //if(ui_button(tm->frame_arena, str8_literal("button 3"))){
         //}
-        //pop_layout();
+        //ui_pop_layout();
 
         //if(ui_button(tm->frame_arena, str8_literal("button 4"))){
         //}
         //if(ui_button(tm->frame_arena, str8_literal("button 5"))){
         //}
 
-        //UI_Layout* layout3 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout3"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //push_layout(tm->frame_arena, layout3);
+        //UI_Layout* layout3 = ui_make_layout(tm->frame_arena, make_v2(0,0), make_v2(0, 0), str8_literal("layout3"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //ui_push_layout(tm->frame_arena, layout3);
         //if(ui_button(tm->frame_arena, str8_literal("button 6"))){
         //}
         //if(ui_button(tm->frame_arena, str8_literal("button 7"))){
         //}
-        //pop_layout();
+        //ui_pop_layout();
 
         //if(ui_button(tm->frame_arena, str8_literal("button 8"))){
         //}
 
-        //UI_Layout* layout4 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout4"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //push_layout(tm->frame_arena, layout4);
+        //UI_Layout* layout4 = ui_make_layout(tm->frame_arena, make_v2(0,0), make_v2(0, 0), str8_literal("layout4"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //ui_push_layout(tm->frame_arena, layout4);
         //if(ui_button(tm->frame_arena, str8_literal("button 9"))){
         //}
 
-        //UI_Layout* layout5 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout5"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //push_layout(tm->frame_arena, layout5);
+        //UI_Layout* layout5 = ui_make_layout(tm->frame_arena, make_v2(0,0), make_v2(0, 0), str8_literal("layout5"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //ui_push_layout(tm->frame_arena, layout5);
         //if(ui_button(tm->frame_arena, str8_literal("button 10"))){
         //}
         //if(ui_button(tm->frame_arena, str8_literal("button 11"))){
         //}
-        //pop_layout();
+        //ui_pop_layout();
 
         //if(ui_button(tm->frame_arena, str8_literal("button 12"))){
         //}
 
-        //UI_Layout* layout6 = ui_make_layout(tm->frame_arena, make_v2(0,0), str8_literal("layout6"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //push_layout(tm->frame_arena, layout6);
+        //UI_Layout* layout6 = ui_make_layout(tm->frame_arena, make_v2(0,0), make_v2(0, 0), str8_literal("layout6"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
+        //ui_push_layout(tm->frame_arena, layout6);
         //if(ui_button(tm->frame_arena, str8_literal("button 13"))){
         //}
 
@@ -554,7 +553,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         arena_free(tm->render_command_arena);
 		simulations = 0;
         total_frames++;
-        top_layout = 0;
+        ui_layout_top = 0;
         //end_profiler();
     }
 

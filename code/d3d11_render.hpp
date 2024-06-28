@@ -15,6 +15,7 @@ typedef enum RenderCommandType{
 
 typedef struct RenderCommand{
     RenderCommandType type;
+
     v2 p0;
     v2 p1;
     v2 p2;
@@ -23,7 +24,6 @@ typedef struct RenderCommand{
     s32 width;
 
     RGBA color;
-	//ID3D11ShaderResourceView** texture;
 	u32 texture;
 
     u32 font_id;
@@ -32,6 +32,8 @@ typedef struct RenderCommand{
 
 static void draw_clear_color(Arena* arena, RGBA color);
 static void draw_quad(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color);
+static void draw_quad(Arena* arena, Quad quad, RGBA color);
+static void draw_quad(Arena* arena, Rect rect, RGBA color);
 static void draw_text(Arena* arena, u32 font_id, String8 text, v2 pos, RGBA color);
 static void draw_texture(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color, ID3D11ShaderResourceView** texture);
 static void draw_commands(Arena* commands);

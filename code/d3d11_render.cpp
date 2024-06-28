@@ -71,6 +71,28 @@ draw_quad(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
 }
 
 static void
+draw_quad(Arena* arena, Rect rect, RGBA color){
+    RenderCommand* command = push_struct(arena, RenderCommand);
+    command->type = RenderCommandType_Quad;
+    command->color = color;
+    command->p0 = make_v2(rect.x0, rect.y0);
+    command->p1 = make_v2(rect.x1, rect.y0);
+    command->p2 = make_v2(rect.x1, rect.y1);
+    command->p3 = make_v2(rect.x0, rect.y1);
+}
+
+static void
+draw_quad(Arena* arena, Quad quad, RGBA color){
+    RenderCommand* command = push_struct(arena, RenderCommand);
+    command->type = RenderCommandType_Quad;
+    command->color = color;
+    command->p0 = quad.p0;
+    command->p1 = quad.p1;
+    command->p2 = quad.p2;
+    command->p3 = quad.p3;
+}
+
+static void
 draw_line(Arena* arena, v2 p0, v2 p1, s32 width, RGBA color){
     RenderCommand* command = push_struct(arena, RenderCommand);
     command->type = RenderCommandType_Line;
@@ -91,7 +113,6 @@ draw_text(Arena* arena, u32 font_id, String8 text, v2 pos, RGBA color){
 }
 
 static void
-//draw_texture(Arena* arena, ID3D11ShaderResourceView** texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE){
 draw_texture(Arena* arena, u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE){
     RenderCommand* command = push_struct(arena, RenderCommand);
     command->type = RenderCommandType_Texture;
