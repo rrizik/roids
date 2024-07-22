@@ -52,16 +52,20 @@ srgb_to_linear(RGBA value){
     return(result);
 }
 
+static void init_render_commands(Arena* arena){
+    rc_arena = arena;
+}
+
 static void
-draw_clear_color(Arena* arena, RGBA color){
-    RenderCommand* command = push_struct(arena, RenderCommand);
+draw_clear_color(RGBA color){
+    RenderCommand* command = push_struct(rc_arena, RenderCommand);
     command->type = RenderCommandType_ClearColor;
     command->color = color;
 }
 
 static void
-draw_quad(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
-    RenderCommand* command = push_struct(arena, RenderCommand);
+draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
+    RenderCommand* command = push_struct(rc_arena, RenderCommand);
     command->type = RenderCommandType_Quad;
     command->color = color;
     command->p0 = p0;
@@ -71,8 +75,8 @@ draw_quad(Arena* arena, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
 }
 
 static void
-draw_quad(Arena* arena, Rect rect, RGBA color){
-    RenderCommand* command = push_struct(arena, RenderCommand);
+draw_quad(Rect rect, RGBA color){
+    RenderCommand* command = push_struct(rc_arena, RenderCommand);
     command->type = RenderCommandType_Quad;
     command->color = color;
     command->p0 = make_v2(rect.x0, rect.y0);
@@ -82,8 +86,8 @@ draw_quad(Arena* arena, Rect rect, RGBA color){
 }
 
 static void
-draw_quad(Arena* arena, Quad quad, RGBA color){
-    RenderCommand* command = push_struct(arena, RenderCommand);
+draw_quad(Quad quad, RGBA color){
+    RenderCommand* command = push_struct(rc_arena, RenderCommand);
     command->type = RenderCommandType_Quad;
     command->color = color;
     command->p0 = quad.p0;
@@ -93,8 +97,8 @@ draw_quad(Arena* arena, Quad quad, RGBA color){
 }
 
 static void
-draw_line(Arena* arena, v2 p0, v2 p1, s32 width, RGBA color){
-    RenderCommand* command = push_struct(arena, RenderCommand);
+draw_line(v2 p0, v2 p1, s32 width, RGBA color){
+    RenderCommand* command = push_struct(rc_arena, RenderCommand);
     command->type = RenderCommandType_Line;
     command->color = color;
     command->p0 = p0;
@@ -103,8 +107,8 @@ draw_line(Arena* arena, v2 p0, v2 p1, s32 width, RGBA color){
 }
 
 static void
-draw_text(Arena* arena, u32 font_id, String8 text, v2 pos, RGBA color){
-    RenderCommand* command = push_struct(arena, RenderCommand);
+draw_text(u32 font_id, String8 text, v2 pos, RGBA color){
+    RenderCommand* command = push_struct(rc_arena, RenderCommand);
     command->type = RenderCommandType_Text;
     command->p0 = pos;
     command->color = color;
@@ -113,8 +117,8 @@ draw_text(Arena* arena, u32 font_id, String8 text, v2 pos, RGBA color){
 }
 
 static void
-draw_texture(Arena* arena, u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE){
-    RenderCommand* command = push_struct(arena, RenderCommand);
+draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE){
+    RenderCommand* command = push_struct(rc_arena, RenderCommand);
     command->type = RenderCommandType_Texture;
     command->color = color;
     command->p0 = p0;
@@ -125,10 +129,10 @@ draw_texture(Arena* arena, u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=W
 }
 
 static void
-draw_commands(Arena* commands){
+draw_commands(){
     begin_timed_function();
-    void* at = commands->base;
-    void* end = (u8*)commands->base + commands->at;
+    void* at = rc_arena->base;
+    void* end = (u8*)rc_arena->base + rc_arena->at;
 
     // todo: inline most/all of these
     while(at != end){

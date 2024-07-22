@@ -26,7 +26,7 @@ static u32 buffer_samples;
 REFERENCE_TIME default_device_period;
 REFERENCE_TIME minimum_device_period;
 
-static HRESULT audio_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample);
+static HRESULT init_audio(u16 channels, u32 samples_per_sec, u16 bits_per_sample);
 static HRESULT audio_start();
 static HRESULT audio_stop();
 //static HRESULT audio_play_sine(f32 freq);

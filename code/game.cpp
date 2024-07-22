@@ -71,7 +71,7 @@ load_assets(Arena* arena){
     tm->assets.waves[WaveAsset_Rail4] =  load_wave(arena, str8_literal("sounds/rail4.wav"));
     tm->assets.waves[WaveAsset_Rail5] =  load_wave(arena, str8_literal("sounds/rail5.wav"));
 
-    tm->assets.fonts[FontAsset_Arial] =    load_font_ttf(arena, str8_literal("fonts/arial.ttf"), 24);
+    tm->assets.fonts[FontAsset_Arial] =    load_font_ttf(arena, str8_literal("fonts/arial.ttf"), 16);
     tm->assets.fonts[FontAsset_Golos] =    load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), 36);
     tm->assets.fonts[FontAsset_Consolas] = load_font_ttf(arena, str8_literal("fonts/consola.ttf"), 36);
 }
@@ -508,12 +508,12 @@ game_won(){
 }
 
 static void
-update_game(Window* window, Memory* memory, Events* events){
+update_game(){
 
     // NOTE: process events.
-    while(!events_empty(events)){
+    while(!events_empty(&events)){
         begin_timed_scope("events");
-        Event event = events_next(events);
+        Event event = events_next(&events);
 
         bool handled;
         handled = handle_global_events(event);
@@ -541,7 +541,7 @@ update_game(Window* window, Memory* memory, Events* events){
     D3D11_MAPPED_SUBRESOURCE mapped_subresource;
     d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
     ConstantBuffer2D* constants = (ConstantBuffer2D*)mapped_subresource.pData;
-    constants->screen_res = make_v2s32(window->width, window->height);
+    constants->screen_res = make_v2s32(window.width, window.height);
     d3d_context->Unmap(d3d_constant_buffer, 0);
 
     console_update();

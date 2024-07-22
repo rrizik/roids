@@ -95,7 +95,7 @@ static bool handle_controller_events(Event event);
 static void reset_game(void);
 static void reset_ship(void);
 
-static void update_game(Window* window, Memory* memory, Events* events);
+static void update_game();
 static bool game_won();
 
 #endif

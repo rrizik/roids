@@ -20,6 +20,14 @@ make_rect(v2 min, v2 max){
 }
 
 static Rect
+make_rect_size(v2 min, v2 size){
+    Rect result;
+    result.min = min;
+    result.max = make_v2(min.x + size.x, min.y + size.y);
+    return(result);
+}
+
+static Rect
 rect_pixel_from_clip(Rect r, v2s32 res){
     Rect result = {
         ((r.x0  + 1.0f) / 2.0f) * (f32)res.w,

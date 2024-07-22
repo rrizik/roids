@@ -55,7 +55,7 @@ d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_co
 };
 
 static void
-d3d_init(HWND window_handle, s32 width, s32 height){
+init_d3d(HWND window_handle, s32 width, s32 height){
     // ---------------------------------------------------------------------------------
     // Device + Context
     // ---------------------------------------------------------------------------------

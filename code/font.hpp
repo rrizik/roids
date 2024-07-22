@@ -53,5 +53,8 @@ typedef struct Font{
 static Font load_font_ttf(Arena* arena, String8 path, f32 size);
 static f32 font_char_width(u32 font_id, u8 c);
 static f32 font_string_width(u32 font_id, String8 str);
+static s32 font_vertical_offset(u32 font_id);
+static s32 font_ascent(u32 font_id);
+static s32 font_descent(u32 font_id);
 
 #endif

@@ -3,7 +3,7 @@
 
 // consider: maybe I don't need this. array_count() can be computed in place
 static void
-events_init(Events* events){
+init_events(Events* events){
     events->size = array_count(events->e);
 }
 

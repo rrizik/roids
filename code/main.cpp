@@ -22,7 +22,7 @@ init_paths(Arena* arena){
 }
 
 static void
-memory_init(){
+init_memory(){
     memory.permanent_size = MB(500);
     memory.transient_size = GB(1);
     memory.size = memory.permanent_size + memory.transient_size;
@@ -214,17 +214,17 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     init_paths(global_arena);
     random_seed(0, 1);
 
-    d3d_init(window.handle, window.width, window.height);
+    init_d3d(window.handle, window.width, window.height);
 #if DEBUG
     d3d_init_debug_stuff();
 #endif
 
-    memory_init();
+    init_memory();
     init_clock(&clock);
-    HRESULT hr = audio_init(2, 48000, 32);
+    HRESULT hr = init_audio(2, 48000, 32);
     assert_hr(hr);
 
-    events_init(&events);
+    init_events(&events);
 
     f64 FPS = 0;
     f64 MSPF = 0;
@@ -244,13 +244,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     tm = (TransientMemory*)memory.transient_base;
 
     if(!memory.initialized){
-        // consider: maybe move this memory stuff to memory_init()
+        // consider: maybe move this memory stuff to init_memory()
         init_arena(&pm->arena, (u8*)memory.permanent_base + sizeof(PermanentMemory), memory.permanent_size - sizeof(PermanentMemory));
         init_arena(&tm->arena, (u8*)memory.transient_base + sizeof(TransientMemory), memory.transient_size - sizeof(TransientMemory));
 
         tm->render_command_arena = push_arena(&tm->arena, MB(100));
         tm->frame_arena = push_arena(&tm->arena, MB(100));
         tm->asset_arena = push_arena(&tm->arena, MB(100));
+        tm->ui_arena = push_arena(&tm->arena, MB(100));
 
         pm->game_mode = GameMode_Game;
 
@@ -260,10 +261,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_camera();
         init_console(&pm->arena, FontAsset_Arial);
         init_console_commands();
+        init_ui(tm->ui_arena);
+        init_render_commands(tm->render_command_arena);
 
         pm->current_font = FontAsset_Arial;
         pm->font = &tm->assets.fonts[FontAsset_Arial];
-
 
         // setup free entities array in reverse order
         entities_clear();
@@ -301,75 +303,126 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
-        // implicitely define size
-        // implicitely define sizing kind
-        // recusively calculate the size of each button
-        // then draw
-        UI_Layout* layout1 = ui_make_layout(tm->frame_arena, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(100, 200), str8_literal("layout1"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        ui_push_layout(tm->frame_arena, layout1);
-        if(ui_button(tm->frame_arena, str8_literal("button 1"))){
+
+        ui_push_background_color(ORANGE);
+        ui_push_pos_x(100);
+        ui_push_pos_y(100);
+        ui_push_size_w(ui_size_children(1));
+        ui_push_size_h(ui_size_children(1));
+        ui_push_layout_axis(Axis_Y);
+
+        UI_Box* box1 = ui_make_box(str8_literal("box1"), UI_BoxFlag_DrawBackground);
+        ui_push_box(box1);
+
+        ui_push_size_w(ui_size_pixel(100, 1));
+        ui_push_size_h(ui_size_pixel(50, 1));
+        ui_push_background_color(BLUE);
+        if(ui_button(str8_literal("button 1"))){
         }
-        if(ui_button(tm->frame_arena, str8_literal("button 2"))){
+        ui_push_size_w(ui_size_pixel(50, 1));
+        ui_push_size_h(ui_size_pixel(50, 1));
+        ui_push_background_color(GREEN);
+        if(ui_button(str8_literal("button 2"))){
         }
-        if(ui_button(tm->frame_arena, str8_literal("button 3"))){
+        ui_pop_background_color();
+        ui_pop_background_color();
+
+        ui_push_size_w(ui_size_children(1));
+        ui_push_size_h(ui_size_children(1));
+        ui_push_layout_axis(Axis_X);
+        UI_Box* box2 = ui_make_box(str8_literal("box2"), UI_BoxFlag_DrawBackground);
+        ui_push_box(box2);
+
+        ui_pop_size_w();
+        ui_pop_size_h();
+        ui_pop_size_w();
+        ui_pop_size_h();
+        //ui_push_size_w(ui_size_pixel(100, 1));
+        //ui_push_size_h(ui_size_pixel(50, 1));
+        ui_push_background_color(TEAL);
+        if(ui_button(str8_literal("button 3"))){
+        }
+        ui_push_background_color(RED);
+        if(ui_button(str8_literal("button 4"))){
+        }
+        ui_pop_background_color();
+        if(ui_button(str8_literal("button 5"))){
         }
 
-        // don't know where everything is yet on first frame, hence looking at previous frame
-        //UI_Layout* layout1 = ui_make_layout(tm->frame_arena, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(0, 0), str8_literal("layout1"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //ui_push_layout(tm->frame_arena, layout1);
+        ui_pop_box();
+        ui_push_size_w(ui_size_children(1));
+        ui_push_size_h(ui_size_children(1));
+        ui_push_layout_axis(Axis_Y);
+        ui_push_background_color(ORANGE);
+        UI_Box* box3 = ui_make_box(str8_literal("box3"), UI_BoxFlag_DrawBackground);
+        ui_push_box(box3);
 
-        //UI_Layout* layout2 = ui_make_layout(tm->frame_arena, make_v2(0,0), make_v2(0, 0), str8_literal("layout2"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //ui_push_layout(tm->frame_arena, layout2);
-        //if(ui_button(tm->frame_arena, str8_literal("button 1"))){
-        //}
-        //if(ui_button(tm->frame_arena, str8_literal("button 2"))){
-        //}
-        //if(ui_button(tm->frame_arena, str8_literal("button 3"))){
-        //}
-        //ui_pop_layout();
+        ui_push_size_w(ui_size_pixel(100, 1));
+        ui_push_size_h(ui_size_pixel(50, 1));
+        ui_push_background_color(YELLOW);
+        if(ui_button(str8_literal("button 6"))){
+        }
+        ui_push_background_color(DARK_GRAY);
+        ui_push_size_w(ui_size_text(1));
+        ui_push_size_h(ui_size_text(1));
+        if(ui_button(str8_literal("AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"))){
+        }
 
-        //if(ui_button(tm->frame_arena, str8_literal("button 4"))){
-        //}
-        //if(ui_button(tm->frame_arena, str8_literal("button 5"))){
-        //}
+        //UI_Box* box1 = ui_make_box(str8_literal("box1"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
+        //ui_push_box(box1);
 
-        //UI_Layout* layout3 = ui_make_layout(tm->frame_arena, make_v2(0,0), make_v2(0, 0), str8_literal("layout3"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //ui_push_layout(tm->frame_arena, layout3);
-        //if(ui_button(tm->frame_arena, str8_literal("button 6"))){
+        //UI_Box* box2 = ui_make_box(str8_literal("box2"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
+        //ui_push_box(box2);
+        //if(ui_button(str8_literal("button 1"))){
         //}
-        //if(ui_button(tm->frame_arena, str8_literal("button 7"))){
+        //if(ui_button(str8_literal("button 2"))){
         //}
-        //ui_pop_layout();
+        //if(ui_button(str8_literal("button 3"))){
+        //}
+        //ui_pop_box();
 
-        //if(ui_button(tm->frame_arena, str8_literal("button 8"))){
+        //if(ui_button(str8_literal("button 4"))){
         //}
-
-        //UI_Layout* layout4 = ui_make_layout(tm->frame_arena, make_v2(0,0), make_v2(0, 0), str8_literal("layout4"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //ui_push_layout(tm->frame_arena, layout4);
-        //if(ui_button(tm->frame_arena, str8_literal("button 9"))){
-        //}
-
-        //UI_Layout* layout5 = ui_make_layout(tm->frame_arena, make_v2(0,0), make_v2(0, 0), str8_literal("layout5"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //ui_push_layout(tm->frame_arena, layout5);
-        //if(ui_button(tm->frame_arena, str8_literal("button 10"))){
-        //}
-        //if(ui_button(tm->frame_arena, str8_literal("button 11"))){
-        //}
-        //ui_pop_layout();
-
-        //if(ui_button(tm->frame_arena, str8_literal("button 12"))){
+        //if(ui_button(str8_literal("button 5"))){
         //}
 
-        //UI_Layout* layout6 = ui_make_layout(tm->frame_arena, make_v2(0,0), make_v2(0, 0), str8_literal("layout6"), UI_LayoutFlag_Clickable | UI_LayoutFlag_DrawBackground);
-        //ui_push_layout(tm->frame_arena, layout6);
-        //if(ui_button(tm->frame_arena, str8_literal("button 13"))){
+        //UI_Box* box3 = ui_make_box(str8_literal("box3"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
+        //ui_push_box(box3);
+        //if(ui_button(str8_literal("button 6"))){
+        //}
+        //if(ui_button(str8_literal("button 7"))){
+        //}
+        //ui_pop_box();
+
+        //if(ui_button(str8_literal("button 8"))){
+        //}
+
+        //UI_Box* box4 = ui_make_box(str8_literal("box4"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
+        //ui_push_box(box4);
+        //if(ui_button(str8_literal("button 9"))){
+        //}
+
+        //UI_Box* box5 = ui_make_box(str8_literal("box5"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
+        //ui_push_box(box5);
+        //if(ui_button(str8_literal("button 10"))){
+        //}
+        //if(ui_button(str8_literal("button 11"))){
+        //}
+        //ui_pop_box();
+
+        //if(ui_button(str8_literal("button 12"))){
+        //}
+
+        //UI_Box* box6 = ui_make_box(str8_literal("box6"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
+        //ui_push_box(box6);
+        //if(ui_button(str8_literal("button 13"))){
         //}
 
         // simulation
         accumulator += frame_time;
         while(accumulator >= clock.dt){
             begin_timed_scope("simulation");
-            update_game(&window, &memory, &events);
+            update_game();
 
             accumulator -= clock.dt;
             time_elapsed += clock.dt;
@@ -381,7 +434,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         audio_play_cursors();
 
         // command arena
-        draw_clear_color(tm->render_command_arena, BACKGROUND_COLOR);
+        draw_clear_color(BACKGROUND_COLOR);
         // todo: also use flags here
         for(s32 index = 0; index < array_count(pm->entities); ++index){
             begin_timed_scope("build command arena");
@@ -401,7 +454,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                         p2 = rotate_point_deg(p2, e->deg, e->pos);
                         p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                        draw_quad(tm->render_command_arena, p0, p1, p2, p3, e->color);
+                        draw_quad(p0, p1, p2, p3, e->color);
                     } break;
                     case EntityType_Asteroid:
                     case EntityType_Bullet:
@@ -420,12 +473,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                         p2 = rotate_point_deg(p2, e->deg, e->pos);
                         p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                        //push_line(tm->render_command_arena, p0, p1, 2, GREEN);
-                        //push_line(tm->render_command_arena, p1, p2, 2, GREEN);
-                        //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
-                        //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
+                        //push_line(p0, p1, 2, GREEN);
+                        //push_line(p1, p2, 2, GREEN);
+                        //push_line(p2, p3, 2, GREEN);
+                        //push_line(p3, p0, 2, GREEN);
 
-                        draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                        draw_texture(e->texture, p0, p1, p2, p3, e->color);
                     } break;
                     case EntityType_Ship:{
                         v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
@@ -441,16 +494,16 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                         p2 = rotate_point_deg(p2, e->deg, e->pos);
                         p3 = rotate_point_deg(p3, e->deg, e->pos);
 
-                        //push_line(tm->render_command_arena, p0, p1, 2, GREEN);
-                        //push_line(tm->render_command_arena, p1, p2, 2, GREEN);
-                        //push_line(tm->render_command_arena, p2, p3, 2, GREEN);
-                        //push_line(tm->render_command_arena, p3, p0, 2, GREEN);
+                        //push_line(p0, p1, 2, GREEN);
+                        //push_line(p1, p2, 2, GREEN);
+                        //push_line(p2, p3, 2, GREEN);
+                        //push_line(p3, p0, 2, GREEN);
 
                         if(pm->ship->immune){
-                            draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, ORANGE);
+                            draw_texture(e->texture, p0, p1, p2, p3, ORANGE);
                         }
                         else{
-                            draw_texture(tm->render_command_arena, e->texture, p0, p1, p2, p3, e->color);
+                            draw_texture(e->texture, p0, p1, p2, p3, e->color);
                         }
 
                         // todo: yuckiness for ship exhaust
@@ -464,7 +517,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             p3.x += (55 * (-e->dir.x));
                             p3.y += (55 * (-e->dir.y));
                             u32 random_flame = random_range_u32(5) + 3;
-                            draw_texture(tm->render_command_arena, random_flame, p0, p1, p2, p3, e->color);
+                            draw_texture(random_flame, p0, p1, p2, p3, e->color);
                         }
 
                     } break;
@@ -478,35 +531,35 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             String8 text = str8_formatted(tm->frame_arena, "GAME OVER - Score: %i", pm->score);
             f32 width = font_string_width(pm->current_font, text);
             f32 x = SCREEN_WIDTH/2 - width/2;
-            draw_text(tm->render_command_arena, pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
+            draw_text(pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
 
             text = str8_literal("R - restart");
             width = font_string_width(pm->current_font, text);
             x = SCREEN_WIDTH/2 - width/2;
-            draw_text(tm->render_command_arena, pm->current_font, text, make_v2(x,
+            draw_text(pm->current_font, text, make_v2(x,
                         SCREEN_HEIGHT/2 + ((f32)font->vertical_offset)), ORANGE);
         }
         if(game_won()){
             String8 text = str8_formatted(tm->frame_arena, "CHICKEN DINNER - Score: %i", pm->score);
             f32 width = font_string_width(pm->current_font, text);
             f32 x = SCREEN_WIDTH/2 - width/2;
-            draw_text(tm->render_command_arena, pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
+            draw_text(pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
 
             text = str8_literal("R - restart");
             width = font_string_width(pm->current_font, text);
             x = SCREEN_WIDTH/2 - width/2;
-            draw_text(tm->render_command_arena, pm->current_font, text, make_v2(x,
+            draw_text(pm->current_font, text, make_v2(x,
                         SCREEN_HEIGHT/2 + ((f32)font->vertical_offset)), ORANGE);
         }
         String8 score = str8_formatted(tm->frame_arena, "SCORE: %i", pm->score);
-        draw_text(tm->render_command_arena, pm->current_font, score, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale)), ORANGE);
+        draw_text(pm->current_font, score, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale)), ORANGE);
 
         String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
         f32 width = font_string_width(pm->current_font, lives);
-        draw_text(tm->render_command_arena, pm->current_font, lives, make_v2(SCREEN_WIDTH - width - text_padding, ((f32)(font->ascent) * font->scale) + text_padding), ORANGE);
+        draw_text(pm->current_font, lives, make_v2(SCREEN_WIDTH - width - text_padding, ((f32)(font->ascent) * font->scale) + text_padding), ORANGE);
 
         String8 level_str = str8_formatted(tm->frame_arena, "LEVEL: %i", pm->level_index + 1);
-        draw_text(tm->render_command_arena, pm->current_font, level_str, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale) + ((f32)font->vertical_offset)), ORANGE);
+        draw_text(pm->current_font, level_str, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale) + ((f32)font->vertical_offset)), ORANGE);
 
         console_draw();
 
@@ -520,11 +573,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
         String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
-        draw_text(tm->render_command_arena, pm->current_font, fps, make_v2(SCREEN_WIDTH - text_padding - font_string_width(pm->current_font, fps), SCREEN_HEIGHT - text_padding), ORANGE);
+        draw_text(pm->current_font, fps, make_v2(SCREEN_WIDTH - text_padding - font_string_width(pm->current_font, fps), SCREEN_HEIGHT - text_padding), ORANGE);
 
         Level* level = pm->current_level;
         String8 info_str = str8_formatted(tm->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", pm->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
-        //draw_text(tm->render_command_arena, pm->current_font, info_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
+        //draw_text(pm->current_font, info_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
 
         s32 found_count = 0;
         for(s32 i=0; i < array_count(pm->entities); i++){
@@ -533,27 +586,47 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 if(has_flags(e->flags, EntityFlag_Active)){
                     String8 str = str8_formatted(tm->frame_arena, "Asteroids - (%i)", e->health);
                     f32 str_width = font_string_width(pm->current_font, str);
-                    //draw_text(tm->render_command_arena, pm->current_font, str, make_v2(SCREEN_WIDTH - str_width, (f32)(100 + (found_count * pm->font->vertical_offset))), TEAL);
+                    //draw_text(pm->current_font, str, make_v2(SCREEN_WIDTH - str_width, (f32)(100 + (found_count * pm->font->vertical_offset))), TEAL);
                     found_count++;
                 }
             }
         }
 
-        // layout loop first
+        // ui loop first
         // iterate over tree and draw it
         //print("------\n");
-        ui_traverse(layout1);
+        //ui_traverse(box1);
         //print("------\n");
-        //traverse_ui_reverse(tm->render_command_arena, layout1, pm->current_font);
-        ui_traverse_reverse(layout1);
+        //ui_traverse_reverse(box1);
+
+        ui_traverse_pixel(box1, Axis_X);
+        ui_traverse_pixel(box1, Axis_Y);
+
+        ui_traverse_text(box1, Axis_X);
+        ui_traverse_text(box1, Axis_Y);
+
+        ui_traverse_children(box1, Axis_X);
+        ui_traverse_children(box1, Axis_Y);
+
+        ui_traverse_position_nodes(box1, Axis_X);
+        ui_traverse_position_nodes(box1, Axis_Y);
+
+        ui_traverse_construct_rects(box1);
+        print("-----\n");
 
         // draw everything
-        draw_commands(tm->render_command_arena);
+        draw_commands();
+
+        ui_reset_stacks();
+
         arena_free(tm->frame_arena);
+        arena_free(tm->ui_arena);
         arena_free(tm->render_command_arena);
 		simulations = 0;
         total_frames++;
-        ui_layout_top = 0;
+
+
+        // clear ui stacks
         //end_profiler();
     }
 

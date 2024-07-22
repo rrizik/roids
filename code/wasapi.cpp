@@ -7,7 +7,7 @@
 
 // todo: change all asserts to error logs
 static HRESULT
-audio_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
+init_audio(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
     HRESULT hr = S_OK;
 
     hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), 0, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&device_enumerator);

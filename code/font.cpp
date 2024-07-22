@@ -13,7 +13,7 @@ load_font_ttf(Arena* arena, String8 filename, f32 size){
 
     // init font
     Font result = {0};
-    String8 file_data =  os_file_read(arena, file); // stb ttf fonts need to remain loaded in memory. todo: ask HMH about how to get around this. Afterall, I've already created the texture.
+    String8 file_data =  os_file_read(arena, file); // note: stb ttf fonts need to remain loaded in memory.
     if(!stbtt_InitFont(&result.info, (u8*)file_data.str, 0)){
         result.succeed = false;
         return(result);
@@ -62,9 +62,9 @@ load_font_ttf(Arena* arena, String8 filename, f32 size){
         .Height = (u32)result.texture_h,
         .MipLevels = 1,
         .ArraySize = 1,
-        .Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB,
+        .Format = DXGI_FORMAT_B8G8R8A8_UNORM,
         .SampleDesc = {1, 0},
-        .Usage = D3D11_USAGE_IMMUTABLE,
+        .Usage = D3D11_USAGE_DEFAULT,
         .BindFlags = D3D11_BIND_SHADER_RESOURCE,
     };
 
@@ -86,8 +86,9 @@ load_font_ttf(Arena* arena, String8 filename, f32 size){
 
 static f32
 font_char_width(u32 font_id, u8 c){
-    Font* font = &tm->assets.fonts[font_id];
     f32 result = 0;
+
+    Font* font = &tm->assets.fonts[font_id];
     s32 advance_width, lsb;
     stbtt_GetCodepointHMetrics(&font->info, c, &advance_width, &lsb);
     result = (f32)advance_width * font->scale;
@@ -96,14 +97,35 @@ font_char_width(u32 font_id, u8 c){
 
 static f32
 font_string_width(u32 font_id, String8 str){
-    Font* font = &tm->assets.fonts[font_id];
     f32 result = 0;
+
+    Font* font = &tm->assets.fonts[font_id];
     s32 advance_width, lsb;
     for(s32 i=0; i < str.size; ++i){
         u8 c = str.str[i];
         stbtt_GetCodepointHMetrics(&font->info, c, &advance_width, &lsb);
         result += (f32)advance_width * font->scale;
     }
+    return(result);
+}
+
+static s32
+font_vertical_offset(u32 font_id){
+    Font* font = &tm->assets.fonts[font_id];
+    return(font->vertical_offset);
+}
+
+static s32
+font_ascent(u32 font_id){
+    Font* font = &tm->assets.fonts[font_id];
+    s32 result = round_f32_s32((f32)font->ascent * font->scale);
+    return(result);
+}
+
+static s32
+font_descent(u32 font_id){
+    Font* font = &tm->assets.fonts[font_id];
+    s32 result = round_f32_s32((f32)font->descent * font->scale);
     return(result);
 }
 

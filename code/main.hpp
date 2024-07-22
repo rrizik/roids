@@ -1,7 +1,6 @@
 #ifndef MAIN_H
 #define MAIN_H
 
-
 #if DEBUG
 #define ENABLE_ASSERT 1
 #endif
@@ -27,6 +26,7 @@
 #include "console.hpp"
 #include "command.hpp"
 #include "ui.hpp"
+#include "game.hpp"
 
 #include "input.cpp"
 #include "clock.cpp"
@@ -42,6 +42,14 @@ static String8 saves_path;
 static String8 sprites_path;
 static String8 sounds_path;
 
+struct Window{
+    s32 width;
+    s32 height;
+    HWND handle;
+};
+global Window window;
+static Window win32_window_create(const wchar* window_name, s32 width, s32 height);
+
 typedef struct Memory{
     void* base;
     size_t size;
@@ -53,19 +61,11 @@ typedef struct Memory{
 
     bool initialized;
 } Memory;
-global Memory memory;
-static void memory_init();
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
-struct Window{
-    s32 width;
-    s32 height;
-    HWND handle;
-};
-global Window window;
-static Window win32_window_create(const wchar* window_name, s32 width, s32 height);
-#include "game.hpp"
+global Memory memory;
+static void init_memory();
 
 global bool should_quit;
 global Arena* global_arena = os_make_arena(MB(100));
@@ -111,6 +111,7 @@ typedef struct TransientMemory{
     Arena *frame_arena;
     Arena *render_command_arena;
     Arena *asset_arena;
+    Arena *ui_arena;
 
     Assets assets;
 } TransientMemory;
