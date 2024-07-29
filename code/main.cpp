@@ -307,28 +307,28 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         ui_push_background_color(ORANGE);
         ui_push_pos_x(100);
         ui_push_pos_y(100);
-        ui_push_size_w(ui_size_children(1));
-        ui_push_size_h(ui_size_children(1));
+        ui_push_size_w(ui_size_children(0));
+        ui_push_size_h(ui_size_children(0));
         ui_push_layout_axis(Axis_Y);
 
         UI_Box* box1 = ui_make_box(str8_literal("box1"), UI_BoxFlag_DrawBackground);
         ui_push_box(box1);
 
-        ui_push_size_w(ui_size_pixel(100, 1));
-        ui_push_size_h(ui_size_pixel(50, 1));
+        ui_push_size_w(ui_size_pixel(100, 0));
+        ui_push_size_h(ui_size_pixel(50, 0));
         ui_push_background_color(BLUE);
         if(ui_button(str8_literal("button 1"))){
         }
-        ui_push_size_w(ui_size_pixel(50, 1));
-        ui_push_size_h(ui_size_pixel(50, 1));
+        ui_push_size_w(ui_size_pixel(50, 0));
+        ui_push_size_h(ui_size_pixel(50, 0));
         ui_push_background_color(GREEN);
         if(ui_button(str8_literal("button 2"))){
         }
         ui_pop_background_color();
         ui_pop_background_color();
 
-        ui_push_size_w(ui_size_children(1));
-        ui_push_size_h(ui_size_children(1));
+        ui_push_size_w(ui_size_children(0));
+        ui_push_size_h(ui_size_children(0));
         ui_push_layout_axis(Axis_X);
         UI_Box* box2 = ui_make_box(str8_literal("box2"), UI_BoxFlag_DrawBackground);
         ui_push_box(box2);
@@ -350,21 +350,21 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         }
 
         ui_pop_box();
-        ui_push_size_w(ui_size_children(1));
-        ui_push_size_h(ui_size_children(1));
+        ui_push_size_w(ui_size_children(0));
+        ui_push_size_h(ui_size_children(0));
         ui_push_layout_axis(Axis_Y);
         ui_push_background_color(ORANGE);
         UI_Box* box3 = ui_make_box(str8_literal("box3"), UI_BoxFlag_DrawBackground);
         ui_push_box(box3);
 
-        ui_push_size_w(ui_size_pixel(100, 1));
-        ui_push_size_h(ui_size_pixel(50, 1));
+        ui_push_size_w(ui_size_pixel(100, 0));
+        ui_push_size_h(ui_size_pixel(50, 0));
         ui_push_background_color(YELLOW);
         if(ui_button(str8_literal("button 6"))){
         }
         ui_push_background_color(DARK_GRAY);
-        ui_push_size_w(ui_size_text(1));
-        ui_push_size_h(ui_size_text(1));
+        ui_push_size_w(ui_size_text(0));
+        ui_push_size_h(ui_size_text(0));
         if(ui_button(str8_literal("AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"))){
         }
 

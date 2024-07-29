@@ -86,7 +86,7 @@ parse_line_args(String8 line){
 
         u64 idx = str8_char_idx_from_left(remaining, ' ');
         String8 left_arg = str8_split_left(remaining, idx);
-        String8 arg = push_string(global_arena, left_arg);
+        String8 arg = push_str8(global_arena, left_arg);
         command_args[command_args_count++] = arg;
 
         remaining = str8_advance(remaining, idx);

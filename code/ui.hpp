@@ -110,12 +110,12 @@ static void ui_reset_stacks();
     node->v = v; \
     node->next = ui_##name##_top; \
     ui_##name##_top = node; \
-    return(node->v);
+    return(node->v); \
 
 #define ui_stack_pop_impl(type, name) \
     UI_##type##Node* popped = ui_##name##_top; \
     ui_##name##_top = ui_##name##_top->next; \
-    return(popped->v);
+    return(popped->v); \
 
 #define ui_stack_top_impl(name) return(ui_##name##_top->v);
 

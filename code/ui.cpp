@@ -86,7 +86,6 @@ ui_traverse_text(UI_Box* node, Axis axis){
     if(node->semantic_size[axis].type == UI_SizeType_TextContent){
         if(axis == Axis_X){
             f32 width = font_string_width(0, node->string);
-            //node->size[axis] = node->semantic_size[axis].value;
             node->size[axis] = width;
         }
         if(axis == Axis_Y){
@@ -160,14 +159,17 @@ ui_traverse_position_nodes(UI_Box* node, Axis axis){
             for(UI_Box* sibling = node; sibling != 0; sibling = sibling->next){
                 sibling->rel_pos[axis] = position;
                 if(sibling->parent){
-                    sibling->pos[axis] = sibling->parent->pos[axis] + sibling->rel_pos[axis];
+                    sibling->pos[axis] = sibling->parent->pos[axis] + sibling->rel_pos[axis] + ((1 - sibling->semantic_size[axis].strictness) * 10);
+                    //sibling->pos[axis] = sibling->parent->pos[axis] + sibling->rel_pos[axis];
                 }
-                position += sibling->size[axis];
+                position += sibling->size[axis] + ((1 - sibling->semantic_size[axis].strictness) * 10);
+                //position += sibling->size[axis];
             }
         }
         else{
             for(UI_Box* sibling = node; sibling != 0; sibling = sibling->next){
-                sibling->rel_pos[axis] = 0;
+                sibling->rel_pos[axis] = ((1 - sibling->semantic_size[axis].strictness) * 10);
+                //sibling->rel_pos[axis] = 0;
             }
         }
     }
