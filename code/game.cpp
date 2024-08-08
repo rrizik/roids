@@ -522,7 +522,7 @@ update_game(){
             handled = handle_console_events(event);
         }
         else{
-            handled = handle_camera_events(event);
+            //handled = handle_camera_events(event);
             handled = handle_controller_events(event);
         }
     }

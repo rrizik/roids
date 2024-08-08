@@ -74,10 +74,12 @@ typedef struct UI_Box{
 
     UI_BoxFlags flags;
     String8 string;
+
     UI_Size semantic_size[Axis_Count];
+    f32 size[Axis_Count];
     f32 pos[Axis_Count];
     f32 rel_pos[Axis_Count];
-    f32 size[Axis_Count];
+
     Axis layout_axis;
 
     Rect rect;
@@ -127,6 +129,10 @@ typedef struct UI_SizeHNode           { UI_SizeHNode* next; UI_Size v; } UI_Size
 typedef struct UI_LayoutAxisNode      { UI_LayoutAxisNode* next; Axis v; } UI_LayoutAxisNode;
 typedef struct UI_BackgroundColorNode { UI_BackgroundColorNode* next; RGBA v; } UI_BackgroundColorNode;
 
+// figure what the defaults should be.
+// nill structs. used as the base for all the structs
+// some mechanism that prevents you from popping the nill struct
+
 //UI_Box              ui_box_null = {0};
 UI_BoxNode*         ui_box_top = 0;
 UI_PosXNode*        ui_pos_x_top = 0;
@@ -135,6 +141,8 @@ UI_SizeWNode*       ui_size_w_top = 0;
 UI_SizeHNode*       ui_size_h_top = 0;
 UI_LayoutAxisNode*  ui_layout_axis_top = 0;
 UI_BackgroundColorNode* ui_background_color_top = 0;
+
+// set sets only for the next item and none after
 
 static UI_Box* ui_push_box(UI_Box* v)           { ui_stack_push_impl(ui_arena, Box, box, v) }
 static f32     ui_push_pos_x(f32 v)             { ui_stack_push_impl(ui_arena, PosX, pos_x, v) }
@@ -163,26 +171,3 @@ static RGBA    ui_top_background_color(void) { ui_stack_top_impl(background_colo
 static void ui_rest_stacks();
 
 #endif
-//typedef struct UI_ParentNode UI_ParentNode; struct UI_ParentNode{UI_ParentNode *next; UI_Box * v;};
-//typedef struct UI_FlagsNode UI_FlagsNode; struct UI_FlagsNode{UI_FlagsNode *next; UI_BoxFlags v;};
-//typedef struct UI_OpacityNode UI_OpacityNode; struct UI_OpacityNode{UI_OpacityNode *next; F32 v;};
-//typedef struct UI_TextColorNode UI_TextColorNode; struct UI_TextColorNode{UI_TextColorNode *next; Vec4F32 v;};
-//typedef struct UI_BorderColorNode UI_BorderColorNode; struct UI_BorderColorNode{UI_BorderColorNode *next; Vec4F32 v;};
-//typedef struct UI_OverlayColorNode UI_OverlayColorNode; struct UI_OverlayColorNode{UI_OverlayColorNode *next; Vec4F32 v;};
-//typedef struct UI_FillColorNode UI_FillColorNode; struct UI_FillColorNode{UI_FillColorNode *next; Vec4F32 v;};
-//typedef struct UI_CursorColorNode UI_CursorColorNode; struct UI_CursorColorNode{UI_CursorColorNode *next; Vec4F32 v;};
-//typedef struct UI_CornerRadius00Node UI_CornerRadius00Node; struct UI_CornerRadius00Node{UI_CornerRadius00Node *next; F32 v;};
-//typedef struct UI_CornerRadius01Node UI_CornerRadius01Node; struct UI_CornerRadius01Node{UI_CornerRadius01Node *next; F32 v;};
-//typedef struct UI_CornerRadius10Node UI_CornerRadius10Node; struct UI_CornerRadius10Node{UI_CornerRadius10Node *next; F32 v;};
-//typedef struct UI_CornerRadius11Node UI_CornerRadius11Node; struct UI_CornerRadius11Node{UI_CornerRadius11Node *next; F32 v;};
-//typedef struct UI_BorderThicknessNode UI_BorderThicknessNode; struct UI_BorderThicknessNode{UI_BorderThicknessNode *next; F32 v;};
-//typedef struct UI_Slice2F32Node UI_Slice2F32Node; struct UI_Slice2F32Node{UI_Slice2F32Node *next; R_Slice2F32 v;};
-//typedef struct UI_FontNode UI_FontNode; struct UI_FontNode{UI_FontNode *next; F_Tag v;};
-//typedef struct UI_FontSizeNode UI_FontSizeNode; struct UI_FontSizeNode{UI_FontSizeNode *next; F32 v;};
-//typedef struct UI_HoverCursorNode UI_HoverCursorNode; struct UI_HoverCursorNode{UI_HoverCursorNode *next; OS_CursorKind v;};
-//typedef struct UI_TextAlignNode UI_TextAlignNode; struct UI_TextAlignNode{UI_TextAlignNode *next; UI_TextAlignment v;};
-//typedef struct UI_TextEdgePaddingNode UI_TextEdgePaddingNode; struct UI_TextEdgePaddingNode{UI_TextEdgePaddingNode *next; F32 v;};
-//typedef struct UI_SeedKeyNode UI_SeedKeyNode; struct UI_SeedKeyNode{UI_SeedKeyNode *next; UI_Key v;};
-//typedef struct UI_FocusHotNode UI_FocusHotNode; struct UI_FocusHotNode{UI_FocusHotNode *next; UI_FocusKind v;};
-//typedef struct UI_FocusActiveNode UI_FocusActiveNode; struct UI_FocusActiveNode{UI_FocusActiveNode *next; UI_FocusKind v;};
-//

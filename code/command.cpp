@@ -76,20 +76,43 @@ init_console_commands(){
     add_command(str8_literal("help"), 0, 0, command_help);
 }
 
+// TODO: MOVE THIS
+// TODO:
+// TODO:
+// TODO:
+static String8
+push_str8(Arena* arena, String8 value){
+    u8* str = push_array(arena, u8, value.count + 1);
+    memory_copy(str, value.data, value.count);
+    String8 result = {str, value.count};
+    return(result);
+}
+
+// TODO: CHECK THIS
+// TODO:
+// TODO:
+// TODO:
 static u64
 parse_line_args(String8 line){
     u64 args_count = 0;
     String8 remaining = line;
     while(remaining.size){
-        remaining = str8_eat_whitespace(remaining);
+        remaining = str8_eat_spaces(remaining);
         if(remaining.size < 1){ break; }
 
-        u64 idx = str8_char_idx_from_left(remaining, ' ');
-        String8 left_arg = str8_split_left(remaining, idx);
-        String8 arg = push_str8(global_arena, left_arg);
-        command_args[command_args_count++] = arg;
+        s64 index = byte_index_from_left(remaining, ' ');
+        if(index != -1){
+            String8 left_arg = str8_split_left(remaining, (u64)index);
+            String8 arg = push_str8(global_arena, left_arg);
+            command_args[command_args_count++] = arg;
+            remaining = str8_advance(remaining, (u64)index);
+        }
+        else{
+            String8 arg = push_str8(global_arena, remaining);
+            command_args[command_args_count++] = arg;
+            remaining = str8_advance(remaining, remaining.count);
+        }
 
-        remaining = str8_advance(remaining, idx);
         args_count++;
     }
     return(args_count);
@@ -106,7 +129,7 @@ run_command(String8 line){
     bool found = false;
     for(s32 i=0; i < commands_count; ++i){
         CommandInfo command = commands[i];
-        if(str8_cmp(command_name, command.name)){
+        if(str8_compare(command_name, command.name)){
             found = true;
             if(command.min_args > command_args_count){
                 console.output_history[console.output_history_count++] = str8_formatted(global_arena, "Argument count less than min - Expected %i - Got: %i", command.min_args, command_args_count);

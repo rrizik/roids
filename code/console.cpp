@@ -224,7 +224,7 @@ handle_console_events(Event event){
                 memory_copy(line_u8, console.input, (size_t)console.input_count);
 
                 String8 line_str8 = {line_u8, (u64)console.input_count};
-                line_str8 = str8_eat_whitespace(line_str8);
+                line_str8 = str8_eat_spaces(line_str8);
 
                 u64 args_count = parse_line_args(line_str8);
                 if(!args_count){ return(false); }

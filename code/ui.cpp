@@ -147,6 +147,9 @@ ui_traverse_children(UI_Box* node, Axis axis){
     ui_traverse_children(node->prev, axis);
 }
 
+// absolute position - rendering and hit testing with mouse position
+// otherwise you want relative position
+// there is a root node that is essentially the window, simply the (0, 0) pos and w/h
 static void
 ui_traverse_position_nodes(UI_Box* node, Axis axis){
     if(node == 0){
@@ -159,17 +162,17 @@ ui_traverse_position_nodes(UI_Box* node, Axis axis){
             for(UI_Box* sibling = node; sibling != 0; sibling = sibling->next){
                 sibling->rel_pos[axis] = position;
                 if(sibling->parent){
-                    sibling->pos[axis] = sibling->parent->pos[axis] + sibling->rel_pos[axis] + ((1 - sibling->semantic_size[axis].strictness) * 10);
-                    //sibling->pos[axis] = sibling->parent->pos[axis] + sibling->rel_pos[axis];
+                    //sibling->pos[axis] = sibling->parent->pos[axis] + sibling->rel_pos[axis] + ((1 - sibling->semantic_size[axis].strictness) * 10);
+                    sibling->pos[axis] = sibling->parent->pos[axis] + sibling->rel_pos[axis];
                 }
-                position += sibling->size[axis] + ((1 - sibling->semantic_size[axis].strictness) * 10);
-                //position += sibling->size[axis];
+                //position += sibling->size[axis] + ((1 - sibling->semantic_size[axis].strictness) * 10);
+                position += sibling->size[axis];
             }
         }
         else{
             for(UI_Box* sibling = node; sibling != 0; sibling = sibling->next){
-                sibling->rel_pos[axis] = ((1 - sibling->semantic_size[axis].strictness) * 10);
-                //sibling->rel_pos[axis] = 0;
+                //sibling->rel_pos[axis] = ((1 - sibling->semantic_size[axis].strictness) * 10);
+                sibling->rel_pos[axis] = 0;
             }
         }
     }
@@ -177,7 +180,11 @@ ui_traverse_position_nodes(UI_Box* node, Axis axis){
     if(node->first != 0){
         ui_traverse_position_nodes(node->first, axis);
     }
-
+typedef struct Assets{
+    Wave    waves[WaveAsset_Count];
+    Font    fonts[FontAsset_Count];
+    Texture textures[TextureAsset_Count];
+} Assets;
     ui_traverse_position_nodes(node->next, axis);
 }
 
@@ -200,7 +207,6 @@ ui_traverse_construct_rects(UI_Box* node){
 
     draw_quad(node->rect, node->background_color);
     if(has_flags(node->flags, UI_BoxFlag_DrawText)){
-        // todo: Fucking... yuck
         f32 width = font_string_width(0, node->string);
         s32 vertical_offset = font_vertical_offset(0);
         s32 ascent = font_ascent(0);
@@ -209,7 +215,7 @@ ui_traverse_construct_rects(UI_Box* node){
         s32 center = ascent - (ascent - descent)/2;
         v2 pos = make_v2(node->rect.min.x + node->size[Axis_X]/2 - width/2,
                          node->rect.min.y + node->size[Axis_Y]/2 + (f32)center);
-        draw_text(0, node->string, pos, MAGENTA);
+        draw_text(0, node->string, pos, BLACK);
     }
 
     if(node->first != 0){

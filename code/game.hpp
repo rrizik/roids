@@ -48,6 +48,7 @@ typedef enum FontAsset{
     FontAsset_Count,
 } FontAsset;
 
+//TODO: Separate all of these out into their own files for easy access
 typedef struct Assets{
     Wave    waves[WaveAsset_Count];
     Font    fonts[FontAsset_Count];
