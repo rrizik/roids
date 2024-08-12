@@ -42,11 +42,6 @@ static String8 saves_path;
 static String8 sprites_path;
 static String8 sounds_path;
 
-struct Window{
-    s32 width;
-    s32 height;
-    HWND handle;
-};
 global Window window;
 static Window win32_window_create(const wchar* window_name, s32 width, s32 height);
 

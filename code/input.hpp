@@ -6,17 +6,12 @@ typedef enum KeyCode{
     KeyCode_None = 0,
 
     // INCOMPLETE: these need to be looked at again when we do mouse
-    MOUSE_BUTTON_LEFT   = 1,
-    MOUSE_BUTTON_RIGHT  = 2,
-    MOUSE_BUTTON_MIDDLE = 3,
+    MOUSE_BUTTON_LEFT   = 0x01,
+    MOUSE_BUTTON_RIGHT  = 0x02,
+    MOUSE_BUTTON_MIDDLE = 0x04,
 
-    //SL_MOUSE_BUTTON  = 1,
-    //SR_MOUSE_BUTTON  = 2,
-    //SLR_MOUSE_BUTTON = 3,
-    //SM_MOUSE_BUTTON  = 16,
-
-    KeyCode_BACKSPACE = 8,
-    KeyCode_TAB       = 9,
+    KeyCode_BACKSPACE = 0x08,
+    KeyCode_TAB       = 0x09,
     KeyCode_ENTER     = 13,
     KeyCode_ESCAPE    = 27,
     KeyCode_SPACEBAR  = 32,
@@ -85,6 +80,7 @@ typedef enum KeyCode{
 	KeyCode_X = 88,
 	KeyCode_Y = 89,
 	KeyCode_Z = 90,
+
 	//KeyCode_LEFT_SQUARE_BRACKET = 91,
 	//KeyCode_BACKSLASH = 92,
 	//KeyCode_RIGHT_SQUARE_BRACKET = 93,
@@ -92,15 +88,17 @@ typedef enum KeyCode{
 	//KeyCode_UNDERSCORE = 95,
 	//KeyCode_GRAVE_ACCENT = 96,
     KeyCode_F1 = 0x70,
-    KeyCode_F2 = 113,
-    KeyCode_F3 = 115,
-    KeyCode_F4 = 116,
-    KeyCode_F5 = 117,
-    KeyCode_F6 = 118,
-    KeyCode_F7 = 119,
-    KeyCode_F8 = 120,
-    KeyCode_F9 = 121,
-    KeyCode_F10 = 122,
+    KeyCode_F2 = 0x71,
+    KeyCode_F3 = 0x72,
+    KeyCode_F4 = 0x73,
+    KeyCode_F5 = 0x74,
+    KeyCode_F6 = 0x75,
+    KeyCode_F7 = 0x76,
+    KeyCode_F8 = 0x77,
+    KeyCode_F9 = 0x78,
+    KeyCode_F10 = 0x79,
+    KeyCode_F11 = 0x7A,
+    KeyCode_F12 = 0x7B,
  	//KeyCode_LEFT_CURLY_BRACE =  123,
  	//KeyCode_VERTICAL_BAR =      124,
  	//KeyCode_RIGHT_CURLY_BRACE = 125,
@@ -124,7 +122,6 @@ typedef struct Mouse{
     f32 dx;
     f32 dy;
     f32 wheel_direction;
-    bool tracking_leave;
 } Mouse;
 
 typedef struct Controller{
@@ -154,11 +151,11 @@ typedef struct Event{
     EventType type;
     u64 keycode;
 
+    bool repeat;
     bool key_pressed;
     bool shift_pressed;
     bool ctrl_pressed;
     bool alt_pressed;
-    bool repeat;
 
     s32 mouse_wheel_dir;
     v2s32 mouse_pos;

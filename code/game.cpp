@@ -408,6 +408,17 @@ handle_global_events(Event event){
 }
 
 static bool
+handle_ui_events(Event event){
+    //if(event.type == MOUSE){
+    //    print("(%i, %i) d(%i, %i), pressed: %i, repeat: %i\n", event.mouse_pos.x, event.mouse_pos.y, event.mouse_dx, event.mouse_dy, event.key_pressed, event.repeat);
+    //}
+    //if(event.type == KEYBOARD){
+    //    print("(%i, %i) d(%i, %i), pressed: %i, repeat: %i\n", event.mouse_pos.x, event.mouse_pos.y, event.mouse_dx, event.mouse_dy, event.key_pressed, event.repeat);
+    //}
+    return(false);
+}
+
+static bool
 handle_camera_events(Event event){
     if(event.type == MOUSE){
         controller.mouse.pos = event.mouse_pos;
@@ -511,12 +522,17 @@ static void
 update_game(){
 
     // NOTE: process events.
+    bool handled;
     while(!events_empty(&events)){
-        begin_timed_scope("events");
         Event event = events_next(&events);
+        print("type: %i, keycode: %i\nkey_pressed: %i, repeat: %i, shift_pressed: %i, ctrl_pressed: %i, alt_pressed: %i\nmw_dir: %i, mp: (%i, %i), md: (%i, %i)\n----------------------\n",
+               event.type, event.keycode,
+               event.key_pressed, event.repeat, event.shift_pressed, event.ctrl_pressed, event.alt_pressed,
+               event.mouse_wheel_dir, event.mouse_pos.x, event.mouse_pos.y, event.mouse_dx, event.mouse_dy);
 
-        bool handled;
+
         handled = handle_global_events(event);
+        handled = handle_ui_events(event);
 
         if(console_is_open()){
             handled = handle_console_events(event);

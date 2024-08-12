@@ -52,6 +52,7 @@ win32_window_create(const wchar* window_name, s32 width, s32 height){
     result.width = width;
     result.height = height;
 
+    // adjust window size to exclude client area
     DWORD style = WS_OVERLAPPEDWINDOW|WS_VISIBLE;
     RECT rect = { 0, 0, width, height };
     AdjustWindowRect(&rect, style, FALSE);
@@ -85,13 +86,31 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         case WM_CLOSE:
         case WM_QUIT:
         case WM_DESTROY:{
-            Event event;
+            Event event = {0};
             event.type = QUIT;
             events_add(&events, event);
         } break;
 
+        case WM_CHAR:{
+            u64 keycode = w_param;
+
+            if(keycode > 31){
+                Event event = {0};
+                event.type = TEXT_INPUT;
+                event.keycode = keycode;
+                event.repeat = ((s32)l_param) & 0x40000000;
+
+                event.shift_pressed = shift_pressed;
+
+                events_add(&events, event);
+
+                if(w_param == VK_SHIFT)   { shift_pressed = true; }
+            }
+
+        } break;
+
         case WM_MOUSEMOVE:{
-            Event event;
+            Event event = {0};
             event.type = MOUSE; // TODO: maybe have this be a KEYBOARD event
             event.mouse_pos.x = (s32)(s16)(l_param & 0xFFFF);
             event.mouse_pos.y = (s32)(s16)(l_param >> 16);
@@ -106,7 +125,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         } break;
 
         case WM_MOUSEWHEEL:{
-            Event event;
+            Event event = {0};
             event.type = KEYBOARD;
             event.mouse_wheel_dir = GET_WHEEL_DELTA_WPARAM(w_param) > 0? 1 : -1;
             events_add(&events, event);
@@ -114,9 +133,10 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
 
         case WM_LBUTTONDOWN:
         case WM_LBUTTONUP:{
-            Event event;
+            Event event = {0};
             event.type = KEYBOARD;
             event.keycode = MOUSE_BUTTON_LEFT;
+            event.repeat = ((s32)l_param) & 0x40000000;
 
             bool pressed = false;
             if(message == WM_LBUTTONDOWN){ pressed = true; }
@@ -126,9 +146,10 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         } break;
         case WM_RBUTTONDOWN:
         case WM_RBUTTONUP:{
-            Event event;
+            Event event = {0};
             event.type = KEYBOARD;
             event.keycode = MOUSE_BUTTON_RIGHT;
+            event.repeat = ((s32)l_param) & 0x40000000;
 
             bool pressed = false;
             if(message == WM_RBUTTONDOWN){ pressed = true; }
@@ -138,9 +159,10 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         } break;
         case WM_MBUTTONDOWN:
         case WM_MBUTTONUP:{
-            Event event;
+            Event event = {0};
             event.type = KEYBOARD;
             event.keycode = MOUSE_BUTTON_MIDDLE;
+            event.repeat = ((s32)l_param) & 0x40000000;
 
             bool pressed = false;
             if(message == WM_MBUTTONDOWN){ pressed = true; }
@@ -149,20 +171,9 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             events_add(&events, event);
         } break;
 
-        case WM_CHAR:{
-            u64 keycode = w_param;
-
-            if(keycode > 31){
-                Event event;
-                event.type = TEXT_INPUT;
-                event.keycode = keycode;
-                events_add(&events, event);
-            }
-
-        } break;
         case WM_SYSKEYDOWN:
         case WM_KEYDOWN:{
-            Event event;
+            Event event = {0};
             event.type = KEYBOARD;
             event.keycode = w_param;
             event.repeat = ((s32)l_param) & 0x40000000;
@@ -180,7 +191,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         } break;
         case WM_SYSKEYUP:
         case WM_KEYUP:{
-            Event event;
+            Event event = {0};
             event.type = KEYBOARD;
             event.keycode = w_param;
 
@@ -261,7 +272,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_camera();
         init_console(&pm->arena, FontAsset_Arial);
         init_console_commands();
-        init_ui(tm->ui_arena);
+        init_ui(tm->ui_arena, &window);
         init_render_commands(tm->render_command_arena);
 
         pm->current_font = FontAsset_Arial;
@@ -296,29 +307,35 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             DispatchMessage(&message);
         }
 
-        //audio_play(440);
-        //audio_play_wave(&wav);
         u64 now_ticks = clock.get_os_timer();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
 
+        ui_begin();
+        //root_box = ui_top_parent();
+
         ui_push_background_color(ORANGE);
         ui_push_pos_x(100);
         ui_push_pos_y(100);
         ui_push_size_w(ui_size_children(0));
         ui_push_size_h(ui_size_children(0));
-        ui_push_layout_axis(Axis_Y);
+        ui_push_border_thickness(10);
 
         UI_Box* box1 = ui_make_box(str8_literal("box1"), UI_BoxFlag_DrawBackground);
-        ui_push_box(box1);
+        ui_push_parent(box1);
+        ui_pop_border_thickness();
+        ui_pop_pos_x();
+        ui_pop_pos_y();
 
         ui_push_size_w(ui_size_pixel(100, 0));
         ui_push_size_h(ui_size_pixel(50, 0));
         ui_push_background_color(BLUE);
         if(ui_button(str8_literal("button 1"))){
         }
+        ui_spacer(10);
+
         ui_push_size_w(ui_size_pixel(50, 0));
         ui_push_size_h(ui_size_pixel(50, 0));
         ui_push_background_color(GREEN);
@@ -327,96 +344,64 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         ui_pop_background_color();
         ui_pop_background_color();
 
+        ui_spacer(10);
         ui_push_size_w(ui_size_children(0));
         ui_push_size_h(ui_size_children(0));
         ui_push_layout_axis(Axis_X);
+        ui_push_background_color(ORANGE);
         UI_Box* box2 = ui_make_box(str8_literal("box2"), UI_BoxFlag_DrawBackground);
-        ui_push_box(box2);
+        ui_push_parent(box2);
+        ui_pop_background_color();
 
         ui_pop_size_w();
         ui_pop_size_h();
         ui_pop_size_w();
         ui_pop_size_h();
-        //ui_push_size_w(ui_size_pixel(100, 1));
-        //ui_push_size_h(ui_size_pixel(50, 1));
+        ui_push_size_w(ui_size_pixel(100, 1));
+        ui_push_size_h(ui_size_pixel(50, 1));
         ui_push_background_color(TEAL);
         if(ui_button(str8_literal("button 3"))){
         }
+        ui_spacer(10);
         ui_push_background_color(RED);
         if(ui_button(str8_literal("button 4"))){
         }
+        ui_spacer(10);
         ui_pop_background_color();
         if(ui_button(str8_literal("button 5"))){
         }
+        ui_pop_parent();
 
-        ui_pop_box();
+        ui_spacer(10);
         ui_push_size_w(ui_size_children(0));
         ui_push_size_h(ui_size_children(0));
         ui_push_layout_axis(Axis_Y);
         ui_push_background_color(ORANGE);
         UI_Box* box3 = ui_make_box(str8_literal("box3"), UI_BoxFlag_DrawBackground);
-        ui_push_box(box3);
+        ui_push_parent(box3);
+        ui_pop_background_color();
 
         ui_push_size_w(ui_size_pixel(100, 0));
-        ui_push_size_h(ui_size_pixel(50, 0));
+        ui_push_size_h(ui_size_pixel(100, 0));
         ui_push_background_color(YELLOW);
         if(ui_button(str8_literal("button 6"))){
         }
+        ui_spacer(10);
         ui_push_background_color(DARK_GRAY);
         ui_push_size_w(ui_size_text(0));
         ui_push_size_h(ui_size_text(0));
+        ui_push_text_padding(100);
         if(ui_button(str8_literal("AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"))){
         }
+        ui_pop_text_padding();
+        ui_pop_parent();
 
-        //UI_Box* box1 = ui_make_box(str8_literal("box1"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
-        //ui_push_box(box1);
-
-        //UI_Box* box2 = ui_make_box(str8_literal("box2"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
-        //ui_push_box(box2);
-        //if(ui_button(str8_literal("button 1"))){
-        //}
-        //if(ui_button(str8_literal("button 2"))){
-        //}
-        //if(ui_button(str8_literal("button 3"))){
-        //}
-        //ui_pop_box();
-
-        //if(ui_button(str8_literal("button 4"))){
-        //}
-        //if(ui_button(str8_literal("button 5"))){
-        //}
-
-        //UI_Box* box3 = ui_make_box(str8_literal("box3"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
-        //ui_push_box(box3);
-        //if(ui_button(str8_literal("button 6"))){
-        //}
-        //if(ui_button(str8_literal("button 7"))){
-        //}
-        //ui_pop_box();
-
-        //if(ui_button(str8_literal("button 8"))){
-        //}
-
-        //UI_Box* box4 = ui_make_box(str8_literal("box4"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
-        //ui_push_box(box4);
-        //if(ui_button(str8_literal("button 9"))){
-        //}
-
-        //UI_Box* box5 = ui_make_box(str8_literal("box5"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
-        //ui_push_box(box5);
-        //if(ui_button(str8_literal("button 10"))){
-        //}
-        //if(ui_button(str8_literal("button 11"))){
-        //}
-        //ui_pop_box();
-
-        //if(ui_button(str8_literal("button 12"))){
-        //}
-
-        //UI_Box* box6 = ui_make_box(str8_literal("box6"), UI_BoxFlag_Clickable | UI_BoxFlag_DrawBackground);
-        //ui_push_box(box6);
-        //if(ui_button(str8_literal("button 13"))){
-        //}
+        for(Axis axis=(Axis)0; axis < Axis_Count; axis = (Axis)(axis + 1)){
+            ui_traverse_independent(ui_root(), axis);
+            ui_traverse_children(ui_root(), axis);
+            ui_traverse_positions(ui_root(), axis);
+        }
+        ui_traverse_rects(ui_root());
 
         // simulation
         accumulator += frame_time;
@@ -592,32 +577,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
         }
 
-        // ui loop first
-        // iterate over tree and draw it
-        //print("------\n");
-        //ui_traverse(box1);
-        //print("------\n");
-        //ui_traverse_reverse(box1);
-
-        ui_traverse_pixel(box1, Axis_X);
-        ui_traverse_pixel(box1, Axis_Y);
-
-        ui_traverse_text(box1, Axis_X);
-        ui_traverse_text(box1, Axis_Y);
-
-        ui_traverse_children(box1, Axis_X);
-        ui_traverse_children(box1, Axis_Y);
-
-        ui_traverse_position_nodes(box1, Axis_X);
-        ui_traverse_position_nodes(box1, Axis_Y);
-
-        ui_traverse_construct_rects(box1);
-        print("-----\n");
+        ui_draw(ui_root());
 
         // draw everything
         draw_commands();
 
-        ui_reset_stacks();
+        ui_end();
 
         arena_free(tm->frame_arena);
         arena_free(tm->ui_arena);

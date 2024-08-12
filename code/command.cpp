@@ -76,10 +76,6 @@ init_console_commands(){
     add_command(str8_literal("help"), 0, 0, command_help);
 }
 
-// TODO: MOVE THIS
-// TODO:
-// TODO:
-// TODO:
 static String8
 push_str8(Arena* arena, String8 value){
     u8* str = push_array(arena, u8, value.count + 1);
@@ -88,10 +84,6 @@ push_str8(Arena* arena, String8 value){
     return(result);
 }
 
-// TODO: CHECK THIS
-// TODO:
-// TODO:
-// TODO:
 static u64
 parse_line_args(String8 line){
     u64 args_count = 0;
