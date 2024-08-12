@@ -111,24 +111,48 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
 
         case WM_MOUSEMOVE:{
             Event event = {0};
-            event.type = MOUSE; // TODO: maybe have this be a KEYBOARD event
-            event.mouse_pos.x = (s32)(s16)(l_param & 0xFFFF);
-            event.mouse_pos.y = (s32)(s16)(l_param >> 16);
+            event.type = MOUSE;
+            event.mouse_x = (s32)(s16)(l_param & 0xFFFF);
+            event.mouse_y = (s32)(s16)(l_param >> 16);
 
-            // todo: dx/y is probably wrong, not working as expected
-            s32 dx = event.mouse_pos.x - (SCREEN_WIDTH/2);
-            s32 dy = event.mouse_pos.y - (SCREEN_HEIGHT/2);
-            event.mouse_dx = (f32)dx / (f32)(SCREEN_WIDTH/2);
-            event.mouse_dy = (f32)dy / (f32)(SCREEN_HEIGHT/2);
+            // calc dx/dy
+            s32 dx = event.mouse_x - controller.mouse.x;
+            s32 dy = event.mouse_y - controller.mouse.y;
+            v2 delta_normalized = normalize_v2(make_v2((f32)dx, (f32)dy));
+            event.mouse_dx = delta_normalized.x;
+            event.mouse_dy = delta_normalized.y;
+
+            event.alt_pressed   = alt_pressed;
+            event.shift_pressed = shift_pressed;
+            event.ctrl_pressed  = ctrl_pressed;
 
             events_add(&events, event);
+
+            if(w_param == VK_MENU)    { alt_pressed   = true; }
+            if(w_param == VK_SHIFT)   { shift_pressed = true; }
+            if(w_param == VK_CONTROL) { ctrl_pressed  = true; }
         } break;
 
         case WM_MOUSEWHEEL:{
             Event event = {0};
             event.type = KEYBOARD;
             event.mouse_wheel_dir = GET_WHEEL_DELTA_WPARAM(w_param) > 0? 1 : -1;
+            if(event.mouse_wheel_dir > 0){
+                event.keycode = MOUSE_WHEEL_UP;
+            }
+            else{
+                event.keycode = MOUSE_WHEEL_DOWN;
+            }
+
+            event.alt_pressed   = alt_pressed;
+            event.shift_pressed = shift_pressed;
+            event.ctrl_pressed  = ctrl_pressed;
+
             events_add(&events, event);
+
+            if(w_param == VK_MENU)    { alt_pressed   = true; }
+            if(w_param == VK_SHIFT)   { shift_pressed = true; }
+            if(w_param == VK_CONTROL) { ctrl_pressed  = true; }
         } break;
 
         case WM_LBUTTONDOWN:
@@ -136,26 +160,40 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             Event event = {0};
             event.type = KEYBOARD;
             event.keycode = MOUSE_BUTTON_LEFT;
-            event.repeat = ((s32)l_param) & 0x40000000;
 
             bool pressed = false;
             if(message == WM_LBUTTONDOWN){ pressed = true; }
             event.key_pressed = pressed;
 
+            event.alt_pressed   = alt_pressed;
+            event.shift_pressed = shift_pressed;
+            event.ctrl_pressed  = ctrl_pressed;
+
             events_add(&events, event);
+
+            if(w_param == VK_MENU)    { alt_pressed   = true; }
+            if(w_param == VK_SHIFT)   { shift_pressed = true; }
+            if(w_param == VK_CONTROL) { ctrl_pressed  = true; }
         } break;
         case WM_RBUTTONDOWN:
         case WM_RBUTTONUP:{
             Event event = {0};
             event.type = KEYBOARD;
             event.keycode = MOUSE_BUTTON_RIGHT;
-            event.repeat = ((s32)l_param) & 0x40000000;
 
             bool pressed = false;
             if(message == WM_RBUTTONDOWN){ pressed = true; }
             event.key_pressed = pressed;
 
+            event.alt_pressed   = alt_pressed;
+            event.shift_pressed = shift_pressed;
+            event.ctrl_pressed  = ctrl_pressed;
+
             events_add(&events, event);
+
+            if(w_param == VK_MENU)    { alt_pressed   = true; }
+            if(w_param == VK_SHIFT)   { shift_pressed = true; }
+            if(w_param == VK_CONTROL) { ctrl_pressed  = true; }
         } break;
         case WM_MBUTTONDOWN:
         case WM_MBUTTONUP:{
@@ -168,7 +206,15 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             if(message == WM_MBUTTONDOWN){ pressed = true; }
             event.key_pressed = pressed;
 
+            event.alt_pressed   = alt_pressed;
+            event.shift_pressed = shift_pressed;
+            event.ctrl_pressed  = ctrl_pressed;
+
             events_add(&events, event);
+
+            if(w_param == VK_MENU)    { alt_pressed   = true; }
+            if(w_param == VK_SHIFT)   { shift_pressed = true; }
+            if(w_param == VK_CONTROL) { ctrl_pressed  = true; }
         } break;
 
         case WM_SYSKEYDOWN:

@@ -369,7 +369,7 @@ handle_global_events(Event event){
     }
     if(event.type == MOUSE){
         v2 p0 = make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
-        v2 p1 = make_v2((f32)controller.mouse.pos.x, (f32)controller.mouse.pos.y);
+        v2 p1 = make_v2((f32)controller.mouse.x, (f32)controller.mouse.y);
         v2 direction = direction_v2(p0, p1);
 
         f32 rad = rad_from_dir(direction);
@@ -421,7 +421,8 @@ handle_ui_events(Event event){
 static bool
 handle_camera_events(Event event){
     if(event.type == MOUSE){
-        controller.mouse.pos = event.mouse_pos;
+        controller.mouse.x = event.mouse_x;
+        controller.mouse.y = event.mouse_y;
         controller.mouse.dx = event.mouse_dx;
         controller.mouse.dy = event.mouse_dy;
     }
@@ -460,7 +461,11 @@ handle_camera_events(Event event){
 static bool
 handle_controller_events(Event event){
     if(event.type == MOUSE){
-        controller.mouse.pos = event.mouse_pos;
+        controller.mouse.x = event.mouse_x;
+        controller.mouse.y = event.mouse_y;
+        controller.mouse.dx = event.mouse_dx;
+        controller.mouse.dy = event.mouse_dy;
+        controller.mouse.wheel_dir = event.mouse_wheel_dir;
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
@@ -525,10 +530,10 @@ update_game(){
     bool handled;
     while(!events_empty(&events)){
         Event event = events_next(&events);
-        print("type: %i, keycode: %i\nkey_pressed: %i, repeat: %i, shift_pressed: %i, ctrl_pressed: %i, alt_pressed: %i\nmw_dir: %i, mp: (%i, %i), md: (%i, %i)\n----------------------\n",
+        print("type: %i, keycode: %X\nkey_pressed: %i, repeat: %i, shift_pressed: %i, ctrl_pressed: %i, alt_pressed: %i\nmw_dir: %i, mp: (%i, %i), md: (%i, %i)\n----------------------\n",
                event.type, event.keycode,
                event.key_pressed, event.repeat, event.shift_pressed, event.ctrl_pressed, event.alt_pressed,
-               event.mouse_wheel_dir, event.mouse_pos.x, event.mouse_pos.y, event.mouse_dx, event.mouse_dy);
+               event.mouse_wheel_dir, event.mouse_x, event.mouse_y, event.mouse_dx, event.mouse_dy);
 
 
         handled = handle_global_events(event);
@@ -536,11 +541,10 @@ update_game(){
 
         if(console_is_open()){
             handled = handle_console_events(event);
+            continue;
         }
-        else{
-            //handled = handle_camera_events(event);
-            handled = handle_controller_events(event);
-        }
+        //handled = handle_camera_events(event);
+        handled = handle_controller_events(event);
     }
 
     if(controller.button[KeyCode_R].pressed){
