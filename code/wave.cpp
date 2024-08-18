@@ -15,11 +15,13 @@ load_wave(Arena* arena, String8 filename){
     String8 data = os_file_read(arena, file);
     WaveHeader* header = (WaveHeader*)data.str;
 
+    // todo: change this to maybe be str8 so that you can use str8 functions
     u8* chunks = data.str + sizeof(WaveHeader);
     u32 chunk_inc = 0;
     bool data_found = false;
     bool fmt_found = false;
 
+    // todo: improve this somewhat. check for RIFF and WAVE, otherwise something is wrong.
     while(!data_found || !fmt_found){
         ChunkInfo* c = (ChunkInfo*)(chunks + chunk_inc);
         if(str8_compare(str8(c->chunk_id, 4), chunk_ids[ChunkId_RIFF])){
@@ -37,6 +39,7 @@ load_wave(Arena* arena, String8 filename){
             memcpy(result.base, (u16*)((u8*)c + sizeof(ChunkInfo)), c->chunk_size);
             data_found = true;
         }
+        // todo: this doesn't really make sense I don't think
         else if((u8*)c > (data.str + data.size)){
             // todo: log error - failed to load wafvff file
             print("Error: Failed to load WAVE file\n");

@@ -57,6 +57,7 @@ typedef struct Memory{
     bool initialized;
 } Memory;
 
+static u64 frame_count = 0;
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 global Memory memory;
@@ -112,7 +113,7 @@ typedef struct TransientMemory{
 } TransientMemory;
 global TransientMemory* tm;
 
+//todo: get rid of this
 f32 text_padding = 20;
-
 
 #endif

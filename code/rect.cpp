@@ -99,12 +99,24 @@ rect_collides_rect(Rect rect1, Rect rect2) {
     return true;
 }
 
+// consider: should it be <= >=?
 static bool
-rect_collides_point(Rect r1, v2 p){
-    if((p.x < r1.x0 + r1.x1) &&
-       (p.x > r1.x0) &&
-       (p.y < r1.y0 + r1.y1) &&
-       (p.y > r1.y0)){
+rect_contains_point(Rect r1, v2 p){
+    if((p.x > r1.x0) &&
+       (p.x < r1.x1) &&
+       (p.y > r1.y0) &&
+       (p.y < r1.y1)){
+        return true;
+    }
+    return false;
+}
+
+static bool
+rect_contains_point(Rect r1, v2s32 p){
+    if(((f32)p.x > r1.x0) &&
+       ((f32)p.x < r1.x1) &&
+       ((f32)p.y > r1.y0) &&
+       ((f32)p.y < r1.y1)){
         return true;
     }
     return false;

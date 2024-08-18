@@ -143,6 +143,7 @@ typedef struct Controller{
     Button button[KeyCode_Count];
 } Controller;
 global Controller controller;
+
 static void clear_controller_pressed();
 
 // NOTE: EVENTS:

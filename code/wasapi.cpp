@@ -110,6 +110,8 @@ audio_play(u32 id, f32 volume, bool loop){
     return(false);
 }
 
+// todo: create a wave drawing function to draw the audio waves. Will be cool to do
+// todo: ;make sure they are in the range of -1 - 1
 static HRESULT audio_play_cursors(){
     HRESULT hr = S_OK;
 
@@ -139,10 +141,11 @@ static HRESULT audio_play_cursors(){
 
         if(cursor->at < wave->sample_count){
             for(s32 i=0; i < iter_size; ++i){
-                f32 sample = ((s16)(wave->base[(cursor->at + i)])) * (1.0f / 32768.0f);
+                s32 a = s16_max;
+                f32 sample = ((s16)(wave->base[(cursor->at + i)])) * (1.0f / 32767.0f); // note: normalize to a range of -1.0f to 1.0f by multiplying by max s16
 
-                buffer_f32[ i * wave_format.nChannels]      += sample * cursor->volume;
-                buffer_f32[(i * wave_format.nChannels) + 1] += sample * cursor->volume;
+                buffer_f32[(i * wave_format.nChannels) + 0] += sample * cursor->volume; // channel 1
+                buffer_f32[(i * wave_format.nChannels) + 1] += sample * cursor->volume; // channel 2
             }
 
         }

@@ -35,6 +35,7 @@ Arena* rc_arena = 0;
 static void init_render_commands(Arena* arena);
 static void draw_clear_color(Arena* arena, RGBA color);
 static void draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color);
+static void draw_quad(v2 pos, v2 dim, RGBA color);
 static void draw_quad(Quad quad, RGBA color);
 static void draw_quad(Rect rect, RGBA color);
 static void draw_text(u32 font_id, String8 text, v2 pos, RGBA color);

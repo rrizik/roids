@@ -409,12 +409,6 @@ handle_global_events(Event event){
 
 static bool
 handle_ui_events(Event event){
-    //if(event.type == MOUSE){
-    //    print("(%i, %i) d(%i, %i), pressed: %i, repeat: %i\n", event.mouse_pos.x, event.mouse_pos.y, event.mouse_dx, event.mouse_dy, event.key_pressed, event.repeat);
-    //}
-    //if(event.type == KEYBOARD){
-    //    print("(%i, %i) d(%i, %i), pressed: %i, repeat: %i\n", event.mouse_pos.x, event.mouse_pos.y, event.mouse_dx, event.mouse_dy, event.key_pressed, event.repeat);
-    //}
     return(false);
 }
 
@@ -523,39 +517,7 @@ game_won(){
     return(true);
 }
 
-static void
-update_game(){
-
-    // NOTE: process events.
-    bool handled;
-    while(!events_empty(&events)){
-        Event event = events_next(&events);
-        print("type: %i, keycode: %X\nkey_pressed: %i, repeat: %i, shift_pressed: %i, ctrl_pressed: %i, alt_pressed: %i\nmw_dir: %i, mp: (%i, %i), md: (%i, %i)\n----------------------\n",
-               event.type, event.keycode,
-               event.key_pressed, event.repeat, event.shift_pressed, event.ctrl_pressed, event.alt_pressed,
-               event.mouse_wheel_dir, event.mouse_x, event.mouse_y, event.mouse_dx, event.mouse_dy);
-
-
-        handled = handle_global_events(event);
-        handled = handle_ui_events(event);
-
-        if(console_is_open()){
-            handled = handle_console_events(event);
-            continue;
-        }
-        //handled = handle_camera_events(event);
-        handled = handle_controller_events(event);
-    }
-
-    if(controller.button[KeyCode_R].pressed){
-        reset_game();
-        for(s32 i=0; i < array_count(pm->entities); i++){
-            Entity* e = pm->entities + i;
-            if(has_flags(e->flags, EntityFlag_Active) && e != pm->ship){
-                remove_entity(e);
-            }
-        }
-    }
+static void update_game(){
 
     //----constant buffer----
     D3D11_MAPPED_SUBRESOURCE mapped_subresource;

@@ -115,7 +115,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             event.mouse_x = (s32)(s16)(l_param & 0xFFFF);
             event.mouse_y = (s32)(s16)(l_param >> 16);
 
-            // calc dx/dy
+            // calc dx/dy and normalize from -1:1
             s32 dx = event.mouse_x - controller.mouse.x;
             s32 dy = event.mouse_y - controller.mouse.y;
             v2 delta_normalized = normalize_v2(make_v2((f32)dx, (f32)dy));
@@ -283,17 +283,20 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
     init_events(&events);
 
-    f64 FPS = 0;
-    f64 MSPF = 0;
-    u64 total_frames = 0;
-    u64 frame_count = 0;
+    // note: sim measurements
 	u32 simulations = 0;
     f64 time_elapsed = 0;
     f64 accumulator = 0.0;
 
     clock.dt =  1.0/240.0;
     u64 last_ticks = clock.get_os_timer();
+
+    // note: fps measurement
+    f64 FPS = 0;
+    f64 MSPF = 0;
+    u64 frame_inc = 0;
     u64 frame_tick_start = clock.get_os_timer();
+
 
     assert(sizeof(PermanentMemory) < memory.permanent_size);
     assert(sizeof(TransientMemory) < memory.transient_size);
@@ -318,7 +321,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_camera();
         init_console(&pm->arena, FontAsset_Arial);
         init_console_commands();
-        init_ui(tm->ui_arena, &window);
+        init_ui(&pm->arena, &window, &controller);
         init_render_commands(tm->render_command_arena);
 
         pm->current_font = FontAsset_Arial;
@@ -342,34 +345,52 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         memory.initialized = true;
     }
 
-
     f32 s = 0;
     should_quit = false;
     while(!should_quit){
         begin_timed_scope("while(!should_quit)");
-        MSG message;
-        while(PeekMessageW(&message, window.handle, 0, 0, PM_REMOVE)){
-            TranslateMessage(&message);
-            DispatchMessage(&message);
-        }
 
         u64 now_ticks = clock.get_os_timer();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
         MSPF = 1000/1000/((f64)clock.frequency / (f64)(now_ticks - last_ticks));
         last_ticks = now_ticks;
 
+        MSG message;
+        while(PeekMessageW(&message, window.handle, 0, 0, PM_REMOVE)){
+            TranslateMessage(&message);
+            DispatchMessage(&message);
+        }
 
-        ui_begin();
-        //root_box = ui_top_parent();
+        // NOTE: process events.
+        bool handled;
+        while(!events_empty(&events)){
+            Event event = events_next(&events);
+            //print("type: %i, keycode: %X\nkey_pressed: %i, repeat: %i, shift_pressed: %i, ctrl_pressed: %i, alt_pressed: %i\nmw_dir: %i, mp: (%i, %i), md: (%i, %i)\n----------------------\n",
+            //      event.type, event.keycode,
+            //      event.key_pressed, event.repeat, event.shift_pressed, event.ctrl_pressed, event.alt_pressed,
+            //      event.mouse_wheel_dir, event.mouse_x, event.mouse_y, event.mouse_dx, event.mouse_dy);
+
+            handled = handle_global_events(event);
+            //handled = handle_ui_events(event);
+
+            if(console_is_open()){
+                handled = handle_console_events(event);
+                continue;
+            }
+            //handled = handle_camera_events(event);
+            handled = handle_controller_events(event);
+        }
+
+        ui_begin(tm->ui_arena);
 
         ui_push_background_color(ORANGE);
-        ui_push_pos_x(100);
-        ui_push_pos_y(100);
+        ui_push_pos_x(50);
+        ui_push_pos_y(50);
         ui_push_size_w(ui_size_children(0));
         ui_push_size_h(ui_size_children(0));
         ui_push_border_thickness(10);
 
-        UI_Box* box1 = ui_make_box(str8_literal("box1"), UI_BoxFlag_DrawBackground);
+        UI_Box* box1 = ui_box(str8_literal("box1"), UI_BoxFlag_DrawBackground|UI_BoxFlag_Draggable);
         ui_push_parent(box1);
         ui_pop_border_thickness();
         ui_pop_pos_x();
@@ -378,24 +399,28 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         ui_push_size_w(ui_size_pixel(100, 0));
         ui_push_size_h(ui_size_pixel(50, 0));
         ui_push_background_color(BLUE);
-        if(ui_button(str8_literal("button 1"))){
+        ui_label(str8_literal("MY LAHBEL"));
+        if(ui_button(str8_literal("button 1")).pressed_left){
+            print("button 1: PRESSED\n");
+            audio_play(WaveAsset_Rail1, 0.1f, false);
         }
         ui_spacer(10);
 
         ui_push_size_w(ui_size_pixel(50, 0));
         ui_push_size_h(ui_size_pixel(50, 0));
         ui_push_background_color(GREEN);
-        if(ui_button(str8_literal("button 2"))){
+        if(ui_button(str8_literal("button 2")).pressed_left){
+            print("button 2: PRESSED\n");
         }
         ui_pop_background_color();
         ui_pop_background_color();
 
-        ui_spacer(10);
+        ui_spacer(50);
         ui_push_size_w(ui_size_children(0));
         ui_push_size_h(ui_size_children(0));
         ui_push_layout_axis(Axis_X);
         ui_push_background_color(ORANGE);
-        UI_Box* box2 = ui_make_box(str8_literal("box2"), UI_BoxFlag_DrawBackground);
+        UI_Box* box2 = ui_box(str8_literal("box2"));
         ui_push_parent(box2);
         ui_pop_background_color();
 
@@ -406,50 +431,49 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         ui_push_size_w(ui_size_pixel(100, 1));
         ui_push_size_h(ui_size_pixel(50, 1));
         ui_push_background_color(TEAL);
-        if(ui_button(str8_literal("button 3"))){
+        if(ui_button(str8_literal("button 3")).pressed_left){
+            print("button 3: PRESSED\n");
         }
-        ui_spacer(10);
+        ui_spacer(50);
         ui_push_background_color(RED);
-        if(ui_button(str8_literal("button 4"))){
+        if(ui_button(str8_literal("button 4")).pressed_left){
+            print("button 4: PRESSED\n");
         }
-        ui_spacer(10);
+        ui_spacer(50);
         ui_pop_background_color();
-        if(ui_button(str8_literal("button 5"))){
+        if(ui_button(str8_literal("button 5")).pressed_left){
+            print("button 5: PRESSED\n");
         }
         ui_pop_parent();
 
-        ui_spacer(10);
+        ui_spacer(50);
         ui_push_size_w(ui_size_children(0));
         ui_push_size_h(ui_size_children(0));
         ui_push_layout_axis(Axis_Y);
         ui_push_background_color(ORANGE);
-        UI_Box* box3 = ui_make_box(str8_literal("box3"), UI_BoxFlag_DrawBackground);
+        UI_Box* box3 = ui_box(str8_literal("box3"));
         ui_push_parent(box3);
         ui_pop_background_color();
 
         ui_push_size_w(ui_size_pixel(100, 0));
         ui_push_size_h(ui_size_pixel(100, 0));
         ui_push_background_color(YELLOW);
-        if(ui_button(str8_literal("button 6"))){
+        if(ui_button(str8_literal("button 6")).pressed_left){
+            print("button 6: PRESSED\n");
         }
-        ui_spacer(10);
+        ui_spacer(50);
         ui_push_background_color(DARK_GRAY);
         ui_push_size_w(ui_size_text(0));
         ui_push_size_h(ui_size_text(0));
-        ui_push_text_padding(100);
-        if(ui_button(str8_literal("AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz"))){
+        ui_push_text_padding(50);
+        if(ui_button(str8_literal("AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz")).pressed_left){
+            print("button 7: PRESSED\n");
         }
         ui_pop_text_padding();
         ui_pop_parent();
 
-        for(Axis axis=(Axis)0; axis < Axis_Count; axis = (Axis)(axis + 1)){
-            ui_traverse_independent(ui_root(), axis);
-            ui_traverse_children(ui_root(), axis);
-            ui_traverse_positions(ui_root(), axis);
-        }
-        ui_traverse_rects(ui_root());
-
         // simulation
+		simulations = 0;
         accumulator += frame_time;
         while(accumulator >= clock.dt){
             begin_timed_scope("simulation");
@@ -594,14 +618,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         console_draw();
 
-        frame_count++;
+        // todo: revaluate where this should be
+        frame_inc++;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
         if(second_elapsed > 1){
-            FPS = ((f64)frame_count / second_elapsed);
+            FPS = ((f64)frame_inc / second_elapsed);
             frame_tick_start = clock.get_os_timer();
-            frame_count = 0;
+            frame_inc = 0;
         }
-
         //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
         String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
         draw_text(pm->current_font, fps, make_v2(SCREEN_WIDTH - text_padding - font_string_width(pm->current_font, fps), SCREEN_HEIGHT - text_padding), ORANGE);
@@ -623,18 +647,30 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
         }
 
+        for(Axis axis=(Axis)0; axis < Axis_Count; axis = (Axis)(axis + 1)){
+            ui_traverse_independent(ui_root(), axis);
+            ui_traverse_children(ui_root(), axis);
+            ui_traverse_positions(ui_root(), axis);
+        }
+        ui_traverse_rects(ui_root());
+
+        // todo: this needs to happen on next frame on the actual button call itself.
         ui_draw(ui_root());
 
         // draw everything
         draw_commands();
+
+        String8 hot_str = string_from_hash(&ui_state->table, ui_state->hot);
+        String8 active_str = string_from_hash(&ui_state->table, ui_state->active);
+        //print("hot: %s - active: %s - pressed: %i\n", hot_str.data, active_str.data, controller.button[MOUSE_BUTTON_LEFT].held);
 
         ui_end();
 
         arena_free(tm->frame_arena);
         arena_free(tm->ui_arena);
         arena_free(tm->render_command_arena);
-		simulations = 0;
-        total_frames++;
+
+        frame_count++;
 
 
         // clear ui stacks

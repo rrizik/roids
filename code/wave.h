@@ -12,7 +12,7 @@ typedef enum ChunkId{
 String8 chunk_ids[ChunkId_COUNT] = {
     str8_literal("RIFF"),
     str8_literal("WAVE"),
-    str8_literal("fmt"),
+    str8_literal("fmt"), // IMPORTANT: TODO: This might have to be "fmt " with a space
     str8_literal("data"),
 };
 

@@ -63,6 +63,7 @@ draw_clear_color(RGBA color){
     command->color = color;
 }
 
+// note: quads are always top-left, top-right, bottom-right, bottom-left order
 static void
 draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
     RenderCommand* command = push_struct(rc_arena, RenderCommand);
@@ -72,6 +73,17 @@ draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
     command->p1 = p1;
     command->p2 = p2;
     command->p3 = p3;
+}
+
+static void
+draw_quad(v2 pos, v2 dim, RGBA color){
+    RenderCommand* command = push_struct(rc_arena, RenderCommand);
+    command->type = RenderCommandType_Quad;
+    command->color = color;
+    command->p0 = pos;
+    command->p1 = make_v2(pos.x + dim.w, pos.y);
+    command->p2 = make_v2(pos.x + dim.w, pos.y + dim.h);
+    command->p3 = make_v2(pos.x, pos.y + dim.h);
 }
 
 static void
