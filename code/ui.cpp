@@ -16,11 +16,11 @@ ui_begin(Arena* ui_arena){
     //ui_state->generation += 1;
     ui_state->arena = ui_arena;
     ui_state->hot = 0;
-    //ui_state->active = 0;
 
     ui_push_pos_x(0);
     ui_push_pos_y(0);
     ui_push_size_w(ui_size_pixel((f32)ui_window()->width, 0));
+    f32 a = (f32)ui_window()->height;
     ui_push_size_h(ui_size_pixel((f32)ui_window()->height, 0));
     ui_push_layout_axis(Axis_Y);
 
@@ -30,9 +30,8 @@ ui_begin(Arena* ui_arena){
     ui_push_background_color(CLEAR);
     ui_push_border_thickness(0);
 
-    ui_state->root = ui_make_box(str8_literal("papa"), 0);
+    ui_state->root = ui_make_box(str8_literal(""), 0);
     ui_push_parent(ui_state->root);
-    //todo: push a bunch of defaults
 }
 
 static void
@@ -91,20 +90,21 @@ ui_size_make(UI_SizeType type, f32 value, f32 strictness){
     return(result);
 }
 
+static BoxCache cache_from_box(UI_Box* box) {
+    BoxCache result = {0};
+    result.rect = box->rect;
+    result.size[Axis_X] = box->size[Axis_X];
+    result.size[Axis_Y] = box->size[Axis_Y];
+    result.pos[Axis_X] = box->pos[Axis_X];
+    result.pos[Axis_Y] = box->pos[Axis_Y];
+    result.rel_pos[Axis_X] = box->rel_pos[Axis_X];
+    result.rel_pos[Axis_Y] = box->rel_pos[Axis_Y];
+    return(result);
+}
+
 static UI_Box*
 ui_make_box(String8 string, UI_BoxFlags flags){
     UI_Box* result = push_struct(ui_state->arena, UI_Box);
-
-    BoxCache* cache = table_lookup(BoxCache, &ui_state->table, string);
-    if(cache){
-        result->rect = cache->rect;
-        //result->hot = cache->hot;
-        //result->active = cache->active;
-        result->size[Axis_X] = cache->size[Axis_X];
-        result->size[Axis_Y] = cache->size[Axis_Y];
-        result->pos[Axis_X] = cache->pos[Axis_X];
-        result->pos[Axis_Y] = cache->pos[Axis_Y];
-    }
 
     if(ui_parent_top != 0){
         UI_Box* top_parent = ui_top_parent();
@@ -135,6 +135,18 @@ ui_make_box(String8 string, UI_BoxFlags flags){
 
     result->background_color = ui_top_background_color();
     result->border_thickness = ui_top_border_thickness();
+
+    BoxCache* cache = table_lookup(BoxCache, &ui_state->table, string);
+    if(cache){
+        result->rect = cache->rect;
+        result->size[Axis_X] = cache->size[Axis_X];
+        result->size[Axis_Y] = cache->size[Axis_Y];
+        result->pos[Axis_X] = cache->pos[Axis_X];
+        result->pos[Axis_Y] = cache->pos[Axis_Y];
+        result->rel_pos[Axis_X] = cache->rel_pos[Axis_X];
+        result->rel_pos[Axis_Y] = cache->rel_pos[Axis_Y];
+    }
+
     return(result);
 }
 
@@ -186,13 +198,6 @@ ui_signal_from_box(UI_Box* box){
     Controller* controller = ui_state->controller;
     v2s32 mouse_pos = make_v2s32(controller->mouse.x, controller->mouse.y);
 
-    //if(has_flags(box->flags, UI_BoxFlag_Draggable)){
-    //    if(box->hot && box->active && controller->button[MOUSE_BUTTON_LEFT].held){
-    //        box->rel_pos[Axis_X] = (f32)mouse_pos.x;
-    //        box->rel_pos[Axis_Y] = (f32)mouse_pos.y;
-    //    }
-    //}
-
 
     if(has_flags(box->flags, UI_BoxFlag_Clickable)){
 
@@ -207,15 +212,29 @@ ui_signal_from_box(UI_Box* box){
                 }
                 ui_state->active = 0;
                 ui_state->hot = 0;
+                ui_state->mouse_pos_record;
             }
         }
         else if(ui_state->hot == box->key){
             if(controller->button[MOUSE_BUTTON_LEFT].held &&
                controller->button[MOUSE_BUTTON_LEFT].pressed){
-                if(ui_state->active == 0){
+                //if(ui_state->active == 0){
                     ui_state->active = box->key;
-                }
+                    ui_state->mouse_pos_record = mouse_pos;
+                    ui_state->mouse_pos_record.x -= (s32)box->rel_pos[Axis_X];
+                    ui_state->mouse_pos_record.y -= (s32)box->rel_pos[Axis_Y];
+                //}
             }
+        }
+    }
+
+    if(has_flags(box->flags, UI_BoxFlag_Draggable)){
+        String8 hot_str = string_from_hash(&ui_state->table, ui_state->hot);
+        String8 active_str = string_from_hash(&ui_state->table, ui_state->active);
+        //print("hot: %s - active: %s - pressed: %i\n", hot_str.data, active_str.data, controller->button[MOUSE_BUTTON_LEFT].held);
+        if(ui_state->active == box->key && controller->button[MOUSE_BUTTON_LEFT].held){
+            box->rel_pos[Axis_X] = (f32)(mouse_pos.x - ui_state->mouse_pos_record.x);
+            box->rel_pos[Axis_Y] = (f32)(mouse_pos.y - ui_state->mouse_pos_record.y);
         }
     }
 
@@ -293,9 +312,9 @@ ui_traverse_positions(UI_Box* box, Axis axis){
 
     if(!box->prev){
         if(box->layout_axis == axis){
-            f32 position = 0;
+            f32 position = box->rel_pos[axis];
             for(UI_Box* sibling = box; sibling != 0; sibling = sibling->next){
-                sibling->rel_pos[axis] += position;
+                sibling->rel_pos[axis] = position;
                 if(sibling->parent){
                     sibling->pos[axis] = sibling->parent->pos[axis] + sibling->rel_pos[axis] + sibling->border_thickness;
                 }
@@ -336,7 +355,13 @@ ui_traverse_rects(UI_Box* box){
 
     // cache rect
     if(!str8_compare(box->string, str8_literal(""))){
+        if(str8_compare(box->string, str8_literal("box1"))){
+            u32 a = 1;
+        }
         BoxCache cache = cache_from_box(box);
+        if(str8_compare(box->string, str8_literal("box1"))){
+            //print("%f:%f\n", cache.rel_pos[Axis_X], cache.rel_pos[Axis_Y]);
+        }
         table_insert(&ui_state->table, box->string, cache);
     }
 
@@ -344,18 +369,6 @@ ui_traverse_rects(UI_Box* box){
         ui_traverse_rects(box->first);
     }
     ui_traverse_rects(box->next);
-}
-
-static BoxCache cache_from_box(UI_Box* box) {
-    BoxCache result = {0};
-    result.rect = box->rect;
-    //result.hot = box->hot;
-    //result.active = box->active;
-    result.size[Axis_X] = box->size[Axis_X];
-    result.size[Axis_Y] = box->size[Axis_Y];
-    result.pos[Axis_X] = box->pos[Axis_X];
-    result.pos[Axis_Y] = box->pos[Axis_Y];
-    return(result);
 }
 
 static void

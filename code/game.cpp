@@ -378,7 +378,7 @@ handle_global_events(Event event){
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == KeyCode_ESCAPE){
-                should_quit = true;
+                pause = true;
             }
             if(event.keycode == KeyCode_TILDE && !event.repeat){
                 if(event.shift_pressed){
@@ -404,11 +404,6 @@ handle_global_events(Event event){
         else{
         }
     }
-    return(false);
-}
-
-static bool
-handle_ui_events(Event event){
     return(false);
 }
 
@@ -454,6 +449,9 @@ handle_camera_events(Event event){
 
 static bool
 handle_controller_events(Event event){
+    controller.mouse.dx = 0;
+    controller.mouse.dy = 0;
+    controller.mouse.wheel_dir = 0;
     if(event.type == MOUSE){
         controller.mouse.x = event.mouse_x;
         controller.mouse.y = event.mouse_y;
@@ -519,12 +517,6 @@ game_won(){
 
 static void update_game(){
 
-    //----constant buffer----
-    D3D11_MAPPED_SUBRESOURCE mapped_subresource;
-    d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
-    ConstantBuffer2D* constants = (ConstantBuffer2D*)mapped_subresource.pData;
-    constants->screen_res = make_v2s32(window.width, window.height);
-    d3d_context->Unmap(d3d_constant_buffer, 0);
 
     console_update();
     if(pm->game_mode == GameMode_Game && !game_won()){

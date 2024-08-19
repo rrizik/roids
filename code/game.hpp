@@ -67,6 +67,7 @@ typedef enum GameMode{
     GameMode_FirstPerson,
     GameMode_Editor,
     GameMode_Game,
+    GameMode_Menu,
 } GameMode;
 
 static void load_assets(Arena* arena, Assets* assets);
@@ -90,7 +91,6 @@ static void entities_clear();
 static void serialize_data(String8 filename);
 static void deserialize_data(String8 filename);
 static bool handle_global_events(Event event);
-static bool handle_ui_events(Event event);
 static bool handle_camera_events(Event event);
 static bool handle_controller_events(Event event);
 

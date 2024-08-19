@@ -313,7 +313,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         tm->asset_arena = push_arena(&tm->arena, MB(100));
         tm->ui_arena = push_arena(&tm->arena, MB(100));
 
-        pm->game_mode = GameMode_Game;
+        pm->game_mode = GameMode_Menu;
 
         show_cursor(true);
         load_assets(tm->asset_arena);
@@ -336,7 +336,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         pm->ship = add_ship(TextureAsset_Ship, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(75, 75));
         pm->ship_loaded = true;
-        pm->lives = MAX_LIVES;
+        pm->lives = 1;
 
         pm->level_index = 0;
         init_levels();
@@ -365,13 +365,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         bool handled;
         while(!events_empty(&events)){
             Event event = events_next(&events);
-            //print("type: %i, keycode: %X\nkey_pressed: %i, repeat: %i, shift_pressed: %i, ctrl_pressed: %i, alt_pressed: %i\nmw_dir: %i, mp: (%i, %i), md: (%i, %i)\n----------------------\n",
-            //      event.type, event.keycode,
-            //      event.key_pressed, event.repeat, event.shift_pressed, event.ctrl_pressed, event.alt_pressed,
-            //      event.mouse_wheel_dir, event.mouse_x, event.mouse_y, event.mouse_dx, event.mouse_dy);
 
             handled = handle_global_events(event);
-            //handled = handle_ui_events(event);
 
             if(console_is_open()){
                 handled = handle_console_events(event);
@@ -381,271 +376,266 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             handled = handle_controller_events(event);
         }
 
-        ui_begin(tm->ui_arena);
+        if(pm->game_mode == GameMode_Menu){
+            ui_begin(tm->ui_arena);
 
-        ui_push_background_color(ORANGE);
-        ui_push_pos_x(50);
-        ui_push_pos_y(50);
-        ui_push_size_w(ui_size_children(0));
-        ui_push_size_h(ui_size_children(0));
-        ui_push_border_thickness(10);
+            ui_push_pos_x(SCREEN_WIDTH/2 - 50);
+            ui_push_pos_y(SCREEN_HEIGHT/2 - 100);
+            ui_push_size_w(ui_size_children(0));
+            ui_push_size_h(ui_size_children(0));
 
-        UI_Box* box1 = ui_box(str8_literal("box1"), UI_BoxFlag_DrawBackground|UI_BoxFlag_Draggable);
-        ui_push_parent(box1);
-        ui_pop_border_thickness();
-        ui_pop_pos_x();
-        ui_pop_pos_y();
+            UI_Box* box1 = ui_box(str8_literal("box1"));
+            ui_push_parent(box1);
+            ui_pop_pos_x();
+            ui_pop_pos_y();
 
-        ui_push_size_w(ui_size_pixel(100, 0));
-        ui_push_size_h(ui_size_pixel(50, 0));
-        ui_push_background_color(BLUE);
-        ui_label(str8_literal("MY LAHBEL"));
-        if(ui_button(str8_literal("button 1")).pressed_left){
-            print("button 1: PRESSED\n");
-            audio_play(WaveAsset_Rail1, 0.1f, false);
+            ui_push_size_w(ui_size_pixel(100, 0));
+            ui_push_size_h(ui_size_pixel(50, 0));
+            ui_push_background_color(BLUE);
+            if(ui_button(str8_literal("Play")).pressed_left){
+                pm->game_mode = GameMode_Game;
+                reset_game();
+            }
+            ui_spacer(10);
+            if(ui_button(str8_literal("Exit")).pressed_left){
+                should_quit = true;
+            }
         }
-        ui_spacer(10);
 
-        ui_push_size_w(ui_size_pixel(50, 0));
-        ui_push_size_h(ui_size_pixel(50, 0));
-        ui_push_background_color(GREEN);
-        if(ui_button(str8_literal("button 2")).pressed_left){
-            print("button 2: PRESSED\n");
-        }
-        ui_pop_background_color();
-        ui_pop_background_color();
+        //----constant buffer----
+        D3D11_MAPPED_SUBRESOURCE mapped_subresource;
+        d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+        ConstantBuffer2D* constants = (ConstantBuffer2D*)mapped_subresource.pData;
+        constants->screen_res = make_v2s32(window.width, window.height);
+        d3d_context->Unmap(d3d_constant_buffer, 0);
 
-        ui_spacer(50);
-        ui_push_size_w(ui_size_children(0));
-        ui_push_size_h(ui_size_children(0));
-        ui_push_layout_axis(Axis_X);
-        ui_push_background_color(ORANGE);
-        UI_Box* box2 = ui_box(str8_literal("box2"));
-        ui_push_parent(box2);
-        ui_pop_background_color();
-
-        ui_pop_size_w();
-        ui_pop_size_h();
-        ui_pop_size_w();
-        ui_pop_size_h();
-        ui_push_size_w(ui_size_pixel(100, 1));
-        ui_push_size_h(ui_size_pixel(50, 1));
-        ui_push_background_color(TEAL);
-        if(ui_button(str8_literal("button 3")).pressed_left){
-            print("button 3: PRESSED\n");
-        }
-        ui_spacer(50);
-        ui_push_background_color(RED);
-        if(ui_button(str8_literal("button 4")).pressed_left){
-            print("button 4: PRESSED\n");
-        }
-        ui_spacer(50);
-        ui_pop_background_color();
-        if(ui_button(str8_literal("button 5")).pressed_left){
-            print("button 5: PRESSED\n");
-        }
-        ui_pop_parent();
-
-        ui_spacer(50);
-        ui_push_size_w(ui_size_children(0));
-        ui_push_size_h(ui_size_children(0));
-        ui_push_layout_axis(Axis_Y);
-        ui_push_background_color(ORANGE);
-        UI_Box* box3 = ui_box(str8_literal("box3"));
-        ui_push_parent(box3);
-        ui_pop_background_color();
-
-        ui_push_size_w(ui_size_pixel(100, 0));
-        ui_push_size_h(ui_size_pixel(100, 0));
-        ui_push_background_color(YELLOW);
-        if(ui_button(str8_literal("button 6")).pressed_left){
-            print("button 6: PRESSED\n");
-        }
-        ui_spacer(50);
-        ui_push_background_color(DARK_GRAY);
-        ui_push_size_w(ui_size_text(0));
-        ui_push_size_h(ui_size_text(0));
-        ui_push_text_padding(50);
-        if(ui_button(str8_literal("AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz")).pressed_left){
-            print("button 7: PRESSED\n");
-        }
-        ui_pop_text_padding();
-        ui_pop_parent();
-
+        draw_clear_color(BACKGROUND_COLOR);
+        console_draw();
         // simulation
-		simulations = 0;
-        accumulator += frame_time;
-        while(accumulator >= clock.dt){
-            begin_timed_scope("simulation");
-            update_game();
+        if(pm->game_mode == GameMode_Game){
+            Font* font = &tm->assets.fonts[pm->current_font];
 
-            accumulator -= clock.dt;
-            time_elapsed += clock.dt;
-            simulations++;
+            if(!pm->lives){
+                String8 text = str8_formatted(tm->frame_arena, "GAME OVER - Score: %i", pm->score);
+                f32 width = font_string_width(pm->current_font, text);
+                f32 x = SCREEN_WIDTH/2 - width/2;
+                draw_text(pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
 
-            clear_controller_pressed();
+                text = str8_literal("R - restart");
+                width = font_string_width(pm->current_font, text);
+                x = SCREEN_WIDTH/2 - width/2;
+                draw_text(pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2 + ((f32)font->vertical_offset)), ORANGE);
+
+                ui_begin(tm->ui_arena);
+
+                ui_push_pos_x(SCREEN_WIDTH/2 - 50);
+                ui_push_pos_y(SCREEN_HEIGHT/2 - 100);
+                ui_push_size_w(ui_size_children(0));
+                ui_push_size_h(ui_size_children(0));
+
+                UI_Box* box1 = ui_box(str8_literal("box1"));
+                ui_push_parent(box1);
+                ui_pop_pos_x();
+                ui_pop_pos_y();
+
+                ui_push_size_w(ui_size_pixel(100, 0));
+                ui_push_size_h(ui_size_pixel(50, 0));
+                ui_push_background_color(BLUE);
+                if(ui_button(str8_literal("Restart")).pressed_left){
+                    reset_game();
+                }
+                ui_spacer(10);
+                if(ui_button(str8_literal("Exit")).pressed_left){
+                    should_quit = true;
+                }
+
+            }
+            if(game_won()){
+                String8 text = str8_formatted(tm->frame_arena, "CHICKEN DINNER - Score: %i", pm->score);
+                f32 width = font_string_width(pm->current_font, text);
+                f32 x = SCREEN_WIDTH/2 - width/2;
+                draw_text(pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
+
+                text = str8_literal("R - restart");
+                width = font_string_width(pm->current_font, text);
+                x = SCREEN_WIDTH/2 - width/2;
+                draw_text(pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2 + ((f32)font->vertical_offset)), ORANGE);
+            }
+            if(pause){
+                ui_begin(tm->ui_arena);
+
+                ui_push_pos_x(SCREEN_WIDTH/2 - 50);
+                ui_push_pos_y(SCREEN_HEIGHT/2 - 100);
+                ui_push_size_w(ui_size_children(0));
+                ui_push_size_h(ui_size_children(0));
+
+                UI_Box* box1 = ui_box(str8_literal("box1"));
+                ui_push_parent(box1);
+                ui_pop_pos_x();
+                ui_pop_pos_y();
+
+                ui_push_size_w(ui_size_pixel(100, 0));
+                ui_push_size_h(ui_size_pixel(50, 0));
+                ui_push_background_color(BLUE);
+                if(ui_button(str8_literal("Resume")).pressed_left){
+                    pause = false;
+                }
+                ui_spacer(10);
+                if(ui_button(str8_literal("Exit")).pressed_left){
+                    should_quit = true;
+                }
+            }
+            else{
+                simulations = 0;
+                accumulator += frame_time;
+                while(accumulator >= clock.dt){
+                    begin_timed_scope("simulation");
+                    update_game();
+
+                    accumulator -= clock.dt;
+                    time_elapsed += clock.dt;
+                    simulations++;
+
+                    clear_controller_pressed();
+                }
+            }
+
+
+
+            // todo: also use flags here
+            for(s32 index = 0; index < array_count(pm->entities); ++index){
+                begin_timed_scope("build command arena");
+                Entity *e = pm->entities + index;
+                if(has_flags(e->flags, EntityFlag_Active)){
+
+                    switch(e->type){
+                        case EntityType_Quad:{
+                            v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
+                            v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
+                            v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
+                            v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+
+                            //f32 deg = deg_from_dir(e->dir);
+                            p0 = rotate_point_deg(p0, e->deg, e->pos);
+                            p1 = rotate_point_deg(p1, e->deg, e->pos);
+                            p2 = rotate_point_deg(p2, e->deg, e->pos);
+                            p3 = rotate_point_deg(p3, e->deg, e->pos);
+
+                            draw_quad(p0, p1, p2, p3, e->color);
+                        } break;
+                        case EntityType_Asteroid:
+                        case EntityType_Bullet:
+                        case EntityType_Particle:
+                        case EntityType_Texture:{
+                            v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
+                            v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
+                            v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
+                            v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+
+                            Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
+                                                    make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2));
+
+                            p0 = rotate_point_deg(p0, e->deg, e->pos);
+                            p1 = rotate_point_deg(p1, e->deg, e->pos);
+                            p2 = rotate_point_deg(p2, e->deg, e->pos);
+                            p3 = rotate_point_deg(p3, e->deg, e->pos);
+
+                            //push_line(p0, p1, 2, GREEN);
+                            //push_line(p1, p2, 2, GREEN);
+                            //push_line(p2, p3, 2, GREEN);
+                            //push_line(p3, p0, 2, GREEN);
+
+                            draw_texture(e->texture, p0, p1, p2, p3, e->color);
+                        } break;
+                        case EntityType_Ship:{
+                            v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
+                            v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
+                            v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
+                            v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+
+                            Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
+                                                    make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2));
+
+                            p0 = rotate_point_deg(p0, e->deg, e->pos);
+                            p1 = rotate_point_deg(p1, e->deg, e->pos);
+                            p2 = rotate_point_deg(p2, e->deg, e->pos);
+                            p3 = rotate_point_deg(p3, e->deg, e->pos);
+
+                            //push_line(p0, p1, 2, GREEN);
+                            //push_line(p1, p2, 2, GREEN);
+                            //push_line(p2, p3, 2, GREEN);
+                            //push_line(p3, p0, 2, GREEN);
+
+                            if(pm->ship->immune){
+                                draw_texture(e->texture, p0, p1, p2, p3, ORANGE);
+                            }
+                            else{
+                                draw_texture(e->texture, p0, p1, p2, p3, e->color);
+                            }
+
+                            // todo: yuckiness for ship exhaust
+                            if(pm->ship->accelerating){
+                                p0.x += (55 * (-e->dir.x));
+                                p0.y += (55 * (-e->dir.y));
+                                p1.x += (55 * (-e->dir.x));
+                                p1.y += (55 * (-e->dir.y));
+                                p2.x += (55 * (-e->dir.x));
+                                p2.y += (55 * (-e->dir.y));
+                                p3.x += (55 * (-e->dir.x));
+                                p3.y += (55 * (-e->dir.y));
+                                u32 random_flame = random_range_u32(5) + 3;
+                                draw_texture(random_flame, p0, p1, p2, p3, e->color);
+                            }
+
+                        } break;
+                    }
+                }
+            }
+
+            String8 score = str8_formatted(tm->frame_arena, "SCORE: %i", pm->score);
+            draw_text(pm->current_font, score, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale)), ORANGE);
+
+            String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
+            f32 width = font_string_width(pm->current_font, lives);
+            draw_text(pm->current_font, lives, make_v2(SCREEN_WIDTH - width - text_padding, ((f32)(font->ascent) * font->scale) + text_padding), ORANGE);
+
+            String8 level_str = str8_formatted(tm->frame_arena, "LEVEL: %i", pm->level_index + 1);
+            draw_text(pm->current_font, level_str, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale) + ((f32)font->vertical_offset)), ORANGE);
+
+
+            // todo: revaluate where this should be
+            frame_inc++;
+            f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
+            if(second_elapsed > 1){
+                FPS = ((f64)frame_inc / second_elapsed);
+                frame_tick_start = clock.get_os_timer();
+                frame_inc = 0;
+            }
+            //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
+            String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
+            draw_text(pm->current_font, fps, make_v2(SCREEN_WIDTH - text_padding - font_string_width(pm->current_font, fps), SCREEN_HEIGHT - text_padding), ORANGE);
+
+            Level* level = pm->current_level;
+            String8 info_str = str8_formatted(tm->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", pm->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
+            //draw_text(pm->current_font, info_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
+
+            s32 found_count = 0;
+            for(s32 i=0; i < array_count(pm->entities); i++){
+                Entity* e = pm->entities + i;
+                if(e->type == EntityType_Asteroid){
+                    if(has_flags(e->flags, EntityFlag_Active)){
+                        String8 str = str8_formatted(tm->frame_arena, "Asteroids - (%i)", e->health);
+                        f32 str_width = font_string_width(pm->current_font, str);
+                        //draw_text(pm->current_font, str, make_v2(SCREEN_WIDTH - str_width, (f32)(100 + (found_count * pm->font->vertical_offset))), TEAL);
+                        found_count++;
+                    }
+                }
+            }
         }
         //print("sims %i\n", simulations);
-        audio_play_cursors();
 
         // command arena
-        draw_clear_color(BACKGROUND_COLOR);
-        // todo: also use flags here
-        for(s32 index = 0; index < array_count(pm->entities); ++index){
-            begin_timed_scope("build command arena");
-            Entity *e = pm->entities + index;
-            if(has_flags(e->flags, EntityFlag_Active)){
 
-                switch(e->type){
-                    case EntityType_Quad:{
-                        v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
-                        v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
-                        v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
-                        v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
-
-                        //f32 deg = deg_from_dir(e->dir);
-                        p0 = rotate_point_deg(p0, e->deg, e->pos);
-                        p1 = rotate_point_deg(p1, e->deg, e->pos);
-                        p2 = rotate_point_deg(p2, e->deg, e->pos);
-                        p3 = rotate_point_deg(p3, e->deg, e->pos);
-
-                        draw_quad(p0, p1, p2, p3, e->color);
-                    } break;
-                    case EntityType_Asteroid:
-                    case EntityType_Bullet:
-                    case EntityType_Particle:
-                    case EntityType_Texture:{
-                        v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
-                        v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
-                        v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
-                        v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
-
-                        Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
-                                                make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2));
-
-                        p0 = rotate_point_deg(p0, e->deg, e->pos);
-                        p1 = rotate_point_deg(p1, e->deg, e->pos);
-                        p2 = rotate_point_deg(p2, e->deg, e->pos);
-                        p3 = rotate_point_deg(p3, e->deg, e->pos);
-
-                        //push_line(p0, p1, 2, GREEN);
-                        //push_line(p1, p2, 2, GREEN);
-                        //push_line(p2, p3, 2, GREEN);
-                        //push_line(p3, p0, 2, GREEN);
-
-                        draw_texture(e->texture, p0, p1, p2, p3, e->color);
-                    } break;
-                    case EntityType_Ship:{
-                        v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
-                        v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
-                        v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
-                        v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
-
-                        Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
-                                                make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2));
-
-                        p0 = rotate_point_deg(p0, e->deg, e->pos);
-                        p1 = rotate_point_deg(p1, e->deg, e->pos);
-                        p2 = rotate_point_deg(p2, e->deg, e->pos);
-                        p3 = rotate_point_deg(p3, e->deg, e->pos);
-
-                        //push_line(p0, p1, 2, GREEN);
-                        //push_line(p1, p2, 2, GREEN);
-                        //push_line(p2, p3, 2, GREEN);
-                        //push_line(p3, p0, 2, GREEN);
-
-                        if(pm->ship->immune){
-                            draw_texture(e->texture, p0, p1, p2, p3, ORANGE);
-                        }
-                        else{
-                            draw_texture(e->texture, p0, p1, p2, p3, e->color);
-                        }
-
-                        // todo: yuckiness for ship exhaust
-                        if(pm->ship->accelerating){
-                            p0.x += (55 * (-e->dir.x));
-                            p0.y += (55 * (-e->dir.y));
-                            p1.x += (55 * (-e->dir.x));
-                            p1.y += (55 * (-e->dir.y));
-                            p2.x += (55 * (-e->dir.x));
-                            p2.y += (55 * (-e->dir.y));
-                            p3.x += (55 * (-e->dir.x));
-                            p3.y += (55 * (-e->dir.y));
-                            u32 random_flame = random_range_u32(5) + 3;
-                            draw_texture(random_flame, p0, p1, p2, p3, e->color);
-                        }
-
-                    } break;
-                }
-            }
-        }
-
-        Font* font = &tm->assets.fonts[pm->current_font];
-
-        if(!pm->lives){
-            String8 text = str8_formatted(tm->frame_arena, "GAME OVER - Score: %i", pm->score);
-            f32 width = font_string_width(pm->current_font, text);
-            f32 x = SCREEN_WIDTH/2 - width/2;
-            draw_text(pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
-
-            text = str8_literal("R - restart");
-            width = font_string_width(pm->current_font, text);
-            x = SCREEN_WIDTH/2 - width/2;
-            draw_text(pm->current_font, text, make_v2(x,
-                        SCREEN_HEIGHT/2 + ((f32)font->vertical_offset)), ORANGE);
-        }
-        if(game_won()){
-            String8 text = str8_formatted(tm->frame_arena, "CHICKEN DINNER - Score: %i", pm->score);
-            f32 width = font_string_width(pm->current_font, text);
-            f32 x = SCREEN_WIDTH/2 - width/2;
-            draw_text(pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2), ORANGE);
-
-            text = str8_literal("R - restart");
-            width = font_string_width(pm->current_font, text);
-            x = SCREEN_WIDTH/2 - width/2;
-            draw_text(pm->current_font, text, make_v2(x,
-                        SCREEN_HEIGHT/2 + ((f32)font->vertical_offset)), ORANGE);
-        }
-        String8 score = str8_formatted(tm->frame_arena, "SCORE: %i", pm->score);
-        draw_text(pm->current_font, score, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale)), ORANGE);
-
-        String8 lives = str8_formatted(tm->frame_arena, "LIVES: %i", pm->lives);
-        f32 width = font_string_width(pm->current_font, lives);
-        draw_text(pm->current_font, lives, make_v2(SCREEN_WIDTH - width - text_padding, ((f32)(font->ascent) * font->scale) + text_padding), ORANGE);
-
-        String8 level_str = str8_formatted(tm->frame_arena, "LEVEL: %i", pm->level_index + 1);
-        draw_text(pm->current_font, level_str, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale) + ((f32)font->vertical_offset)), ORANGE);
-
-        console_draw();
-
-        // todo: revaluate where this should be
-        frame_inc++;
-        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
-        if(second_elapsed > 1){
-            FPS = ((f64)frame_inc / second_elapsed);
-            frame_tick_start = clock.get_os_timer();
-            frame_inc = 0;
-        }
-        //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
-        String8 fps = str8_formatted(tm->frame_arena, "FPS: %.2f", FPS);
-        draw_text(pm->current_font, fps, make_v2(SCREEN_WIDTH - text_padding - font_string_width(pm->current_font, fps), SCREEN_HEIGHT - text_padding), ORANGE);
-
-        Level* level = pm->current_level;
-        String8 info_str = str8_formatted(tm->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", pm->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
-        //draw_text(pm->current_font, info_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
-
-        s32 found_count = 0;
-        for(s32 i=0; i < array_count(pm->entities); i++){
-            Entity* e = pm->entities + i;
-            if(e->type == EntityType_Asteroid){
-                if(has_flags(e->flags, EntityFlag_Active)){
-                    String8 str = str8_formatted(tm->frame_arena, "Asteroids - (%i)", e->health);
-                    f32 str_width = font_string_width(pm->current_font, str);
-                    //draw_text(pm->current_font, str, make_v2(SCREEN_WIDTH - str_width, (f32)(100 + (found_count * pm->font->vertical_offset))), TEAL);
-                    found_count++;
-                }
-            }
-        }
 
         for(Axis axis=(Axis)0; axis < Axis_Count; axis = (Axis)(axis + 1)){
             ui_traverse_independent(ui_root(), axis);
@@ -654,7 +644,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         }
         ui_traverse_rects(ui_root());
 
-        // todo: this needs to happen on next frame on the actual button call itself.
         ui_draw(ui_root());
 
         // draw everything
@@ -662,9 +651,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         String8 hot_str = string_from_hash(&ui_state->table, ui_state->hot);
         String8 active_str = string_from_hash(&ui_state->table, ui_state->active);
-        //print("hot: %s - active: %s - pressed: %i\n", hot_str.data, active_str.data, controller.button[MOUSE_BUTTON_LEFT].held);
+        print("hot: %s - active: %s - held: %i\np(%i) - h(%i)\n", hot_str.data, active_str.data, controller.button[MOUSE_BUTTON_LEFT].held, controller.button[MOUSE_BUTTON_LEFT].pressed, controller.button[MOUSE_BUTTON_LEFT].held);
 
         ui_end();
+        audio_play_cursors();
 
         arena_free(tm->frame_arena);
         arena_free(tm->ui_arena);
@@ -684,3 +674,93 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     return(0);
 }
 
+        //ui_begin(tm->ui_arena);
+
+        //ui_push_background_color(ORANGE);
+        //ui_push_pos_x(50);
+        //ui_push_pos_y(50);
+        //ui_push_size_w(ui_size_children(0));
+        //ui_push_size_h(ui_size_children(0));
+        //ui_push_border_thickness(10);
+
+        //UI_Box* box1 = ui_box(str8_literal("box1"), UI_BoxFlag_DrawBackground|UI_BoxFlag_Draggable|UI_BoxFlag_Clickable);
+        //ui_push_parent(box1);
+        //ui_pop_border_thickness();
+        //ui_pop_pos_x();
+        //ui_pop_pos_y();
+
+        //ui_push_size_w(ui_size_pixel(100, 0));
+        //ui_push_size_h(ui_size_pixel(50, 0));
+        //ui_push_background_color(BLUE);
+        //ui_label(str8_literal("MY LAHBEL"));
+        //if(ui_button(str8_literal("button 1")).pressed_left){
+        //    print("button 1: PRESSED\n");
+        //    audio_play(WaveAsset_Rail1, 0.1f, false);
+        //}
+        //ui_spacer(10);
+
+        //ui_push_size_w(ui_size_pixel(50, 0));
+        //ui_push_size_h(ui_size_pixel(50, 0));
+        //ui_push_background_color(GREEN);
+        //if(ui_button(str8_literal("button 2")).pressed_left){
+        //    print("button 2: PRESSED\n");
+        //}
+        //ui_pop_background_color();
+        //ui_pop_background_color();
+
+        //ui_spacer(50);
+        //ui_push_size_w(ui_size_children(0));
+        //ui_push_size_h(ui_size_children(0));
+        //ui_push_layout_axis(Axis_X);
+        //ui_push_background_color(MAGENTA);
+        //UI_Box* box2 = ui_box(str8_literal("box2"));
+        //ui_push_parent(box2);
+        //ui_pop_background_color();
+
+        //ui_pop_size_w();
+        //ui_pop_size_h();
+        //ui_pop_size_w();
+        //ui_pop_size_h();
+        //ui_push_size_w(ui_size_pixel(100, 1));
+        //ui_push_size_h(ui_size_pixel(50, 1));
+        //ui_push_background_color(TEAL);
+        //if(ui_button(str8_literal("button 3")).pressed_left){
+        //    print("button 3: PRESSED\n");
+        //}
+        //ui_spacer(50);
+        //ui_push_background_color(RED);
+        //if(ui_button(str8_literal("button 4")).pressed_left){
+        //    print("button 4: PRESSED\n");
+        //}
+        //ui_spacer(50);
+        //ui_pop_background_color();
+        //if(ui_button(str8_literal("button 5")).pressed_left){
+        //    print("button 5: PRESSED\n");
+        //}
+        //ui_pop_parent();
+
+        //ui_spacer(50);
+        //ui_push_size_w(ui_size_children(0));
+        //ui_push_size_h(ui_size_children(0));
+        //ui_push_layout_axis(Axis_Y);
+        //ui_push_background_color(MAGENTA);
+        //UI_Box* box3 = ui_box(str8_literal("box3"));
+        //ui_push_parent(box3);
+        //ui_pop_background_color();
+
+        //ui_push_size_w(ui_size_pixel(100, 0));
+        //ui_push_size_h(ui_size_pixel(100, 0));
+        //ui_push_background_color(YELLOW);
+        //if(ui_button(str8_literal("button 6")).pressed_left){
+        //    print("button 6: PRESSED\n");
+        //}
+        //ui_spacer(50);
+        //ui_push_background_color(DARK_GRAY);
+        //ui_push_size_w(ui_size_text(0));
+        //ui_push_size_h(ui_size_text(0));
+        //ui_push_text_padding(50);
+        //if(ui_button(str8_literal("AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz")).pressed_left){
+        //    print("button 7: PRESSED\n");
+        //}
+        //ui_pop_text_padding();
+        //ui_pop_parent();

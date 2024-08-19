@@ -105,10 +105,9 @@ typedef struct UI_Box{
 
 typedef struct BoxCache{
     Rect rect;
-    //bool hot;
-    //bool active;
     f32 size[Axis_Count];
     f32 pos[Axis_Count];
+    f32 rel_pos[Axis_Count];
 } BoxCache;
 
 typedef struct UI_State{
@@ -122,6 +121,8 @@ typedef struct UI_State{
 
     u64 hot;
     u64 active;
+
+    v2s32 mouse_pos_record;
 
     //u64 generation;
 
