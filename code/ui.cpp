@@ -16,6 +16,7 @@ ui_begin(Arena* ui_arena){
     //ui_state->generation += 1;
     ui_state->arena = ui_arena;
     ui_state->hot = 0;
+    ui_state->closed = false;
 
     ui_push_pos_x(0);
     ui_push_pos_y(0);
@@ -35,7 +36,18 @@ ui_begin(Arena* ui_arena){
 }
 
 static void
+ui_layout(){
+    for(Axis axis=(Axis)0; axis < Axis_Count; axis = (Axis)(axis + 1)){
+        ui_traverse_independent(ui_root(), axis);
+        ui_traverse_children(ui_root(), axis);
+        ui_traverse_positions(ui_root(), axis);
+    }
+    ui_traverse_rects(ui_root());
+}
+
+static void
 ui_end(){
+
     ui_parent_top = 0;
     ui_pos_x_top = 0;
     ui_pos_y_top = 0;
@@ -79,6 +91,16 @@ ui_mouse_pos(){
 static Mouse
 ui_mouse(){
     return(ui_state->controller->mouse);
+}
+
+static bool
+ui_closed(){
+    return(ui_state->closed);
+}
+
+static void
+ui_close(){
+    ui_state->closed = true;
 }
 
 static UI_Size
@@ -231,7 +253,6 @@ ui_signal_from_box(UI_Box* box){
     if(has_flags(box->flags, UI_BoxFlag_Draggable)){
         String8 hot_str = string_from_hash(&ui_state->table, ui_state->hot);
         String8 active_str = string_from_hash(&ui_state->table, ui_state->active);
-        //print("hot: %s - active: %s - pressed: %i\n", hot_str.data, active_str.data, controller->button[MOUSE_BUTTON_LEFT].held);
         if(ui_state->active == box->key && controller->button[MOUSE_BUTTON_LEFT].held){
             box->rel_pos[Axis_X] = (f32)(mouse_pos.x - ui_state->mouse_pos_record.x);
             box->rel_pos[Axis_Y] = (f32)(mouse_pos.y - ui_state->mouse_pos_record.y);
@@ -359,9 +380,6 @@ ui_traverse_rects(UI_Box* box){
             u32 a = 1;
         }
         BoxCache cache = cache_from_box(box);
-        if(str8_compare(box->string, str8_literal("box1"))){
-            //print("%f:%f\n", cache.rel_pos[Axis_X], cache.rel_pos[Axis_Y]);
-        }
         table_insert(&ui_state->table, box->string, cache);
     }
 
@@ -373,6 +391,10 @@ ui_traverse_rects(UI_Box* box){
 
 static void
 ui_draw(UI_Box* box){
+    if(ui_closed()){
+        return;
+    }
+
     if(box == 0){
         return;
     }

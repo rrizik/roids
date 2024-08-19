@@ -74,7 +74,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param);
 
 #define MAX_LEVELS 3
-#define MAX_LIVES 1
+#define MAX_LIVES 10
 #define WIN_SCORE 3000
 #define ENTITIES_MAX 4096
 typedef struct PermanentMemory{

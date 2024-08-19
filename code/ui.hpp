@@ -124,6 +124,8 @@ typedef struct UI_State{
 
     v2s32 mouse_pos_record;
 
+    bool closed;
+
     //u64 generation;
 
 } UI_State;
@@ -132,6 +134,8 @@ global UI_State* ui_state;
 static void init_ui(Arena* parena, Window* window, Controller* controller);
 static void ui_begin(Arena* arena);
 static void ui_end();
+static void ui_layout();
+static void ui_draw(UI_Box* box);
 
 static UI_Box*   ui_make_box(String8 str, UI_BoxFlags flags);
 static UI_Box*   ui_box(String8 str, UI_BoxFlags flags = 0);
@@ -144,6 +148,8 @@ static UI_Box*   ui_root();
 static HashTable ui_table();
 static v2s32     ui_mouse_pos();
 static Mouse     ui_mouse();
+static bool      ui_closed();
+static void      ui_close();
 
 static BoxCache cache_from_box(UI_Box* box);
 static UI_Signal ui_signal_from_box(UI_Box* box);
@@ -152,7 +158,6 @@ static void ui_traverse_independent(UI_Box* box, Axis axis);
 static void ui_traverse_children(UI_Box* box, Axis axis);
 static void ui_traverse_positions(UI_Box* box, Axis axis);
 static void ui_traverse_rects(UI_Box* box);
-static void ui_draw(UI_Box* box);
 
 #define ui_stack_push_impl(arena, type, name, v) \
     UI_##type##Node* node = push_struct(arena, UI_##type##Node); \

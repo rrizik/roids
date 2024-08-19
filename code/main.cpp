@@ -297,7 +297,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     u64 frame_inc = 0;
     u64 frame_tick_start = clock.get_os_timer();
 
-
     assert(sizeof(PermanentMemory) < memory.permanent_size);
     assert(sizeof(TransientMemory) < memory.transient_size);
     pm = (PermanentMemory*)memory.permanent_base;
@@ -343,9 +342,16 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         pm->current_level = &pm->levels[pm->level_index];
 
         memory.initialized = true;
+
+        // note: this would need to be called in the frame loop if the data is changing or can change.
+        //----constant buffer----
+        D3D11_MAPPED_SUBRESOURCE mapped_subresource;
+        d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+        ConstantBuffer2D* constants = (ConstantBuffer2D*)mapped_subresource.pData;
+        constants->screen_res = make_v2s32(window.width, window.height);
+        d3d_context->Unmap(d3d_constant_buffer, 0);
     }
 
-    f32 s = 0;
     should_quit = false;
     while(!should_quit){
         begin_timed_scope("while(!should_quit)");
@@ -376,6 +382,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             handled = handle_controller_events(event);
         }
 
+
+        draw_clear_color(BACKGROUND_COLOR);
         if(pm->game_mode == GameMode_Menu){
             ui_begin(tm->ui_arena);
 
@@ -395,21 +403,15 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             if(ui_button(str8_literal("Play")).pressed_left){
                 pm->game_mode = GameMode_Game;
                 reset_game();
+                ui_close();
             }
             ui_spacer(10);
             if(ui_button(str8_literal("Exit")).pressed_left){
                 should_quit = true;
+                ui_close();
             }
         }
 
-        //----constant buffer----
-        D3D11_MAPPED_SUBRESOURCE mapped_subresource;
-        d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
-        ConstantBuffer2D* constants = (ConstantBuffer2D*)mapped_subresource.pData;
-        constants->screen_res = make_v2s32(window.width, window.height);
-        d3d_context->Unmap(d3d_constant_buffer, 0);
-
-        draw_clear_color(BACKGROUND_COLOR);
         console_draw();
         // simulation
         if(pm->game_mode == GameMode_Game){
@@ -443,14 +445,15 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 ui_push_background_color(BLUE);
                 if(ui_button(str8_literal("Restart")).pressed_left){
                     reset_game();
+                    ui_close();
                 }
                 ui_spacer(10);
                 if(ui_button(str8_literal("Exit")).pressed_left){
                     should_quit = true;
+                    ui_close();
                 }
-
             }
-            if(game_won()){
+            else if(game_won()){
                 String8 text = str8_formatted(tm->frame_arena, "CHICKEN DINNER - Score: %i", pm->score);
                 f32 width = font_string_width(pm->current_font, text);
                 f32 x = SCREEN_WIDTH/2 - width/2;
@@ -460,8 +463,33 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 width = font_string_width(pm->current_font, text);
                 x = SCREEN_WIDTH/2 - width/2;
                 draw_text(pm->current_font, text, make_v2(x, SCREEN_HEIGHT/2 + ((f32)font->vertical_offset)), ORANGE);
+
+                ui_begin(tm->ui_arena);
+
+                ui_push_pos_x(SCREEN_WIDTH/2 - 50);
+                ui_push_pos_y(SCREEN_HEIGHT/2 - 100);
+                ui_push_size_w(ui_size_children(0));
+                ui_push_size_h(ui_size_children(0));
+
+                UI_Box* box1 = ui_box(str8_literal("box1"));
+                ui_push_parent(box1);
+                ui_pop_pos_x();
+                ui_pop_pos_y();
+
+                ui_push_size_w(ui_size_pixel(100, 0));
+                ui_push_size_h(ui_size_pixel(50, 0));
+                ui_push_background_color(BLUE);
+                if(ui_button(str8_literal("Restart")).pressed_left){
+                    reset_game();
+                    ui_close();
+                }
+                ui_spacer(10);
+                if(ui_button(str8_literal("Exit")).pressed_left){
+                    should_quit = true;
+                    ui_close();
+                }
             }
-            if(pause){
+            else if(pause){
                 ui_begin(tm->ui_arena);
 
                 ui_push_pos_x(SCREEN_WIDTH/2 - 50);
@@ -479,10 +507,12 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 ui_push_background_color(BLUE);
                 if(ui_button(str8_literal("Resume")).pressed_left){
                     pause = false;
+                    ui_close();
                 }
                 ui_spacer(10);
                 if(ui_button(str8_literal("Exit")).pressed_left){
                     should_quit = true;
+                    ui_close();
                 }
             }
             else{
@@ -632,28 +662,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 }
             }
         }
-        //print("sims %i\n", simulations);
-
-        // command arena
-
-
-        for(Axis axis=(Axis)0; axis < Axis_Count; axis = (Axis)(axis + 1)){
-            ui_traverse_independent(ui_root(), axis);
-            ui_traverse_children(ui_root(), axis);
-            ui_traverse_positions(ui_root(), axis);
-        }
-        ui_traverse_rects(ui_root());
-
+        ui_layout();
         ui_draw(ui_root());
+        ui_end();
 
         // draw everything
         draw_commands();
 
-        String8 hot_str = string_from_hash(&ui_state->table, ui_state->hot);
-        String8 active_str = string_from_hash(&ui_state->table, ui_state->active);
-        print("hot: %s - active: %s - held: %i\np(%i) - h(%i)\n", hot_str.data, active_str.data, controller.button[MOUSE_BUTTON_LEFT].held, controller.button[MOUSE_BUTTON_LEFT].pressed, controller.button[MOUSE_BUTTON_LEFT].held);
-
-        ui_end();
         audio_play_cursors();
 
         arena_free(tm->frame_arena);
@@ -662,8 +677,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         frame_count++;
 
-
-        // clear ui stacks
+        // todo: why is this here?
         //end_profiler();
     }
 
