@@ -10,7 +10,7 @@ init_console(Arena* arena, u32 font_type){ //note: everything is positioned rela
     console.text_left_pad = 10;
 
     // how much/fast to open
-    console.open_dt = 30.0f;
+    console.open_dt = 60.0f;
     console.open_t  = 0.0f;
     console.open_t_target = 0.0f;
 
@@ -267,7 +267,7 @@ static void
 console_draw(){
     begin_timed_function();
     if(console_is_visible()){
-        Font* font = &tm->assets.fonts[console.font_type];
+        Font* font = &ts->assets.fonts[console.font_type];
 
         // rect setup
         f32 y = (f32)(-font->vertical_offset);

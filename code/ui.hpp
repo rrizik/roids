@@ -173,16 +173,16 @@ static void ui_traverse_rects(UI_Box* box);
 
 #define ui_stack_top_impl(name) return(ui_##name##_top->v);
 
-typedef struct UI_ParentNode          { UI_ParentNode* next; UI_Box* v; }       UI_ParentNode;
-typedef struct UI_PosXNode            { UI_PosXNode* next; f32 v; }             UI_PosXNode;
-typedef struct UI_PosYNode            { UI_PosYNode* next; f32 v; }             UI_PosYNode;
-typedef struct UI_SizeWNode           { UI_SizeWNode* next; UI_Size v; }        UI_SizeWNode;
-typedef struct UI_SizeHNode           { UI_SizeHNode* next; UI_Size v; }        UI_SizeHNode;
-typedef struct UI_LayoutAxisNode      { UI_LayoutAxisNode* next; Axis v; }      UI_LayoutAxisNode;
-typedef struct UI_TextPaddingNode     { UI_TextPaddingNode* next; f32 v; }      UI_TextPaddingNode;
-typedef struct UI_TextColorNode       { UI_TextColorNode* next; RGBA v; }       UI_TextColorNode;
-typedef struct UI_BackgroundColorNode { UI_BackgroundColorNode* next; RGBA v; } UI_BackgroundColorNode;
-typedef struct UI_BorderThicknessNode { UI_BorderThicknessNode* next; f32 v; }  UI_BorderThicknessNode;
+typedef struct UI_ParentNode          { UI_ParentNode*          next; UI_Box* v; } UI_ParentNode;
+typedef struct UI_PosXNode            { UI_PosXNode*            next; f32 v;     } UI_PosXNode;
+typedef struct UI_PosYNode            { UI_PosYNode*            next; f32 v;     } UI_PosYNode;
+typedef struct UI_SizeWNode           { UI_SizeWNode*           next; UI_Size v; } UI_SizeWNode;
+typedef struct UI_SizeHNode           { UI_SizeHNode*           next; UI_Size v; } UI_SizeHNode;
+typedef struct UI_LayoutAxisNode      { UI_LayoutAxisNode*      next; Axis v;    } UI_LayoutAxisNode;
+typedef struct UI_TextPaddingNode     { UI_TextPaddingNode*     next; f32 v;     } UI_TextPaddingNode;
+typedef struct UI_TextColorNode       { UI_TextColorNode*       next; RGBA v;    } UI_TextColorNode;
+typedef struct UI_BackgroundColorNode { UI_BackgroundColorNode* next; RGBA v;    } UI_BackgroundColorNode;
+typedef struct UI_BorderThicknessNode { UI_BorderThicknessNode* next; f32 v;     } UI_BorderThicknessNode;
 
 // todo:
 // figure what the defaults should be.

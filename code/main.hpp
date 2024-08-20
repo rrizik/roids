@@ -12,12 +12,12 @@
 #define PROFILER 1
 #include "profiler.h"
 
+#include "assets.h"
 #include "input.hpp"
 #include "clock.hpp"
 #include "wave.h"
 #include "wasapi.h"
 #include "camera.hpp"
-#include "rect.hpp"
 #include "bitmap.hpp"
 #include "d3d11_init.hpp"
 #include "font.hpp"
@@ -30,10 +30,27 @@
 
 #include "input.cpp"
 #include "clock.cpp"
+#include "wave.cpp"
 #include "camera.cpp"
-#include "rect.cpp"
+#include "bitmap.cpp"
 #include "ui.cpp"
 #include "entity.cpp"
+#include "d3d11_init.cpp"
+
+typedef struct Assets{
+    Wave    waves[WaveAsset_Count];
+    Font    fonts[FontAsset_Count];
+    Texture textures[TextureAsset_Count];
+} Assets;
+static void load_assets(Arena* arena, Assets* assets);
+
+
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
+s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type);
+static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param);
+global Window window;
+static Window win32_window_create(const wchar* window_name, s32 width, s32 height);
 
 static String8 build_path;
 static String8 fonts_path;
@@ -41,9 +58,9 @@ static String8 shaders_path;
 static String8 saves_path;
 static String8 sprites_path;
 static String8 sounds_path;
+static void init_paths(Arena* arena);
 
-global Window window;
-static Window win32_window_create(const wchar* window_name, s32 width, s32 height);
+static void u32_buffer_from_u8_buffer(String8* channel_1, String8* channel_4);
 
 typedef struct Memory{
     void* base;
@@ -56,22 +73,16 @@ typedef struct Memory{
 
     bool initialized;
 } Memory;
-
-static u64 frame_count = 0;
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
 global Memory memory;
 static void init_memory();
 
+
+static u64 frame_count;
 global bool pause;
 global bool should_quit;
 global Arena* global_arena = os_make_arena(MB(100));
 
 static void show_cursor(bool show);
-static void init_paths(Arena* arena);
-
-s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type);
-static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param);
 
 #define MAX_LEVELS 3
 #define MAX_LIVES 10
@@ -101,7 +112,7 @@ typedef struct PermanentMemory{
     u32 current_font;
     f64 spawn_t;
 } PermanentMemory, State;
-global PermanentMemory* pm;
+global State* state;
 
 typedef struct TransientMemory{
     Arena arena;
@@ -111,8 +122,17 @@ typedef struct TransientMemory{
     Arena *ui_arena;
 
     Assets assets;
-} TransientMemory;
-global TransientMemory* tm;
+} TransientMemory, TState;
+global TState* ts;
+
+
+// todo: once I fix rendering pipeline, this can move up
+#include "d3d11_render.cpp"
+#include "wasapi.cpp"
+#include "font.cpp"
+#include "console.cpp"
+#include "command.cpp"
+#include "game.cpp"
 
 //todo: get rid of this
 f32 text_padding = 20;

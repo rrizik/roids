@@ -258,7 +258,7 @@ draw_commands(){
                 d3d_context->Draw(6, 0);
             } break;
             case RenderCommandType_Texture:{
-                ID3D11ShaderResourceView* texture = tm->assets.textures[command->texture].view;
+                ID3D11ShaderResourceView* texture = ts->assets.textures[command->texture].view;
                 RGBA linear_color = srgb_to_linear(command->color); // gamma correction
                 Vertex3 vertices[] = {
                     { command->p0, linear_color, make_v2(0.0f, 0.0f) },
@@ -307,7 +307,7 @@ draw_commands(){
                 d3d_context->Draw(6, 0);
             } break;
             case RenderCommandType_Text:{
-                Font* font = &tm->assets.fonts[command->font_id];
+                Font* font = &ts->assets.fonts[command->font_id];
                 RGBA linear_color = srgb_to_linear(command->color);
 
                 ScratchArena scratch = begin_scratch();

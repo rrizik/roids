@@ -1,60 +1,6 @@
 #ifndef GAME_H
 #define GAME_H
 
-typedef enum WaveAsset{
-    WaveAsset_Track1,
-    WaveAsset_Track2,
-    WaveAsset_Track3,
-    WaveAsset_Track4,
-    WaveAsset_Track5,
-    WaveAsset_Rail1,
-    WaveAsset_Rail2,
-    WaveAsset_Rail3,
-    WaveAsset_Rail4,
-    WaveAsset_Rail5,
-
-    WaveAsset_Count,
-} WaveAsset;
-
-typedef enum TextureAsset{
-    TextureAsset_Ship,
-    TextureAsset_Bullet,
-    TextureAsset_Asteroid,
-
-    TextureAsset_Flame1,
-    TextureAsset_Flame2,
-    TextureAsset_Flame3,
-    TextureAsset_Flame4,
-    TextureAsset_Flame5,
-
-    TextureAsset_Explosion1,
-    TextureAsset_Explosion2,
-    TextureAsset_Explosion3,
-    TextureAsset_Explosion4,
-    TextureAsset_Explosion5,
-    TextureAsset_Explosion6,
-
-    TextureAsset_Font_Arial,
-    TextureAsset_Font_Golos,
-
-    TextureAsset_Count,
-} TextureAsset;
-
-typedef enum FontAsset{
-    FontAsset_Arial,
-    FontAsset_Golos,
-    FontAsset_Consolas,
-
-    FontAsset_Count,
-} FontAsset;
-
-//TODO: Separate all of these out into their own files for easy access
-typedef struct Assets{
-    Wave    waves[WaveAsset_Count];
-    Font    fonts[FontAsset_Count];
-    Texture textures[TextureAsset_Count];
-} Assets;
-
 typedef struct Level{
     s32 asteroid_spawned;
     s32 asteroid_destroyed;
@@ -70,7 +16,6 @@ typedef enum GameMode{
     GameMode_Menu,
 } GameMode;
 
-static void load_assets(Arena* arena, Assets* assets);
 
 //static Bitmap* get_bitmap(Assets* assets, BitmapAsset id);
 
@@ -93,6 +38,7 @@ static void deserialize_data(String8 filename);
 static bool handle_global_events(Event event);
 static bool handle_camera_events(Event event);
 static bool handle_controller_events(Event event);
+static bool handle_game_events(Event event);
 
 static void reset_game(void);
 static void reset_ship(void);

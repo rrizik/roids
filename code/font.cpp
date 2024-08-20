@@ -85,11 +85,12 @@ load_font_ttf(Arena* arena, String8 filename, f32 size){
     return(result);
 }
 
+// todo: all these functions need to take in Font*
 static f32
 font_char_width(u32 font_id, u8 c){
     f32 result = 0;
 
-    Font* font = &tm->assets.fonts[font_id];
+    Font* font = &ts->assets.fonts[font_id];
     s32 advance_width, lsb;
     stbtt_GetCodepointHMetrics(&font->info, c, &advance_width, &lsb);
     result = (f32)advance_width * font->scale;
@@ -100,7 +101,7 @@ static f32
 font_string_width(u32 font_id, String8 str){
     f32 result = 0;
 
-    Font* font = &tm->assets.fonts[font_id];
+    Font* font = &ts->assets.fonts[font_id];
     s32 advance_width, lsb;
     for(s32 i=0; i < str.size; ++i){
         u8 c = str.str[i];
@@ -112,20 +113,20 @@ font_string_width(u32 font_id, String8 str){
 
 static s32
 font_vertical_offset(u32 font_id){
-    Font* font = &tm->assets.fonts[font_id];
+    Font* font = &ts->assets.fonts[font_id];
     return(font->vertical_offset);
 }
 
 static s32
 font_ascent(u32 font_id){
-    Font* font = &tm->assets.fonts[font_id];
+    Font* font = &ts->assets.fonts[font_id];
     s32 result = round_f32_s32((f32)font->ascent * font->scale);
     return(result);
 }
 
 static s32
 font_descent(u32 font_id){
-    Font* font = &tm->assets.fonts[font_id];
+    Font* font = &ts->assets.fonts[font_id];
     s32 result = round_f32_s32((f32)font->descent * font->scale);
     return(result);
 }

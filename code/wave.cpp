@@ -3,11 +3,11 @@
 
 // todo: samples to bytes - bytes to samples. Maybe
 static Wave
-load_wave(Arena* arena, String8 filename){
+load_wave(Arena* arena, String8 dir, String8 filename){
     Wave result = {0};
 
     ScratchArena scratch = begin_scratch();
-    String8 full_path = str8_concatenate(scratch.arena, build_path, filename);
+    String8 full_path = str8_concatenate(scratch.arena, dir, filename);
     File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
     end_scratch(scratch);
     assert_h(file.handle);
@@ -54,20 +54,5 @@ load_wave(Arena* arena, String8 filename){
     return(result);
 }
 
-static void
-u32_buffer_from_u8_buffer(String8* u8_buffer, String8* u32_buffer){
-    u32* base_rgba = (u32*)u32_buffer->str;
-    u8* base_a = (u8*)u8_buffer->str;
-
-    for(s32 i=0; i < u8_buffer->size; ++i){
-        //*base_rgba = (u32)(*base_a << 24 | *base_a << 16 | *base_a << 8  | *base_a << 0);
-        *base_rgba = (u32)(*base_a << 24 |
-                               255 << 16 |
-                               255 << 8  |
-                               255 << 0);
-        base_rgba++;
-        base_a++;
-    }
-}
 
 #endif

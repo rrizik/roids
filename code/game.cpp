@@ -5,83 +5,28 @@ static void
 init_levels(){
     Level* level = 0;
 
-    level = pm->levels + 0;
+    level = state->levels + 0;
     level->asteroid_count_max = 3;
     level->asteroid_spawned = 0;
     level->asteroid_destroyed = 0;
 
-    level = pm->levels + 1;
+    level = state->levels + 1;
     level->asteroid_count_max = 5;
     level->asteroid_spawned = 0;
     level->asteroid_destroyed = 0;
 
-    level = pm->levels + 2;
+    level = state->levels + 2;
     level->asteroid_count_max = 7;
     level->asteroid_spawned = 0;
     level->asteroid_destroyed = 0;
-}
-
-static void
-load_assets(Arena* arena){
-
-    ScratchArena scratch = begin_scratch();
-
-    Bitmap bm;
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/ship2.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Ship].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/circle.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Bullet].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/asteroid.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Asteroid].view, &bm);
-
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/flame1.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Flame1].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/flame2.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Flame2].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/flame3.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Flame3].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/flame4.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Flame4].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/flame5.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Flame5].view, &bm);
-
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion1.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion1].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion2.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion2].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion3.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion3].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion4.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion4].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion5.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion5].view, &bm);
-    bm = load_bitmap(scratch.arena, str8_literal("sprites/explosion6.bmp"));
-    init_texture_resource(&tm->assets.textures[TextureAsset_Explosion6].view, &bm);
-
-    end_scratch(scratch);
-
-    tm->assets.waves[WaveAsset_Track1] = load_wave(arena, str8_literal("sounds/track1.wav"));
-    tm->assets.waves[WaveAsset_Track2] = load_wave(arena, str8_literal("sounds/track2.wav"));
-    tm->assets.waves[WaveAsset_Track3] = load_wave(arena, str8_literal("sounds/track3.wav"));
-    tm->assets.waves[WaveAsset_Track4] = load_wave(arena, str8_literal("sounds/track4.wav"));
-    tm->assets.waves[WaveAsset_Track5] = load_wave(arena, str8_literal("sounds/track5.wav"));
-    tm->assets.waves[WaveAsset_Rail1] =  load_wave(arena, str8_literal("sounds/rail1.wav"));
-    tm->assets.waves[WaveAsset_Rail2] =  load_wave(arena, str8_literal("sounds/rail2.wav"));
-    tm->assets.waves[WaveAsset_Rail3] =  load_wave(arena, str8_literal("sounds/rail3.wav"));
-    tm->assets.waves[WaveAsset_Rail4] =  load_wave(arena, str8_literal("sounds/rail4.wav"));
-    tm->assets.waves[WaveAsset_Rail5] =  load_wave(arena, str8_literal("sounds/rail5.wav"));
-
-    tm->assets.fonts[FontAsset_Arial] =    load_font_ttf(arena, str8_literal("fonts/arial.ttf"), 16);
-    tm->assets.fonts[FontAsset_Golos] =    load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), 36);
-    tm->assets.fonts[FontAsset_Consolas] = load_font_ttf(arena, str8_literal("fonts/consola.ttf"), 36);
 }
 
 // todo: Move these to entity once you move PermanentMemory further up in the tool chain
 static Entity*
 entity_from_handle(EntityHandle handle){
     Entity *result = 0;
-    if(handle.index < (s32)array_count(pm->entities)){
-        Entity *e = pm->entities + handle.index;
+    if(handle.index < (s32)array_count(state->entities)){
+        Entity *e = state->entities + handle.index;
         if(e->generation == handle.generation){
             result = e;
         }
@@ -93,7 +38,7 @@ static EntityHandle
 handle_from_entity(Entity *e){
     assert(e != 0);
     EntityHandle result = {0};
-    if((e >= pm->entities) && (e < (pm->entities + array_count(pm->entities)))){
+    if((e >= state->entities) && (e < (state->entities + array_count(state->entities)))){
         result.index = e->index;
         result.generation = e->generation;
     }
@@ -104,21 +49,21 @@ static void
 remove_entity(Entity* e){
     e->type = EntityType_None; // todo: remove this
     clear_flags(&e->flags, EntityFlag_Active);
-    pm->free_entities[++pm->free_entities_at] = e->index;
-    pm->entities_count--;
+    state->free_entities[++state->free_entities_at] = e->index;
+    state->entities_count--;
     *e = {0};
 }
 
 static Entity*
 add_entity(EntityType type){
-    if(pm->free_entities_at < ENTITIES_MAX){
-        u32 free_entity_index = pm->free_entities[pm->free_entities_at--];
-        Entity *e = pm->entities + free_entity_index;
+    if(state->free_entities_at < ENTITIES_MAX){
+        u32 free_entity_index = state->free_entities[state->free_entities_at--];
+        Entity *e = state->entities + free_entity_index;
         e->index = free_entity_index;
         set_flags(&e->flags, EntityFlag_Active);
-        pm->generation[e->index]++;
-        pm->entities_count++;
-        e->generation = pm->generation[e->index]; // CONSIDER: this might not be necessary
+        state->generation[e->index]++;
+        state->entities_count++;
+        e->generation = state->generation[e->index]; // CONSIDER: this might not be necessary
         e->type = type;
 
         return(e);
@@ -286,15 +231,15 @@ add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
 
 static void
 entities_clear(){
-    pm->free_entities_at = ENTITIES_MAX - 1;
-    for(u32 i = pm->free_entities_at; i <= pm->free_entities_at; --i){
-        Entity* e = pm->entities + i;
+    state->free_entities_at = ENTITIES_MAX - 1;
+    for(u32 i = state->free_entities_at; i <= state->free_entities_at; --i){
+        Entity* e = state->entities + i;
         e->type = EntityType_None;
         clear_flags(&e->flags, EntityFlag_Active);
-        pm->free_entities[i] = pm->free_entities_at - i;
-        pm->generation[i] = 0;
+        state->free_entities[i] = state->free_entities_at - i;
+        state->generation[i] = 0;
     }
-    pm->entities_count = 0;
+    state->entities_count = 0;
 }
 
 static void
@@ -304,7 +249,7 @@ serialize_data(String8 filename){
 
     File file = os_file_open(full_path, GENERIC_WRITE, CREATE_NEW);
     if(file.handle != INVALID_HANDLE_VALUE){
-        os_file_write(file, pm->entities, sizeof(Entity) * ENTITIES_MAX);
+        os_file_write(file, state->entities, sizeof(Entity) * ENTITIES_MAX);
     }
     else{
         // log error
@@ -329,7 +274,7 @@ deserialize_data(String8 filename){
         return;
     }
 
-    String8 data = os_file_read(&pm->arena, file);
+    String8 data = os_file_read(&state->arena, file);
     entities_clear();
 
     u32 offset = 0;
@@ -341,8 +286,8 @@ deserialize_data(String8 filename){
                 *ship = *e;
                 ship->texture = TextureAsset_Ship;
 
-                pm->ship = ship;
-                pm->ship_loaded = true;
+                state->ship = ship;
+                state->ship_loaded = true;
             } break;
             case EntityType_Bullet:{
                 Entity* bullet = add_entity(EntityType_Bullet);
@@ -377,9 +322,6 @@ handle_global_events(Event event){
     }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
-            if(event.keycode == KeyCode_ESCAPE){
-                pause = true;
-            }
             if(event.keycode == KeyCode_TILDE && !event.repeat){
                 if(event.shift_pressed){
                     if(console.state == OPEN_BIG){
@@ -418,8 +360,8 @@ handle_camera_events(Event event){
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == KeyCode_ONE){
-                if(pm->game_mode != GameMode_FirstPerson){
-                    pm->game_mode = GameMode_FirstPerson;
+                if(state->game_mode != GameMode_FirstPerson){
+                    state->game_mode = GameMode_FirstPerson;
 
                     controller.mouse.dx = 0;
                     controller.mouse.dy = 0;
@@ -430,14 +372,14 @@ handle_camera_events(Event event){
                 }
             }
             if(event.keycode == KeyCode_TWO){
-                if(pm->game_mode != GameMode_Editor){
-                    pm->game_mode = GameMode_Editor;
+                if(state->game_mode != GameMode_Editor){
+                    state->game_mode = GameMode_Editor;
                     show_cursor(true);
                 }
             }
             if(event.keycode == KeyCode_THREE){
-                if(pm->game_mode != GameMode_Game){
-                    pm->game_mode = GameMode_Game;
+                if(state->game_mode != GameMode_Game){
+                    state->game_mode = GameMode_Game;
                     init_camera();
                     show_cursor(false);
                 }
@@ -473,41 +415,54 @@ handle_controller_events(Event event){
     return(false);
 }
 
+static bool
+handle_game_events(Event event){
+    if(event.type == KEYBOARD){
+        if(event.key_pressed){
+            if(event.keycode == KeyCode_ESCAPE){
+                pause = !pause;
+                return(true);
+            }
+        }
+    }
+    return(false);
+}
+
 static void
 reset_game(){
-    pm->lives = MAX_LIVES;
-    pm->score = 0;
-    pm->level_index = 0;
+    state->lives = MAX_LIVES;
+    state->score = 0;
+    state->level_index = 0;
     init_levels();
-    pm->current_level = &pm->levels[0];
+    state->current_level = &state->levels[0];
 
     reset_ship();
 }
 
 static void
 reset_ship(){
-    pm->ship->dir = make_v2(0, -1);
-    pm->ship->pos = make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
-    pm->ship->deg = -90;
-    pm->ship->dir = dir_from_deg(pm->ship->deg);
-    pm->ship->accel_dir = make_v2(0, 0);
-    pm->ship->velocity = 0;
-    pm->ship->exploding = false;
-    pm->ship->explosion_tex = TextureAsset_Explosion1;
-    pm->ship->texture = TextureAsset_Ship;
-    pm->ship->immune = true;
-    pm->ship->immune_t = 0.0f;
-    pm->ship->health = 1;
-    set_flags(&pm->ship->flags, EntityFlag_Active | EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
+    state->ship->dir = make_v2(0, -1);
+    state->ship->pos = make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2);
+    state->ship->deg = -90;
+    state->ship->dir = dir_from_deg(state->ship->deg);
+    state->ship->accel_dir = make_v2(0, 0);
+    state->ship->velocity = 0;
+    state->ship->exploding = false;
+    state->ship->explosion_tex = TextureAsset_Explosion1;
+    state->ship->texture = TextureAsset_Ship;
+    state->ship->immune = true;
+    state->ship->immune_t = 0.0f;
+    state->ship->health = 1;
+    set_flags(&state->ship->flags, EntityFlag_Active | EntityFlag_MoveWithCtrls | EntityFlag_CanCollide | EntityFlag_CanShoot | EntityFlag_Wrapping);
 }
 
 static bool
 game_won(){
-    if(pm->level_index < MAX_LEVELS){
+    if(state->level_index < MAX_LEVELS){
         return(false);
     }
 
-    Level level = pm->levels[pm->level_index];
+    Level level = state->levels[state->level_index];
     if(level.asteroid_destroyed < level.asteroid_spawned){
         return(false);
     }
@@ -518,10 +473,9 @@ game_won(){
 static void update_game(){
 
 
-    console_update();
-    if(pm->game_mode == GameMode_Game && !game_won()){
-        Level* level   = pm->current_level;
-        Entity* ship   = pm->ship;
+    if(state->game_mode == GameMode_Game && !game_won()){
+        Level* level   = state->current_level;
+        Entity* ship   = state->ship;
         Rect ship_rect = rect_from_entity(ship);
 
         if(ship->immune_t < 2){
@@ -593,16 +547,16 @@ static void update_game(){
         // advance level
         if(level->asteroid_spawned == level->asteroid_count_max &&
            level->asteroid_spawned == level->asteroid_destroyed){
-            pm->level_index++;
-            if(pm->level_index < MAX_LEVELS){
-                pm->current_level = &pm->levels[pm->level_index];
+            state->level_index++;
+            if(state->level_index < MAX_LEVELS){
+                state->current_level = &state->levels[state->level_index];
             }
         }
 
         // spawn asteroids
-        pm->spawn_t += clock.dt;
-        if(pm->spawn_t >= 0.5f){
-            pm->spawn_t = 0.0;
+        state->spawn_t += clock.dt;
+        if(state->spawn_t >= 0.5f){
+            state->spawn_t = 0.0;
 
             v2 dim;
             dim.x = (f32)random_range_u32(150) + 50;
@@ -638,17 +592,17 @@ static void update_game(){
 
                 deg = (f32)random_range_u32(180) - 180;
             }
-            if(pm->current_level->asteroid_spawned < pm->current_level->asteroid_count_max){
+            if(state->current_level->asteroid_spawned < state->current_level->asteroid_count_max){
                 Entity* asteroid = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
-                pm->current_level->asteroid_spawned++;
+                state->current_level->asteroid_spawned++;
             }
         }
 
         // 64 byte cache lines
         // resolve entity motion
-        for(s32 i = 0; i < array_count(pm->entities); ++i){
+        for(s32 i = 0; i < array_count(state->entities); ++i){
             begin_timed_scope("entity_motion");
-            Entity *e = pm->entities + i;
+            Entity *e = state->entities + i;
             if(!has_flags(e->flags, EntityFlag_Active)){
                 continue;
             }
@@ -683,9 +637,9 @@ static void update_game(){
         }
 
         // resolve death
-        for(s32 i = 0; i < array_count(pm->entities); ++i){
+        for(s32 i = 0; i < array_count(state->entities); ++i){
             begin_timed_scope("entity_motion");
-            Entity *e = pm->entities + i;
+            Entity *e = state->entities + i;
             if(!has_flags(e->flags, EntityFlag_Active)){
                 continue;
             }
@@ -701,13 +655,13 @@ static void update_game(){
                             for(s32 splint_i=0; splint_i < 3; ++splint_i){
                                 e->deg = random_range_f32(360);
                                 add_asteroid(TextureAsset_Asteroid, e->pos, e->dim, e->deg);
-                                pm->current_level->asteroid_spawned++;
-                                pm->current_level->asteroid_count_max++;
+                                state->current_level->asteroid_spawned++;
+                                state->current_level->asteroid_count_max++;
                             }
                         }
 
-                        pm->score += (u32)e->dim.w;
-                        pm->current_level->asteroid_destroyed++;
+                        state->score += (u32)e->dim.w;
+                        state->current_level->asteroid_destroyed++;
                         remove_entity(e);
                     } break;
                     case DeathType_Particle:{
@@ -716,7 +670,7 @@ static void update_game(){
                             f32 deg = random_range_f32(360);
                             v2 dim = make_v2(10, 2);
                             Entity* e_p = add_bullet_particle(TextureAsset_Bullet, e->pos, dim, deg);
-                            e_p->parent = pm->ship;
+                            e_p->parent = state->ship;
                             e_p->particle_t = 0.175f;
                         }
                         remove_entity(e);
@@ -728,8 +682,8 @@ static void update_game(){
         }
 
         // resolve particles
-        for(s32 i = 0; i < array_count(pm->entities); ++i){
-            Entity *e = pm->entities + i;
+        for(s32 i = 0; i < array_count(state->entities); ++i){
+            Entity *e = state->entities + i;
             if(!has_flags(e->flags, EntityFlag_Active)){
                 continue;
             }
@@ -749,8 +703,8 @@ static void update_game(){
         }
             //Rect e_rect = rect_from_entity(e);
             //if(!has_flags(e, EntityFlag_CanCollide)){
-            //    for(s32 j = 0; j < array_count(pm->entities); ++j){
-            //        Entity *e_inner = pm->entities + j;
+            //    for(s32 j = 0; j < array_count(state->entities); ++j){
+            //        Entity *e_inner = state->entities + j;
             //        if(e == e_inner->parent){
             //            continue;
             //        }
@@ -763,15 +717,15 @@ static void update_game(){
             //}
 
         // type loop
-        for(s32 i = 0; i < array_count(pm->entities); ++i){
+        for(s32 i = 0; i < array_count(state->entities); ++i){
             begin_timed_scope("type_loop");
-            Entity *e = pm->entities + i;
+            Entity *e = state->entities + i;
             Rect e_rect = rect_from_entity(e);
 
             switch(e->type){
                 case EntityType_Ship:{
 
-                    if(has_flags(pm->ship->flags, EntityFlag_Active)){
+                    if(has_flags(state->ship->flags, EntityFlag_Active)){
                         if(e->exploding){
                             e->accelerating = false;
                             e->texture = e->explosion_tex;
@@ -781,10 +735,10 @@ static void update_game(){
                                     e->explosion_tex++;
                                 }
                                 else{
-                                    if(pm->lives){
+                                    if(state->lives){
                                         reset_ship();
                                     } else{
-                                        clear_flags(&pm->ship->flags, EntityFlag_Active);
+                                        clear_flags(&state->ship->flags, EntityFlag_Active);
                                     }
                                 }
                                 e->explosion_t = 0.0f;
@@ -794,19 +748,19 @@ static void update_game(){
 
 #if 1
                             if(!e->immune){
-                                for(s32 idx = 0; idx < array_count(pm->entities); ++idx){
-                                    Entity *collide_e = pm->entities + idx;
+                                for(s32 idx = 0; idx < array_count(state->entities); ++idx){
+                                    Entity *collide_e = state->entities + idx;
                                     if(collide_e->type == EntityType_Asteroid){
                                         Rect collide_e_rect = rect_from_entity(collide_e);
                                         if(rect_collides_rect(e_rect, collide_e_rect)){
-                                            pm->lives -= 1;
-                                            if(pm->lives == 0){
+                                            state->lives -= 1;
+                                            if(state->lives == 0){
                                                 e->dead = true;
                                             }
                                             e->health = 0;
                                             e->exploding = true;
                                             clear_flags(&e->flags, EntityFlag_MoveWithCtrls);
-                                            pm->current_level->asteroid_destroyed++;
+                                            state->current_level->asteroid_destroyed++;
                                             remove_entity(collide_e);
                                             break;
                                         }
@@ -822,8 +776,8 @@ static void update_game(){
                     if(!has_flags(e->flags, EntityFlag_CanCollide)){
                         break;
                     }
-                    for(s32 idx = 0; idx < array_count(pm->entities); ++idx){
-                        Entity *collide_e = pm->entities + idx;
+                    for(s32 idx = 0; idx < array_count(state->entities); ++idx){
+                        Entity *collide_e = state->entities + idx;
 
                         if(collide_e == e->origin){
                             continue;

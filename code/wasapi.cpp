@@ -5,6 +5,7 @@
 // Discord Convo: https://discord.com/channels/239737791225790464/1216549745015656459
 // Improve this entire API by running it through a thread.
 
+// todo: put WASAPI in base file as it can be standalone
 // todo: change all asserts to error logs
 static HRESULT
 init_audio(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
@@ -111,7 +112,6 @@ audio_play(u32 id, f32 volume, bool loop){
 }
 
 // todo: create a wave drawing function to draw the audio waves. Will be cool to do
-// todo: ;make sure they are in the range of -1 - 1
 static HRESULT audio_play_cursors(){
     HRESULT hr = S_OK;
 
@@ -134,7 +134,7 @@ static HRESULT audio_play_cursors(){
     f32* buffer_f32 = (f32*)buffer;
     for(s32 cursor_i=0; cursor_i < (s32)wave_cursors_count; ++cursor_i){
         WaveCursor* cursor = wave_cursors + cursor_i;
-        Wave* wave = tm->assets.waves + cursor->id;
+        Wave* wave = ts->assets.waves + cursor->id;
 
         u32 wave_remainder = wave->sample_count - cursor->at;
         u32 iter_size = wave_remainder > available_samples ? available_samples : wave_remainder;

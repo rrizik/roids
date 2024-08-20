@@ -46,7 +46,6 @@ typedef struct Wave{
     u32 sample_count; // size in samples, not bytes
 } Wave;
 
-static Wave load_wave(Arena* arena, String8 filename);
-static void u32_buffer_from_u8_buffer(String8* channel_1, String8* channel_4);
+static Wave load_wave(Arena* arena, String8 dir, String8 filename);
 
 #endif
