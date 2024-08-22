@@ -1,5 +1,49 @@
 #include "main.hpp"
 
+WINDOWPLACEMENT window_info = { sizeof(WINDOWPLACEMENT) };
+static void os_resize_window(HWND hwnd){
+    s32 style = GetWindowLong(hwnd, GWL_STYLE);
+
+    if(style & WS_OVERLAPPEDWINDOW){ // is windows mode?
+        MONITORINFO monitor_info = { sizeof(MONITORINFO) };
+
+        if(GetWindowPlacement(hwnd, &window_info) &&
+           GetMonitorInfo(MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY), &monitor_info)){
+            SetWindowLong(hwnd, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
+            SetWindowPos(hwnd, HWND_TOP,
+                         monitor_info.rcMonitor.left, monitor_info.rcMonitor.top,
+                         monitor_info.rcMonitor.right - monitor_info.rcMonitor.left,
+                         monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top,
+                         SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+        }
+    }
+    else{
+        SetWindowLong(hwnd, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+        SetWindowPlacement(hwnd, &window_info);
+        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+                     SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    }
+}
+
+static void
+change_resolution(HWND hwnd, u32 width, u32 height, bool is_fullscreen) {
+    s32 style = GetWindowLong(hwnd, GWL_STYLE);
+
+    if (is_fullscreen) {
+        d3d_resize_window(width, height);
+    } else {
+        RECT rect = {0, 0, (s32)width, (s32)height};
+        AdjustWindowRect(&rect, (DWORD)style, FALSE);
+
+        SetWindowPos(hwnd, NULL, 0, 0,
+                     rect.right - rect.left,
+                     rect.bottom - rect.top,
+                     SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+
+        d3d_resize_window(width, height);
+    }
+}
 
 static void
 u32_buffer_from_u8_buffer(String8* u8_buffer, String8* u32_buffer){
@@ -93,7 +137,7 @@ init_memory(){
 }
 
 static Window
-win32_window_create(const wchar* window_name, s32 width, s32 height){
+win32_window_create(const wchar* window_name, u32 width, u32 height){
     Window result = {0};
 
     WNDCLASSW window_class = {
@@ -109,12 +153,12 @@ win32_window_create(const wchar* window_name, s32 width, s32 height){
         return(result);
     }
 
-    result.width = width;
-    result.height = height;
+    result.width = (f32)width;
+    result.height = (f32)height;
 
     // adjust window size to exclude client area
     DWORD style = WS_OVERLAPPEDWINDOW|WS_VISIBLE;
-    RECT rect = { 0, 0, width, height };
+    RECT rect = { 0, 0, (s32)width, (s32)height };
     AdjustWindowRect(&rect, style, FALSE);
     s32 adjusted_w = rect.right - rect.left;
     s32 adjusted_h = rect.bottom - rect.top;
@@ -143,6 +187,9 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
     LRESULT result = 0;
 
     switch(message){
+        //case WM_SIZE:{
+            //resize_window(hwnd, 0, 0);
+        //} break;
         case WM_CLOSE:
         case WM_QUIT:
         case WM_DESTROY:{
@@ -328,7 +375,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         return(0);
     }
 
-    init_d3d(window.handle, window.width, window.height);
+    init_d3d(window.handle, (u32)window.width, (u32)window.height);
 #if DEBUG
     d3d_init_debug_stuff();
 #endif
@@ -372,7 +419,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         ts->asset_arena = push_arena(&ts->arena, MB(100));
         ts->ui_arena = push_arena(&ts->arena, MB(100));
 
-        state->game_mode = GameMode_Menu;
+        state->game_mode = GameMode_Game;
 
         show_cursor(true);
         load_assets(ts->asset_arena);
@@ -393,7 +440,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         //audio_play(WaveAsset_Track5, 0.0f, true);
         //audio_play(WaveAsset_Track4, 0.0f, true);
 
-        state->ship = add_ship(TextureAsset_Ship, make_v2(SCREEN_WIDTH/2, SCREEN_HEIGHT/2), make_v2(75, 75));
+        state->scale = 1;
+        state->ship = add_ship(TextureAsset_Ship, make_v2(0, 0), make_v2(30, 30));
+        //state->ship = add_ship(TextureAsset_Ship, make_v2(window.width/2, window.height/2), make_v2(30, 30));
         state->ship_loaded = true;
         state->lives = 1;
 
@@ -403,13 +452,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         memory.initialized = true;
 
-        // note: this would need to be called in the frame loop if the data is changing or can change.
-        //----constant buffer----
-        D3D11_MAPPED_SUBRESOURCE mapped_subresource;
-        d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
-        ConstantBuffer2D* constants = (ConstantBuffer2D*)mapped_subresource.pData;
-        constants->screen_res = make_v2s32(window.width, window.height);
-        d3d_context->Unmap(d3d_constant_buffer, 0);
     }
 
     should_quit = false;
@@ -440,27 +482,50 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
             //handled = handle_camera_events(event);
             handled = handle_controller_events(event);
-            //handled = handle_game_events(event);
+            handled = handle_game_events(event);
 
             if(event.type == KEYBOARD){
                 if(event.key_pressed){
-                    if(event.keycode == KeyCode_ESCAPE){
-                        if(!game_won() && state->lives){
-                            pause = !pause;
+                    if(event.keycode == KeyCode_ONE){
+                        toggle = !toggle;
+                        if(toggle){
+                            change_resolution(window.handle, 1920, 1080, false);
+                        }
+                        else{
+                            change_resolution(window.handle, 640, 360, false);
+                        }
+                    }
+                    if(event.keycode == KeyCode_Q){
+                        os_resize_window(window.handle);
+                        fullscreen = !fullscreen;
+                        if(fullscreen){
+                            d3d_resize_window(1920, 1080);
+                            window.width = 1920.0f;
+                            window.height = 1080.0f;
+                        }
+                        else{
+                            d3d_resize_window(640, 360);
+                            window.width = 640.0f;
+                            window.height = 360.0f;
                         }
                     }
                 }
             }
         }
 
-        print("%i\n", pause);
+        //----constant buffer----
+        D3D11_MAPPED_SUBRESOURCE mapped_subresource;
+        d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
+        ConstantBuffer2D* constants = (ConstantBuffer2D*)mapped_subresource.pData;
+        constants->screen_res = make_v2s32((s32)window.width, (s32)window.height);
+        d3d_context->Unmap(d3d_constant_buffer, 0);
 
         draw_clear_color(BACKGROUND_COLOR);
         if(state->game_mode == GameMode_Menu){
             ui_begin(ts->ui_arena);
 
-            ui_push_pos_x(SCREEN_WIDTH/2 - 50);
-            ui_push_pos_y(SCREEN_HEIGHT/2 - 100);
+            ui_push_pos_x(window.width/2 - 50);
+            ui_push_pos_y(window.height/2 - 100);
             ui_push_size_w(ui_size_children(0));
             ui_push_size_h(ui_size_children(0));
 
@@ -494,13 +559,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             if(!state->lives){
                 String8 text = str8_formatted(ts->frame_arena, "GAME OVER - Score: %i", state->score);
                 f32 width = font_string_width(state->current_font, text);
-                f32 x = SCREEN_WIDTH/2 - width/2;
-                draw_text(state->current_font, text, make_v2(x, SCREEN_HEIGHT/2 - 200), ORANGE);
+                f32 x = window.width/2 - width/2;
+                draw_text(state->current_font, text, make_v2(x, window.height/2 - 200), ORANGE);
 
                 ui_begin(ts->ui_arena);
 
-                ui_push_pos_x(SCREEN_WIDTH/2 - 50);
-                ui_push_pos_y(SCREEN_HEIGHT/2 - 100);
+                ui_push_pos_x(window.width/2 - 50);
+                ui_push_pos_y(window.height/2 - 100);
                 ui_push_size_w(ui_size_children(0));
                 ui_push_size_h(ui_size_children(0));
 
@@ -525,13 +590,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             else if(game_won()){
                 String8 text = str8_formatted(ts->frame_arena, "CHICKEN DINNER - Score: %i", state->score);
                 f32 width = font_string_width(state->current_font, text);
-                f32 x = SCREEN_WIDTH/2 - width/2;
-                draw_text(state->current_font, text, make_v2(x, SCREEN_HEIGHT/2 - 200), ORANGE);
+                f32 x = window.width/2 - width/2;
+                draw_text(state->current_font, text, make_v2(x, window.height/2 - 200), ORANGE);
 
                 ui_begin(ts->ui_arena);
 
-                ui_push_pos_x(SCREEN_WIDTH/2 - 50);
-                ui_push_pos_y(SCREEN_HEIGHT/2 - 100);
+                ui_push_pos_x(window.width/2 - 50);
+                ui_push_pos_y(window.height/2 - 100);
                 ui_push_size_w(ui_size_children(0));
                 ui_push_size_h(ui_size_children(0));
 
@@ -556,8 +621,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             if(pause && !game_won() && state->lives){
                 ui_begin(ts->ui_arena);
 
-                ui_push_pos_x(SCREEN_WIDTH/2 - 50);
-                ui_push_pos_y(SCREEN_HEIGHT/2 - 100);
+                ui_push_pos_x(window.width/2 - 50);
+                ui_push_pos_y(window.height/2 - 100);
                 ui_push_size_w(ui_size_children(0));
                 ui_push_size_h(ui_size_children(0));
 
@@ -624,9 +689,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
                             v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
 
-                            Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
-                                                    make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2));
-
                             p0 = rotate_point_deg(p0, e->deg, e->pos);
                             p1 = rotate_point_deg(p1, e->deg, e->pos);
                             p2 = rotate_point_deg(p2, e->deg, e->pos);
@@ -644,9 +706,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
                             v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
                             v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
-
-                            Rect e_rect = make_rect(make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2),
-                                                    make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2));
 
                             p0 = rotate_point_deg(p0, e->deg, e->pos);
                             p1 = rotate_point_deg(p1, e->deg, e->pos);
@@ -689,7 +748,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
             String8 lives = str8_formatted(ts->frame_arena, "LIVES: %i", state->lives);
             f32 width = font_string_width(state->current_font, lives);
-            draw_text(state->current_font, lives, make_v2(SCREEN_WIDTH - width - text_padding, ((f32)(font->ascent) * font->scale) + text_padding), ORANGE);
+            draw_text(state->current_font, lives, make_v2(window.width - width - text_padding, ((f32)(font->ascent) * font->scale) + text_padding), ORANGE);
 
             String8 level_str = str8_formatted(ts->frame_arena, "LEVEL: %i", state->level_index + 1);
             draw_text(state->current_font, level_str, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale) + ((f32)font->vertical_offset)), ORANGE);
@@ -705,11 +764,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
             //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
             String8 fps = str8_formatted(ts->frame_arena, "FPS: %.2f", FPS);
-            draw_text(state->current_font, fps, make_v2(SCREEN_WIDTH - text_padding - font_string_width(state->current_font, fps), SCREEN_HEIGHT - text_padding), ORANGE);
+            draw_text(state->current_font, fps, make_v2(window.width - text_padding - font_string_width(state->current_font, fps), window.height - text_padding), ORANGE);
 
             Level* level = state->current_level;
             String8 info_str = str8_formatted(ts->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", state->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
-            //draw_text(state->current_font, info_str, make_v2(50, SCREEN_HEIGHT/2), TEAL);
+            //draw_text(state->current_font, info_str, make_v2(50, window.height/2), TEAL);
 
             s32 found_count = 0;
             for(s32 i=0; i < array_count(state->entities); i++){
@@ -718,7 +777,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     if(has_flags(e->flags, EntityFlag_Active)){
                         String8 str = str8_formatted(ts->frame_arena, "Asteroids - (%i)", e->health);
                         f32 str_width = font_string_width(state->current_font, str);
-                        //draw_text(state->current_font, str, make_v2(SCREEN_WIDTH - str_width, (f32)(100 + (found_count * state->font->vertical_offset))), TEAL);
+                        //draw_text(state->current_font, str, make_v2(window.width - str_width, (f32)(100 + (found_count * state->font->vertical_offset))), TEAL);
                         found_count++;
                     }
                 }

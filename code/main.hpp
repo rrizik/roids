@@ -45,12 +45,12 @@ typedef struct Assets{
 static void load_assets(Arena* arena, Assets* assets);
 
 
-#define SCREEN_WIDTH 1280
-#define SCREEN_HEIGHT 720
+#define SCREEN_WIDTH 640
+#define SCREEN_HEIGHT 360
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type);
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param);
 global Window window;
-static Window win32_window_create(const wchar* window_name, s32 width, s32 height);
+static Window win32_window_create(const wchar* window_name, u32 width, u32 height);
 
 static String8 build_path;
 static String8 fonts_path;
@@ -85,10 +85,10 @@ global Arena* global_arena = os_make_arena(MB(100));
 static void show_cursor(bool show);
 
 #define MAX_LEVELS 3
-#define MAX_LIVES 10
+#define MAX_LIVES 1
 #define WIN_SCORE 3000
 #define ENTITIES_MAX 4096
-typedef struct PermanentMemory{
+typedef struct State{
     Arena arena;
     u32 game_mode; // GameMode
 
@@ -109,9 +109,11 @@ typedef struct PermanentMemory{
     Level* current_level;
     Font* font;
 
+    f32 scale;
+
     u32 current_font;
     f64 spawn_t;
-} PermanentMemory, State;
+} State, PermanentMemory;
 global State* state;
 
 typedef struct TransientMemory{
@@ -135,6 +137,8 @@ global TState* ts;
 #include "game.cpp"
 
 //todo: get rid of this
-f32 text_padding = 20;
+global f32 text_padding = 20;
+global bool fullscreen = false;
+global bool toggle = false;
 
 #endif

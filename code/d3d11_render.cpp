@@ -140,6 +140,14 @@ draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE){
     command->texture = texture;
 }
 
+static v2
+screen_from_world_space(v2 point){
+    v2 result = {0};
+    result.x = (point.x + window.width / 2.0f);
+    result.y = (window.height / 2.0f - point.y);
+    return(result);
+}
+
 static void
 draw_commands(){
     begin_timed_function();
@@ -260,14 +268,19 @@ draw_commands(){
             case RenderCommandType_Texture:{
                 ID3D11ShaderResourceView* texture = ts->assets.textures[command->texture].view;
                 RGBA linear_color = srgb_to_linear(command->color); // gamma correction
-                Vertex3 vertices[] = {
-                    { command->p0, linear_color, make_v2(0.0f, 0.0f) },
-                    { command->p1, linear_color, make_v2(1.0f, 0.0f) },
-                    { command->p2, linear_color, make_v2(1.0f, 1.0f) },
 
-                    { command->p0, linear_color, make_v2(0.0f, 0.0f) },
-                    { command->p2, linear_color, make_v2(1.0f, 1.0f) },
-                    { command->p3, linear_color, make_v2(0.0f, 1.0f) },
+                v2 p0 = screen_from_world_space(command->p0);
+                v2 p1 = screen_from_world_space(command->p1);
+                v2 p2 = screen_from_world_space(command->p2);
+                v2 p3 = screen_from_world_space(command->p3);
+                Vertex3 vertices[] = {
+                    { p0, linear_color, make_v2(0.0f, 0.0f) },
+                    { p1, linear_color, make_v2(1.0f, 0.0f) },
+                    { p2, linear_color, make_v2(1.0f, 1.0f) },
+
+                    { p0, linear_color, make_v2(0.0f, 0.0f) },
+                    { p2, linear_color, make_v2(1.0f, 1.0f) },
+                    { p3, linear_color, make_v2(0.0f, 1.0f) },
                 };
 
                 //----vertex buffer----
