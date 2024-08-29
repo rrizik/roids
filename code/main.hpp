@@ -45,8 +45,8 @@ typedef struct Assets{
 static void load_assets(Arena* arena, Assets* assets);
 
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 360
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type);
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param);
 global Window window;
@@ -64,17 +64,17 @@ static void u32_buffer_from_u8_buffer(String8* channel_1, String8* channel_4);
 
 typedef struct Memory{
     void* base;
-    size_t size;
+    u64 size;
 
     void* permanent_base;
-    size_t permanent_size;
+    u64 permanent_size;
     void* transient_base;
-    size_t transient_size;
+    u64 transient_size;
 
     bool initialized;
 } Memory;
 global Memory memory;
-static void init_memory();
+static void init_memory(u64 permanent, u64 transient);
 
 
 static u64 frame_count;
@@ -83,6 +83,25 @@ global bool should_quit;
 global Arena* global_arena = os_make_arena(MB(100));
 
 static void show_cursor(bool show);
+
+typedef enum RenderBatchType{
+    RenderBatchType_UI,
+    RenderBatchType_Entities,
+    RenderBatchType_Count,
+} RenderBatch_Type;
+
+typedef struct RenderBatch{
+    Vertex3* buffer;
+    s32 count;
+    s32 at;
+} RenderBatch;
+
+static void
+init_render_batch(Arena* arena, RenderBatch* batch, s32 vertex_count){
+    batch->buffer = push_array(arena, Vertex3, vertex_count);
+    batch->count = vertex_count;
+    batch->at = 0;
+}
 
 #define MAX_LEVELS 3
 #define MAX_LIVES 1
@@ -113,6 +132,13 @@ typedef struct State{
 
     u32 current_font;
     f64 spawn_t;
+
+    f32 screen_top;
+    f32 screen_bottom;
+    f32 screen_left;
+    f32 screen_right;
+
+    RenderBatch* render_batch;
 } State, PermanentMemory;
 global State* state;
 
@@ -122,10 +148,22 @@ typedef struct TransientMemory{
     Arena *render_command_arena;
     Arena *asset_arena;
     Arena *ui_arena;
+    Arena *batch_arena;
 
     Assets assets;
+    RenderBatch render_batch_type[RenderBatchType_Count];
 } TransientMemory, TState;
 global TState* ts;
+
+static void
+set_render_batch(RenderBatch_Type type){
+    state->render_batch = &ts->render_batch_type[type];
+}
+
+static RenderBatch*
+get_render_batch(){
+    return(state->render_batch);
+}
 
 
 // todo: once I fix rendering pipeline, this can move up

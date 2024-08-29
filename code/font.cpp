@@ -20,7 +20,8 @@ load_font_ttf(Arena* arena, String8 filename, f32 size){
     }
     result.scale = stbtt_ScaleForPixelHeight(&result.info, size);
     stbtt_GetFontVMetrics(&result.info, &result.ascent, &result.descent, &result.line_gap);
-    result.vertical_offset = round_f32_s32((f32)(result.ascent - result.descent + result.line_gap) * result.scale); // note: I don't see value in keeping this in unscaled.
+
+    result.vertical_offset = round_f32((f32)(result.ascent - result.descent + result.line_gap) * result.scale); // note: I don't see value in keeping this in unscaled.
 
     result.texture_w = 1024;
     result.texture_h = 1024;
@@ -111,23 +112,23 @@ font_string_width(u32 font_id, String8 str){
     return(result);
 }
 
-static s32
+static f32
 font_vertical_offset(u32 font_id){
     Font* font = &ts->assets.fonts[font_id];
     return(font->vertical_offset);
 }
 
-static s32
+static f32
 font_ascent(u32 font_id){
     Font* font = &ts->assets.fonts[font_id];
-    s32 result = round_f32_s32((f32)font->ascent * font->scale);
+    f32 result = round_f32((f32)font->ascent * font->scale);
     return(result);
 }
 
-static s32
+static f32
 font_descent(u32 font_id){
     Font* font = &ts->assets.fonts[font_id];
-    s32 result = round_f32_s32((f32)font->descent * font->scale);
+    f32 result = round_f32((f32)font->descent * font->scale);
     return(result);
 }
 

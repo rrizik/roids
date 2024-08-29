@@ -116,7 +116,7 @@ add_ship(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
         e->deg = -90;
         e->dir = make_v2(0, -1);
         e->accel_dir = make_v2(0, 0);
-        e->speed = 100;
+        e->speed = 200;
         e->velocity = 0;
         e->shoot_t = 1;
         e->texture = texture;
@@ -312,10 +312,9 @@ handle_global_events(Event event){
         should_quit = true;
         return(true);
     }
+    // todo: why is this here
     if(event.type == MOUSE){
-        v2 p0 = make_v2(window.width/2, window.height/2);
-        v2 p1 = make_v2((f32)controller.mouse.x, (f32)controller.mouse.y);
-        v2 direction = direction_v2(p0, p1);
+        v2 direction = direction_v2(window.dim, controller.mouse.pos);
 
         f32 rad = rad_from_dir(direction);
         f32 deg = deg_from_dir(direction);
@@ -420,10 +419,14 @@ handle_game_events(Event event){
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == KeyCode_ESCAPE){
-                if(!game_won() && state->lives){
+                if(state->game_mode == GameMode_Game){
+                    if(!game_won() && state->lives){
+                        pause = !pause;
+                        return(true);
+                    }
+                }
+                else{
                     should_quit = true;
-                    //pause = !pause;
-                    return(true);
                 }
             }
         }
@@ -569,36 +572,35 @@ static void update_game(){
             v2 pos = {0, 0};
             f32 deg = 0;
             if(side == 0){
-                pos.x = -200;
-                pos.y = random_range_f32(window.height - 1);
+                pos.x = state->screen_left -200;
+                pos.y = random_range_f32(state->screen_bottom - 1) - state->screen_bottom;
                 deg = random_range_f32(180) - 90.0f;
             }
             if(side == 1){
-                pos.x = window.width + 200.0f;
-                pos.y = random_range_f32(window.height - 1);
+                pos.x = state->screen_right + 200.0f;
+                pos.y = random_range_f32(state->screen_bottom - 1) - state->screen_bottom;
 
                 s32 sign = (s32)random_range_u32(1) - 1;
                 deg = (random_range_f32(90) + 90.0f) * (f32)sign;
             }
             if(side == 2){
-                pos.x = random_range_f32(window.width - 1);
-                pos.y = -200;
+                pos.x = random_range_f32(state->screen_right - 1) - state->screen_right;
+                pos.y = state->screen_top -200;
 
                 deg = random_range_f32(180);
             }
             if(side == 3){
-                pos.x = random_range_f32(window.width - 1);
-                pos.y = window.height + 200.0f;
+                pos.x = random_range_f32(state->screen_right - 1) - state->screen_right;
+                pos.y = state->screen_bottom + 200.0f;
 
                 deg = random_range_f32(180) - 180;
             }
             if(state->current_level->asteroid_spawned < state->current_level->asteroid_count_max){
-                //Entity* asteroid = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
-                //state->current_level->asteroid_spawned++;
+                Entity* asteroid = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
+                state->current_level->asteroid_spawned++;
             }
         }
 
-        // 64 byte cache lines
         // resolve entity motion
         for(s32 i = 0; i < array_count(state->entities); ++i){
             begin_timed_scope("entity_motion");
@@ -613,24 +615,24 @@ static void update_game(){
             }
 
             if(has_flags(e->flags, EntityFlag_Wrapping)){
-                if(e->pos.x - e->dim.w/2 > window.width){
-                    e->pos.x = 0 - e->dim.w/2;
+                if(e->pos.x - e->dim.w/2 > state->screen_right){
+                    e->pos.x = state->screen_left - e->dim.w/2;
                 }
-                if(e->pos.y - e->dim.h/2 > window.height){
-                    e->pos.y = 0 - e->dim.h/2;
+                if(e->pos.y - e->dim.h/2 > state->screen_bottom){
+                    e->pos.y = state->screen_top - e->dim.h/2;
                 }
-                if(e->pos.x + e->dim.w/2 < 0){
-                    e->pos.x = window.width + e->dim.w/2;
+                if(e->pos.x + e->dim.w/2 < state->screen_left){
+                    e->pos.x = state->screen_right + e->dim.w/2;
                 }
-                if(e->pos.y + e->dim.h/2 < 0){
-                    e->pos.y = window.height + e->dim.h/2;
+                if(e->pos.y + e->dim.h/2 < state->screen_top){
+                    e->pos.y = state->screen_bottom + e->dim.h/2;
                 }
             }
             else{
-                if((e->pos.x + e->dim.w/2 < 0)             ||
-                   (e->pos.y + e->dim.h/2 < 0)             ||
-                   (e->pos.x - e->dim.w/2 > window.width)  ||
-                   (e->pos.y - e->dim.h/2 > window.height)){
+                if((e->pos.x + e->dim.w/2 < -window.width/2)   ||
+                   (e->pos.y + e->dim.h/2 < -window.height/2)  ||
+                   (e->pos.x - e->dim.w/2 >  window.width/2)   ||
+                   (e->pos.y - e->dim.h/2 >  window.height/2)){
                    remove_entity(e);
                 }
             }
@@ -654,7 +656,7 @@ static void update_game(){
                             e->dim.h -= 50;
                             for(s32 splint_i=0; splint_i < 3; ++splint_i){
                                 e->deg = random_range_f32(360);
-                                //add_asteroid(TextureAsset_Asteroid, e->pos, e->dim, e->deg);
+                                add_asteroid(TextureAsset_Asteroid, e->pos, e->dim, e->deg);
                                 state->current_level->asteroid_spawned++;
                                 state->current_level->asteroid_count_max++;
                             }

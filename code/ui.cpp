@@ -20,9 +20,8 @@ ui_begin(Arena* ui_arena){
 
     ui_push_pos_x(0);
     ui_push_pos_y(0);
-    ui_push_size_w(ui_size_pixel((f32)ui_window()->width, 0));
-    f32 a = (f32)ui_window()->height;
-    ui_push_size_h(ui_size_pixel((f32)ui_window()->height, 0));
+    ui_push_size_w(ui_size_pixel(ui_window()->width, 0));
+    ui_push_size_h(ui_size_pixel(ui_window()->height, 0));
     ui_push_layout_axis(Axis_Y);
 
     ui_push_text_padding(0);
@@ -47,7 +46,6 @@ ui_layout(){
 
 static void
 ui_end(){
-
     ui_parent_top = 0;
     ui_pos_x_top = 0;
     ui_pos_y_top = 0;
@@ -82,9 +80,9 @@ ui_table(){
     return(ui_state->table);
 }
 
-static v2s32
+static v2
 ui_mouse_pos(){
-    v2s32 mouse_pos = make_v2s32(ui_state->controller->mouse.x, ui_state->controller->mouse.y);
+    v2 mouse_pos = make_v2(ui_state->controller->mouse.x, ui_state->controller->mouse.y);
     return(mouse_pos);
 }
 
@@ -101,6 +99,14 @@ ui_closed(){
 static void
 ui_close(){
     ui_state->closed = true;
+}
+
+static String8
+ui_text_part_from_key(String8 string){
+    String8 result = {0};
+    s64 idx = byte_index_from_left(string, '#');
+    result = str8_split_left(string, (u64)idx);
+    return(result);
 }
 
 static UI_Size
@@ -218,7 +224,7 @@ ui_signal_from_box(UI_Box* box){
     UI_Signal signal = {0};
 
     Controller* controller = ui_state->controller;
-    v2s32 mouse_pos = make_v2s32(controller->mouse.x, controller->mouse.y);
+    v2 mouse_pos = make_v2(controller->mouse.x, controller->mouse.y);
 
 
     if(has_flags(box->flags, UI_BoxFlag_Clickable)){
@@ -243,8 +249,8 @@ ui_signal_from_box(UI_Box* box){
                 //if(ui_state->active == 0){
                     ui_state->active = box->key;
                     ui_state->mouse_pos_record = mouse_pos;
-                    ui_state->mouse_pos_record.x -= (s32)box->rel_pos[Axis_X];
-                    ui_state->mouse_pos_record.y -= (s32)box->rel_pos[Axis_Y];
+                    ui_state->mouse_pos_record.x -= box->rel_pos[Axis_X];
+                    ui_state->mouse_pos_record.y -= box->rel_pos[Axis_Y];
                 //}
             }
         }
@@ -278,8 +284,8 @@ ui_traverse_independent(UI_Box* box, Axis axis){
                 box->size[axis] = (f32)width + box->text_padding;
             }
             if(axis == Axis_Y){
-                s32 height = font_vertical_offset(0);
-                box->size[axis] = (f32)height + box->text_padding;
+                f32 height = font_vertical_offset(0);
+                box->size[axis] = height + box->text_padding;
             }
         } break;
     }
@@ -413,15 +419,17 @@ ui_draw(UI_Box* box){
         draw_quad(box->rect, box->background_color);
     }
     if(has_flags(box->flags, UI_BoxFlag_DrawText)){
-        f32 width = font_string_width(0, box->string);
-        s32 vertical_offset = font_vertical_offset(0);
-        s32 ascent = font_ascent(0);
-        s32 descent = font_descent(0);
+        String8 text = ui_text_part_from_key(box->string);
 
-        s32 center = ascent - (ascent - descent)/2;
+        f32 width = font_string_width(0, text);
+        f32 vertical_offset = font_vertical_offset(0);
+        f32 ascent = font_ascent(0);
+        f32 descent = font_descent(0);
+
+        f32 center = ascent - (ascent - descent)/2;
         v2 pos = make_v2(box->rect.min.x + box->size[Axis_X]/2 - width/2,
-                         box->rect.min.y + box->size[Axis_Y]/2 + (f32)center);
-        draw_text(0, box->string, pos, box->text_color);
+                         box->rect.min.y + box->size[Axis_Y]/2 + center);
+        draw_text(0, text, pos, box->text_color);
     }
 
     if(box->first){

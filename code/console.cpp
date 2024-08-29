@@ -144,8 +144,6 @@ console_set_state(ConsoleState state){
             break;
         }
     }
-
-    console_update();
 }
 
 static bool
@@ -246,18 +244,17 @@ handle_console_events(Event event){
 
 static void
 console_update(){
+    f32 epsilon = 0.001f;
     f32 open_d = console.open_dt * (f32)clock.dt;
     if(console.open_t < console.open_t_target){
         console.open_t = lerp(console.open_t, console.open_t_target, smoothstep(open_d));
-        //console.open_t += open_d;
-        if(console.open_t > console.open_t_target){
+        if(console.open_t > console.open_t_target - epsilon){
             console.open_t = console.open_t_target;
         }
     }
     else if(console.open_t > console.open_t_target){
         console.open_t = lerp(console.open_t, console.open_t_target, smoothstep(open_d));
-        //console.open_t -= open_d;
-        if(console.open_t < 0){
+        if(console.open_t < epsilon){
             console.open_t = 0;
         }
     }
@@ -271,7 +268,6 @@ console_draw(){
 
         // rect setup
         f32 y = (f32)(-font->vertical_offset);
-        //f32 y = -((f32)font->vertical_offset * font->scale);
         v2 output_p0 = make_v2(0                , y);
         v2 output_p1 = make_v2((f32)window.width, y);
         v2 output_p2 = make_v2((f32)window.width, (console.open_t * (f32)window.height) + y);

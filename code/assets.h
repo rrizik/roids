@@ -42,8 +42,7 @@ typedef enum TextureAsset{
     TextureAsset_Explosion5,
     TextureAsset_Explosion6,
 
-    TextureAsset_Font_Arial,
-    TextureAsset_Font_Golos,
+    TextureAsset_White,
 
     TextureAsset_Count,
 } TextureAsset;

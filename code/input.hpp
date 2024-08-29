@@ -131,8 +131,13 @@ typedef struct Button{
 } Button;
 
 typedef struct Mouse{
-    s32 x;
-    s32 y;
+    union{
+        struct{
+            f32 x;
+            f32 y;
+        };
+        v2 pos;
+    };
     f32 dx;
     f32 dy;
     s32 wheel_dir;
@@ -169,8 +174,8 @@ typedef struct Event{
     bool alt_pressed;
 
     s32 mouse_wheel_dir;
-    s32 mouse_x;
-    s32 mouse_y;
+    f32 mouse_x;
+    f32 mouse_y;
     f32 mouse_dx;
     f32 mouse_dy;
 } Event;

@@ -42,9 +42,9 @@ global ID3D11RasterizerState1*  d3d_rasterizer_state;
 global ID3D11SamplerState*      d3d_sampler_state;
 global ID3D11BlendState*        d3d_blend_state; // note: maybe use BlendState1 later
 
-global ID3D11VertexShader* d3d_2d_quad_vs;
-global ID3D11PixelShader*  d3d_2d_quad_ps;
-global ID3D11InputLayout*  d3d_2d_quad_il;
+//global ID3D11VertexShader* d3d_2d_quad_vs;
+//global ID3D11PixelShader*  d3d_2d_quad_ps;
+//global ID3D11InputLayout*  d3d_2d_quad_il;
 
 global ID3D11VertexShader* d3d_2d_textured_vs;
 global ID3D11PixelShader*  d3d_2d_textured_ps;
@@ -54,7 +54,6 @@ global ID3D11VertexShader* d3d_d7_sprite_vs;
 global ID3D11PixelShader*  d3d_d7_sprite_ps;
 
 global ID3D11Buffer* d3d_vertex_buffer_8mb;
-global ID3D11Buffer* d3d_vertex_buffer;
 global ID3D11Buffer* d3d_index_buffer;
 global ID3D11Buffer* d3d_instance_buffer;
 global ID3D11Buffer* d3d_constant_buffer;
@@ -77,11 +76,11 @@ global D3D11_INPUT_ELEMENT_DESC il_2d_textured[] = {
         {"TEX",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 };
 
-global D3D11_INPUT_ELEMENT_DESC layout_2d_quad[] = {
-        // vertex data
-        {"POS",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-};
+//global D3D11_INPUT_ELEMENT_DESC layout_2d_quad[] = {
+//        // vertex data
+//        {"POS",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+//        {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+//};
 
 typedef struct ConstantBuffer{
     XMMATRIX view;
@@ -128,6 +127,7 @@ static RGBA TEAL =    {0.0f, 1.0f, 1.0f,  1.0f};
 static RGBA PINK =    {0.92f, 0.62f, 0.96f, 1.0f};
 static RGBA YELLOW =  {0.9f, 0.9f, 0.0f,  1.0f};
 static RGBA ORANGE =  {1.0f, 0.5f, 0.15f,  1.0f};
+static RGBA ORANGE_HALF =  {1.0f, 0.5f, 0.15f,  0.1f};
 static RGBA DARK_GRAY =  {0.5f, 0.5f, 0.5f,  1.0f};
 static RGBA LIGHT_GRAY = {0.8f, 0.8f, 0.8f,  1.0f};
 static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};

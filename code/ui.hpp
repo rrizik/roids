@@ -122,7 +122,7 @@ typedef struct UI_State{
     u64 hot;
     u64 active;
 
-    v2s32 mouse_pos_record;
+    v2 mouse_pos_record;
 
     bool closed;
 
@@ -146,10 +146,11 @@ static Arena*    ui_arena();
 static Window*   ui_window();
 static UI_Box*   ui_root();
 static HashTable ui_table();
-static v2s32     ui_mouse_pos();
+static v2        ui_mouse_pos();
 static Mouse     ui_mouse();
 static bool      ui_closed();
 static void      ui_close();
+static String8   ui_text_part_from_key(String8 string);
 
 static BoxCache cache_from_box(UI_Box* box);
 static UI_Signal ui_signal_from_box(UI_Box* box);

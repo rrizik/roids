@@ -73,6 +73,16 @@ draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
     command->p1 = p1;
     command->p2 = p2;
     command->p3 = p3;
+    command->texture = TextureAsset_White;
+
+    RenderBatch* batch = get_render_batch();
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    batch->buffer[batch->at++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { p1, linear_color, make_v2(1.0f, 0.0f) };
+    batch->buffer[batch->at++] = { p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void
@@ -84,6 +94,16 @@ draw_quad(v2 pos, v2 dim, RGBA color){
     command->p1 = make_v2(pos.x + dim.w, pos.y);
     command->p2 = make_v2(pos.x + dim.w, pos.y + dim.h);
     command->p3 = make_v2(pos.x, pos.y + dim.h);
+    command->texture = TextureAsset_White;
+
+    RenderBatch* batch = get_render_batch();
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void
@@ -95,6 +115,16 @@ draw_quad(Rect rect, RGBA color){
     command->p1 = make_v2(rect.x1, rect.y0);
     command->p2 = make_v2(rect.x1, rect.y1);
     command->p3 = make_v2(rect.x0, rect.y1);
+    command->texture = TextureAsset_White;
+
+    RenderBatch* batch = get_render_batch();
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void
@@ -106,16 +136,41 @@ draw_quad(Quad quad, RGBA color){
     command->p1 = quad.p1;
     command->p2 = quad.p2;
     command->p3 = quad.p3;
+    command->texture = TextureAsset_White;
+
+    RenderBatch* batch = get_render_batch();
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void
-draw_line(v2 p0, v2 p1, s32 width, RGBA color){
+draw_line(v2 p0, v2 p1, f32 width, RGBA color){
     RenderCommand* command = push_struct(rc_arena, RenderCommand);
     command->type = RenderCommandType_Line;
     command->color = color;
+
+    v2 dir = direction_v2(p0, p1);
+    v2 perp = perpendicular(dir);
+
     command->p0 = p0;
     command->p1 = p1;
-    command->width = width;
+    command->p2 = command->p1 + (perp * width);
+    command->p3 = command->p0 + (perp * width);
+    command->texture = TextureAsset_White;
+
+    RenderBatch* batch = get_render_batch();
+    //RGBA linear_color = srgb_to_linear(color); // gamma correction
+    //batch->buffer[batch->at++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
+    //batch->buffer[batch->at++] = { p1, linear_color, make_v2(1.0f, 0.0f) };
+    //batch->buffer[batch->at++] = { p2, linear_color, make_v2(1.0f, 1.0f) };
+    //batch->buffer[batch->at++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
+    //batch->buffer[batch->at++] = { p2, linear_color, make_v2(1.0f, 1.0f) };
+    //batch->buffer[batch->at++] = { p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void
@@ -126,6 +181,8 @@ draw_text(u32 font_id, String8 text, v2 pos, RGBA color){
     command->color = color;
     command->font_id = font_id;
     command->text = text;
+
+    RenderBatch* batch = get_render_batch();
 }
 
 static void
@@ -141,10 +198,19 @@ draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE){
 }
 
 static v2
+world_from_screen_space(v2 point){
+    v2 result = {0};
+    result.x = (point.x - (window.width / 2.0f));
+    result.y = (window.height / 2.0f - point.y);
+    result.y = -result.y;
+    return(result);
+}
+
+static v2
 screen_from_world_space(v2 point){
     v2 result = {0};
-    result.x = (point.x + window.width / 2.0f);
-    result.y = (window.height / 2.0f - point.y);
+    result.x = (point.x + (window.width / 2.0f));
+    result.y = ((window.height / 2.0f) + point.y);
     return(result);
 }
 
@@ -154,6 +220,7 @@ draw_commands(){
     void* at = rc_arena->base;
     void* end = (u8*)rc_arena->base + rc_arena->at;
 
+    count = 0;
     // todo: inline most/all of these
     while(at != end){
         RenderCommand* command = (RenderCommand*)at;
@@ -163,116 +230,15 @@ draw_commands(){
                 d3d_context->ClearRenderTargetView(d3d_framebuffer_view, command->color.e);
             } break;
             case RenderCommandType_Quad:{
-                RGBA linear_color = srgb_to_linear(command->color); // gamma correction
-                v2 p0_round = round_v2(command->p0);
-                v2 p1_round = round_v2(command->p1);
-                v2 p2_round = round_v2(command->p2);
-                v2 p3_round = round_v2(command->p3);
-                Vertex2 vertices[] = {
-                    { p0_round, linear_color },
-                    { p1_round, linear_color },
-                    { p2_round, linear_color },
-
-                    { p0_round, linear_color },
-                    { p2_round, linear_color },
-                    { p3_round, linear_color },
-                };
-
-                //----vertex buffer----
-                {
-                    D3D11_MAPPED_SUBRESOURCE resource;
-                    hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
-                    assert_hr(hr);
-
-                    memcpy(resource.pData, vertices, sizeof(Vertex2) * array_count(vertices));
-                    d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
-
-                    ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
-                    u32 strides[] = {sizeof(Vertex2)};
-                    u32 offset[] = {0};
-
-                    d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
-                }
-
-                //-------------------------------------------------------------------
-
-                d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
-
-                d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
-                d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
-                d3d_context->RSSetState(d3d_rasterizer_state);
-
-                d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
-
-                d3d_context->RSSetViewports(1, &d3d_viewport);
-                d3d_context->IASetInputLayout(d3d_2d_quad_il);
-                d3d_context->VSSetShader(d3d_2d_quad_vs, 0, 0);
-                d3d_context->PSSetShader(d3d_2d_quad_ps, 0, 0);
-
-                d3d_context->Draw(6, 0);
-            } break;
-            case RenderCommandType_Line:{
-
-                v2 dir = direction_v2(command->p0, command->p1);
-                v2 perp = perpendicular(dir);
-
-                v2 p2 = command->p1 + (perp * (f32)command->width);
-                v2 p3 = command->p0 + (perp * (f32)command->width);
-
-                RGBA linear_color = srgb_to_linear(command->color); // gamma correction
-                Vertex2 vertices[] = {
-                    { command->p0, linear_color },
-                    { command->p1, linear_color },
-                    { p2, linear_color },
-
-                    { command->p0, linear_color },
-                    { p2, linear_color },
-                    { p3, linear_color },
-                };
-
-                //----vertex buffer----
-                {
-                    D3D11_MAPPED_SUBRESOURCE resource;
-                    hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
-                    assert_hr(hr);
-
-                    memcpy(resource.pData, vertices, sizeof(Vertex2) * array_count(vertices));
-                    d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
-
-                    ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
-                    u32 strides[] = {sizeof(Vertex2)};
-                    u32 offset[] = {0};
-
-                    d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
-                }
-
-                //-------------------------------------------------------------------
-
-                d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-                d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
-
-                d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
-                d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
-                d3d_context->RSSetState(d3d_rasterizer_state);
-
-                d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
-
-                d3d_context->RSSetViewports(1, &d3d_viewport);
-                d3d_context->IASetInputLayout(d3d_2d_quad_il);
-                d3d_context->VSSetShader(d3d_2d_quad_vs, 0, 0);
-                d3d_context->PSSetShader(d3d_2d_quad_ps, 0, 0);
-
-                d3d_context->Draw(6, 0);
-            } break;
-            case RenderCommandType_Texture:{
                 ID3D11ShaderResourceView* texture = ts->assets.textures[command->texture].view;
                 RGBA linear_color = srgb_to_linear(command->color); // gamma correction
 
-                v2 p0 = screen_from_world_space(command->p0);
-                v2 p1 = screen_from_world_space(command->p1);
-                v2 p2 = screen_from_world_space(command->p2);
-                v2 p3 = screen_from_world_space(command->p3);
+                v2 p0 = round_v2(command->p0);
+                v2 p1 = round_v2(command->p1);
+                v2 p2 = round_v2(command->p2);
+                v2 p3 = round_v2(command->p3);
+                count += 6;
+
                 Vertex3 vertices[] = {
                     { p0, linear_color, make_v2(0.0f, 0.0f) },
                     { p1, linear_color, make_v2(1.0f, 0.0f) },
@@ -307,7 +273,116 @@ draw_commands(){
 
                 d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
                 d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
+                d3d_context->RSSetState(d3d_rasterizer_state);
 
+                d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
+
+                d3d_context->RSSetViewports(1, &d3d_viewport);
+                d3d_context->IASetInputLayout(d3d_2d_textured_il);
+                d3d_context->VSSetShader(d3d_2d_textured_vs, 0, 0);
+                d3d_context->PSSetShader(d3d_2d_textured_ps, 0, 0);
+
+                d3d_context->Draw(6, 0);
+            } break;
+            case RenderCommandType_Line:{
+                ID3D11ShaderResourceView* texture = ts->assets.textures[command->texture].view;
+                RGBA linear_color = srgb_to_linear(command->color); // gamma correction
+
+                v2 p0 = round_v2(command->p0);
+                v2 p1 = round_v2(command->p1);
+                v2 p2 = round_v2(command->p2);
+                v2 p3 = round_v2(command->p3);
+                count += 6;
+
+                Vertex3 vertices[] = {
+                    { p0, linear_color, make_v2(0.0f, 0.0f) },
+                    { p1, linear_color, make_v2(1.0f, 0.0f) },
+                    { p2, linear_color, make_v2(1.0f, 1.0f) },
+
+                    { p0, linear_color, make_v2(0.0f, 0.0f) },
+                    { p2, linear_color, make_v2(1.0f, 1.0f) },
+                    { p3, linear_color, make_v2(0.0f, 1.0f) },
+                };
+
+                //----vertex buffer----
+                {
+                    D3D11_MAPPED_SUBRESOURCE resource;
+                    hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+                    assert_hr(hr);
+
+                    memcpy(resource.pData, vertices, sizeof(Vertex3) * array_count(vertices));
+                    d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
+
+                    ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
+                    u32 strides[] = {sizeof(Vertex3)};
+                    u32 offset[] = {0};
+
+                    d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
+                }
+
+                //-------------------------------------------------------------------
+
+                d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
+                d3d_context->PSSetShaderResources(0, 1, &texture);
+
+                d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
+                d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
+                d3d_context->RSSetState(d3d_rasterizer_state);
+
+                d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
+
+                d3d_context->RSSetViewports(1, &d3d_viewport);
+                d3d_context->IASetInputLayout(d3d_2d_textured_il);
+                d3d_context->VSSetShader(d3d_2d_textured_vs, 0, 0);
+                d3d_context->PSSetShader(d3d_2d_textured_ps, 0, 0);
+
+                d3d_context->Draw(6, 0);
+            } break;
+            case RenderCommandType_Texture:{
+                ID3D11ShaderResourceView* texture = ts->assets.textures[command->texture].view;
+                RGBA linear_color = srgb_to_linear(command->color); // gamma correction
+
+                v2 p0 = round_v2(command->p0);
+                v2 p1 = round_v2(command->p1);
+                v2 p2 = round_v2(command->p2);
+                v2 p3 = round_v2(command->p3);
+                count += 6;
+
+                Vertex3 vertices[] = {
+                    { p0, linear_color, make_v2(0.0f, 0.0f) },
+                    { p1, linear_color, make_v2(1.0f, 0.0f) },
+                    { p2, linear_color, make_v2(1.0f, 1.0f) },
+
+                    { p0, linear_color, make_v2(0.0f, 0.0f) },
+                    { p2, linear_color, make_v2(1.0f, 1.0f) },
+                    { p3, linear_color, make_v2(0.0f, 1.0f) },
+                };
+
+                //----vertex buffer----
+                {
+                    D3D11_MAPPED_SUBRESOURCE resource;
+                    hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+                    assert_hr(hr);
+
+                    memcpy(resource.pData, vertices, sizeof(Vertex3) * array_count(vertices));
+                    d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
+
+                    ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
+                    u32 strides[] = {sizeof(Vertex3)};
+                    u32 offset[] = {0};
+
+                    d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
+                }
+
+                //-------------------------------------------------------------------
+
+                d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+                d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
+                d3d_context->PSSetShaderResources(0, 1, &texture);
+
+                d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
+                d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
                 d3d_context->RSSetState(d3d_rasterizer_state);
 
                 d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
@@ -353,6 +428,7 @@ draw_commands(){
                         //p2 = rotate_point_deg(p2, g_angle, origin);
                         //p3 = rotate_point_deg(p3, g_angle, origin);
 
+                        count += 6;
                         buffer[vertex_count++] = { p0, linear_color, make_v2(quad.s0, quad.t0) };
                         buffer[vertex_count++] = { p1, linear_color, make_v2(quad.s1, quad.t0) };
                         buffer[vertex_count++] = { p2, linear_color, make_v2(quad.s1, quad.t1) };
@@ -387,11 +463,9 @@ draw_commands(){
 
                 d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
                 d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
-
                 d3d_context->RSSetState(d3d_rasterizer_state);
 
                 d3d_context->RSSetViewports(1, &d3d_viewport);
-
                 d3d_context->IASetInputLayout(d3d_2d_textured_il);
                 d3d_context->VSSetShader(d3d_2d_textured_vs, 0, 0);
                 d3d_context->PSSetShader(d3d_2d_textured_ps, 0, 0);
@@ -406,6 +480,9 @@ draw_commands(){
         begin_timed_scope("present");
         d3d_swapchain->Present(1, 0);
     }
+    print("vertex:- count(%i), size(%i), bytes(%i), MB(%f)\n",
+          count, sizeof(Vertex3), count * sizeof(Vertex3),
+          (f32)(count * sizeof(Vertex3))/MB(1));
 }
 
 #endif

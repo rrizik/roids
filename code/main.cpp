@@ -96,6 +96,8 @@ load_assets(Arena* arena){
     init_texture_resource(&ts->assets.textures[TextureAsset_Explosion5].view, &bm);
     bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/explosion6.bmp"));
     init_texture_resource(&ts->assets.textures[TextureAsset_Explosion6].view, &bm);
+    Texture texture = {white_shader_resource};
+    ts->assets.textures[TextureAsset_White] = texture;
 
     end_scratch(scratch);
 
@@ -126,9 +128,9 @@ init_paths(Arena* arena){
 }
 
 static void
-init_memory(){
-    memory.permanent_size = MB(500);
-    memory.transient_size = GB(1);
+init_memory(u64 permanent, u64 transient){
+    memory.permanent_size = permanent;
+    memory.transient_size = transient;
     memory.size = memory.permanent_size + memory.transient_size;
 
     memory.base = os_virtual_alloc(memory.size);
@@ -158,6 +160,7 @@ win32_window_create(const wchar* window_name, u32 width, u32 height){
 
     // adjust window size to exclude client area
     DWORD style = WS_OVERLAPPEDWINDOW|WS_VISIBLE;
+    style = style & ~WS_MAXIMIZEBOX; // disable maximize button
     RECT rect = { 0, 0, (s32)width, (s32)height };
     AdjustWindowRect(&rect, style, FALSE);
     s32 adjusted_w = rect.right - rect.left;
@@ -198,6 +201,17 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             events_add(&events, event);
         } break;
 
+        case WM_NCHITTEST:{ // prevent resizing on edges
+            LRESULT hit = DefWindowProcW(hwnd, message, w_param, l_param);
+            if (hit == HTLEFT       || hit == HTRIGHT || // edges of window
+                hit == HTTOP        || hit == HTBOTTOM ||
+                hit == HTTOPLEFT    || hit == HTTOPRIGHT || // corners of window
+                hit == HTBOTTOMLEFT || hit == HTBOTTOMRIGHT){
+                return HTCLIENT;
+            }
+            return hit;
+        } break;
+
         case WM_CHAR:{
             u64 keycode = w_param;
 
@@ -219,13 +233,13 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
         case WM_MOUSEMOVE:{
             Event event = {0};
             event.type = MOUSE;
-            event.mouse_x = (s32)(s16)(l_param & 0xFFFF);
-            event.mouse_y = (s32)(s16)(l_param >> 16);
+            event.mouse_x = (f32)((s16)(l_param & 0xFFFF));
+            event.mouse_y = (f32)((s16)(l_param >> 16));
 
             // calc dx/dy and normalize from -1:1
-            s32 dx = event.mouse_x - controller.mouse.x;
-            s32 dy = event.mouse_y - controller.mouse.y;
-            v2 delta_normalized = normalize_v2(make_v2((f32)dx, (f32)dy));
+            f32 dx = event.mouse_x - controller.mouse.x;
+            f32 dy = event.mouse_y - controller.mouse.y;
+            v2 delta_normalized = normalize_v2(make_v2(dx, dy));
             event.mouse_dx = delta_normalized.x;
             event.mouse_dy = delta_normalized.y;
 
@@ -383,7 +397,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     random_seed(0, 1);
 
     init_paths(global_arena);
-    init_memory();
+    init_memory(MB(500), GB(1));
     init_clock(&clock);
     HRESULT hr = init_audio(2, 48000, 32);
     assert_hr(hr);
@@ -418,8 +432,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         ts->frame_arena = push_arena(&ts->arena, MB(100));
         ts->asset_arena = push_arena(&ts->arena, MB(100));
         ts->ui_arena = push_arena(&ts->arena, MB(100));
+        ts->batch_arena = push_arena(&ts->arena, MB(100));
 
-        state->game_mode = GameMode_Game;
+
+        init_render_batch(ts->batch_arena, &ts->render_batch_type[RenderBatchType_UI], MB(8) / sizeof(Vertex3));
+        init_render_batch(ts->batch_arena, &ts->render_batch_type[RenderBatchType_Entities], MB(8) / sizeof(Vertex3));
+
+        state->game_mode = GameMode_Menu;
 
         show_cursor(true);
         load_assets(ts->asset_arena);
@@ -441,7 +460,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         //audio_play(WaveAsset_Track4, 0.0f, true);
 
         state->scale = 1;
-        state->ship = add_ship(TextureAsset_Ship, make_v2(0, 0), make_v2(30, 30));
+        state->ship = add_ship(TextureAsset_Ship, make_v2(0, 0), make_v2(50, 50));
         //state->ship = add_ship(TextureAsset_Ship, make_v2(window.width/2, window.height/2), make_v2(30, 30));
         state->ship_loaded = true;
         state->lives = 1;
@@ -449,6 +468,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         state->level_index = 0;
         init_levels();
         state->current_level = &state->levels[state->level_index];
+
+        state->screen_top = -window.height/2;
+        state->screen_bottom = window.height/2;
+        state->screen_left = -window.width/2;
+        state->screen_right = window.width/2;
 
         memory.initialized = true;
 
@@ -508,10 +532,27 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             window.width = 640.0f;
                             window.height = 360.0f;
                         }
+
+                        state->screen_top = -window.height/2;
+                        state->screen_bottom = window.height/2;
+                        state->screen_left = -window.width/2;
+                        state->screen_right = window.width/2;
                     }
                 }
             }
         }
+
+        v2 world = world_from_screen_space(controller.mouse.pos);
+        v2 screen = screen_from_world_space(world);
+        //print("m(%f, %f) - w(%f, %f) - s(%f, %f)\n",
+        //      controller.mouse.x, controller.mouse.y,
+        //      world.x, world.y,
+        //      screen.x, screen.y);
+        //print("t(%f) b(%f) l(%f) r(%f)\n",
+        //        state->screen_top,
+        //        state->screen_bottom,
+        //        state->screen_left,
+        //        state->screen_right);
 
         //----constant buffer----
         D3D11_MAPPED_SUBRESOURCE mapped_subresource;
@@ -520,6 +561,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         constants->screen_res = make_v2s32((s32)window.width, (s32)window.height);
         d3d_context->Unmap(d3d_constant_buffer, 0);
 
+        set_render_batch(RenderBatchType_Entities);
         draw_clear_color(BACKGROUND_COLOR);
         if(state->game_mode == GameMode_Menu){
             ui_begin(ts->ui_arena);
@@ -529,7 +571,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             ui_push_size_w(ui_size_children(0));
             ui_push_size_h(ui_size_children(0));
 
-            UI_Box* box1 = ui_box(str8_literal("box1"));
+            UI_Box* box1 = ui_box(str8_literal("box1##1"));
             ui_push_parent(box1);
             ui_pop_pos_x();
             ui_pop_pos_y();
@@ -537,24 +579,24 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             ui_push_size_w(ui_size_pixel(100, 0));
             ui_push_size_h(ui_size_pixel(50, 0));
             ui_push_background_color(BLUE);
-            if(ui_button(str8_literal("Play")).pressed_left){
+            if(ui_button(str8_literal("Play##1")).pressed_left){
                 state->game_mode = GameMode_Game;
                 reset_game();
                 ui_close();
             }
             ui_spacer(10);
-            if(ui_button(str8_literal("Exit")).pressed_left){
+            if(ui_button(str8_literal("Exit##1")).pressed_left){
                 should_quit = true;
                 ui_close();
             }
+            ui_layout();
+            set_render_batch(RenderBatchType_UI);
+            ui_draw(ui_root());
+            ui_end();
         }
 
         if(state->game_mode == GameMode_Game){
             Font* font = &ts->assets.fonts[state->current_font];
-
-            //if(controller.button[KeyCode_ESCAPE].pressed){
-            //    pause = !pause;
-            //}
 
             if(!state->lives){
                 String8 text = str8_formatted(ts->frame_arena, "GAME OVER - Score: %i", state->score);
@@ -586,6 +628,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     should_quit = true;
                     ui_close();
                 }
+                ui_layout();
+                set_render_batch(RenderBatchType_UI);
+                ui_draw(ui_root());
+                ui_end();
             }
             else if(game_won()){
                 String8 text = str8_formatted(ts->frame_arena, "CHICKEN DINNER - Score: %i", state->score);
@@ -617,6 +663,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     should_quit = true;
                     ui_close();
                 }
+                ui_layout();
+                set_render_batch(RenderBatchType_UI);
+                ui_draw(ui_root());
+                ui_end();
             }
             if(pause && !game_won() && state->lives){
                 ui_begin(ts->ui_arena);
@@ -643,6 +693,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     should_quit = true;
                     ui_close();
                 }
+                ui_layout();
+                set_render_batch(RenderBatchType_UI);
+                ui_draw(ui_root());
+                ui_end();
             }
             else{
                 simulations = 0;
@@ -660,23 +714,26 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
 
             // todo: also use flags here
+            set_render_batch(RenderBatchType_Entities);
             for(s32 index = 0; index < array_count(state->entities); ++index){
                 begin_timed_scope("build command arena");
                 Entity *e = state->entities + index;
+
+                v2 pos = screen_from_world_space(e->pos);
                 if(has_flags(e->flags, EntityFlag_Active)){
 
                     switch(e->type){
                         case EntityType_Quad:{
-                            v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
 
                             //f32 deg = deg_from_dir(e->dir);
-                            p0 = rotate_point_deg(p0, e->deg, e->pos);
-                            p1 = rotate_point_deg(p1, e->deg, e->pos);
-                            p2 = rotate_point_deg(p2, e->deg, e->pos);
-                            p3 = rotate_point_deg(p3, e->deg, e->pos);
+                            p0 = rotate_point_deg(p0, e->deg, pos);
+                            p1 = rotate_point_deg(p1, e->deg, pos);
+                            p2 = rotate_point_deg(p2, e->deg, pos);
+                            p3 = rotate_point_deg(p3, e->deg, pos);
 
                             draw_quad(p0, p1, p2, p3, e->color);
                         } break;
@@ -684,15 +741,15 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                         case EntityType_Bullet:
                         case EntityType_Particle:
                         case EntityType_Texture:{
-                            v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
 
-                            p0 = rotate_point_deg(p0, e->deg, e->pos);
-                            p1 = rotate_point_deg(p1, e->deg, e->pos);
-                            p2 = rotate_point_deg(p2, e->deg, e->pos);
-                            p3 = rotate_point_deg(p3, e->deg, e->pos);
+                            p0 = rotate_point_deg(p0, e->deg, pos);
+                            p1 = rotate_point_deg(p1, e->deg, pos);
+                            p2 = rotate_point_deg(p2, e->deg, pos);
+                            p3 = rotate_point_deg(p3, e->deg, pos);
 
                             //push_line(p0, p1, 2, GREEN);
                             //push_line(p1, p2, 2, GREEN);
@@ -702,20 +759,20 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             draw_texture(e->texture, p0, p1, p2, p3, e->color);
                         } break;
                         case EntityType_Ship:{
-                            v2 p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
 
-                            p0 = rotate_point_deg(p0, e->deg, e->pos);
-                            p1 = rotate_point_deg(p1, e->deg, e->pos);
-                            p2 = rotate_point_deg(p2, e->deg, e->pos);
-                            p3 = rotate_point_deg(p3, e->deg, e->pos);
+                            p0 = rotate_point_deg(p0, e->deg, pos);
+                            p1 = rotate_point_deg(p1, e->deg, pos);
+                            p2 = rotate_point_deg(p2, e->deg, pos);
+                            p3 = rotate_point_deg(p3, e->deg, pos);
 
-                            //push_line(p0, p1, 2, GREEN);
-                            //push_line(p1, p2, 2, GREEN);
-                            //push_line(p2, p3, 2, GREEN);
-                            //push_line(p3, p0, 2, GREEN);
+                            draw_line(p0, p1, 5, GREEN);
+                            draw_line(p1, p2, 5, GREEN);
+                            draw_line(p2, p3, 5, GREEN);
+                            draw_line(p3, p0, 5, GREEN);
 
                             if(state->ship->immune){
                                 draw_texture(e->texture, p0, p1, p2, p3, ORANGE);
@@ -755,14 +812,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
 
             // todo: revaluate where this should be
-            frame_inc++;
-            f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
-            if(second_elapsed > 1){
-                FPS = ((f64)frame_inc / second_elapsed);
-                frame_tick_start = clock.get_os_timer();
-                frame_inc = 0;
-            }
-            //print("FPS: %f - MSPF: %f - time_dt: %f - accumulator: %lu -  frame_time: %f - second_elapsed: %f - simulations: %i\n", FPS, MSPF, clock.dt, accumulator, frame_time, second_elapsed, simulations);
             String8 fps = str8_formatted(ts->frame_arena, "FPS: %.2f", FPS);
             draw_text(state->current_font, fps, make_v2(window.width - text_padding - font_string_width(state->current_font, fps), window.height - text_padding), ORANGE);
 
@@ -785,10 +834,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         }
         console_update();
 
-        ui_layout();
-        ui_draw(ui_root());
-        ui_end();
-
         // draw everything
         console_draw();
         draw_commands();
@@ -799,6 +844,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         arena_free(ts->ui_arena);
         arena_free(ts->render_command_arena);
 
+        frame_inc++;
+        f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
+        if(second_elapsed > 1){
+            FPS = ((f64)frame_inc / second_elapsed);
+            frame_tick_start = clock.get_os_timer();
+            frame_inc = 0;
+        }
         frame_count++;
 
         // todo: why is this here?
