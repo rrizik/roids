@@ -18,7 +18,7 @@ clear_flags(u32* rflags, u32 lflags){
 }
 
 static EntityHandle
-zero_entity_handle(){
+zero_entity_handle(void){
     EntityHandle result = {0};
     return(result);
 }

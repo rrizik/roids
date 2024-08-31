@@ -2,7 +2,7 @@
 #define D3D11_INIT_C
 
 static void
-d3d_init_debug_stuff(){
+d3d_init_debug_stuff(void){
     ID3D11InfoQueue* info;
     d3d_device->QueryInterface(__uuidof(ID3D11InfoQueue), (void**)&info);
     info->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, TRUE);
@@ -287,7 +287,7 @@ init_d3d(HWND window_handle, u32 width, u32 height){
 }
 
 static void
-init_texture_resource(ID3D11ShaderResourceView** shader_resource, Bitmap* bitmap){
+d3d_init_texture_resource(ID3D11ShaderResourceView** shader_resource, Bitmap* bitmap){
     D3D11_TEXTURE2D_DESC desc = {
         .Width = (u32)bitmap->width,
         .Height = (u32)bitmap->height,
@@ -314,7 +314,7 @@ assert_hr(hr);
 }
 
 static void
-d3d_release(){
+d3d_release(void){
     if(d3d_device) d3d_device->Release();
     if(d3d_context) d3d_context->Release();
     d3d_swapchain->SetFullscreenState(false, 0);

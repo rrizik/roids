@@ -2,6 +2,7 @@
 #define ASSET_H
 
 typedef enum FontAsset{
+    FontAsset_None,
     FontAsset_Arial,
     FontAsset_Golos,
     FontAsset_Consolas,
@@ -10,6 +11,7 @@ typedef enum FontAsset{
 } FontAsset;
 
 typedef enum WaveAsset{
+    WaveAsset_None,
     WaveAsset_Track1,
     WaveAsset_Track2,
     WaveAsset_Track3,
@@ -25,6 +27,7 @@ typedef enum WaveAsset{
 } WaveAsset;
 
 typedef enum TextureAsset{
+    TextureAsset_None,
     TextureAsset_Ship,
     TextureAsset_Bullet,
     TextureAsset_Asteroid,
@@ -46,4 +49,12 @@ typedef enum TextureAsset{
 
     TextureAsset_Count,
 } TextureAsset;
+
+typedef struct Assets{
+    Wave    waves[WaveAsset_Count];
+    Font    fonts[FontAsset_Count];
+    Texture textures[TextureAsset_Count];
+} Assets;
+static void load_assets(Arena* arena, Assets* assets);
+
 #endif

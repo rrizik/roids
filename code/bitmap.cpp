@@ -33,7 +33,7 @@ find_first_set_bit(u32 value){
 
 // NOTE: This is not a complete BMP loader. Use stb_image.h to load bmps instead if you want something complete
 static Bitmap
-load_bitmap(Arena* arena, String8 dir, String8 filename){
+bitmap_file_read(Arena* arena, String8 dir, String8 filename){
     Bitmap result = {0};
 
     ScratchArena scratch = begin_scratch();
@@ -97,17 +97,17 @@ load_bitmap(Arena* arena, String8 dir, String8 filename){
             };
 
             // sRGB to linear
-            color.r = square_f32(color.r),
-            color.g = square_f32(color.g),
-            color.b = square_f32(color.b),
+            color.r = square_f32(color.r);
+            color.g = square_f32(color.g);
+            color.b = square_f32(color.b);
 
             // gamma correction
             color.rgb *= color.a;
 
             // linear to sRGB
-            color.r = sqrt_f32(color.r),
-            color.g = sqrt_f32(color.g),
-            color.b = sqrt_f32(color.b),
+            color.r = sqrt_f32(color.r);
+            color.g = sqrt_f32(color.g);
+            color.b = sqrt_f32(color.b);
 
             // write pixel
             *dest++ = (u32)(round_f32_u32(color.a * 255.0f) << 24 |

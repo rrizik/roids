@@ -7,7 +7,7 @@ typedef struct Level{
     s32 asteroid_count_max;
 } Level;
 
-static void init_levels();
+static void init_levels(void);
 
 typedef enum GameMode{
     GameMode_FirstPerson,
@@ -32,7 +32,7 @@ static Entity* add_bullet(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE
 static Entity* add_bullet_particle(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE, u32 flags = 0);
 static Entity* add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color=WHITE, u32 flags = 0);
 
-static void entities_clear();
+static void entities_clear(void);
 static void serialize_data(String8 filename);
 static void deserialize_data(String8 filename);
 static bool handle_global_events(Event event);
@@ -43,8 +43,8 @@ static bool handle_game_events(Event event);
 static void reset_game(void);
 static void reset_ship(void);
 
-static void update_game();
-static bool game_won();
+static void update_game(void);
+static bool game_won(void);
 
 #endif
 

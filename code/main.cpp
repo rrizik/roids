@@ -46,78 +46,6 @@ change_resolution(HWND hwnd, u32 width, u32 height, bool is_fullscreen) {
 }
 
 static void
-u32_buffer_from_u8_buffer(String8* u8_buffer, String8* u32_buffer){
-    u32* base_rgba = (u32*)u32_buffer->str;
-    u8* base_a = (u8*)u8_buffer->str;
-
-    for(s32 i=0; i < u8_buffer->size; ++i){
-        *base_rgba = (u32)(*base_a << 24 |
-                               255 << 16 |
-                               255 << 8  |
-                               255 << 0);
-        base_rgba++;
-        base_a++;
-    }
-}
-
-static void
-load_assets(Arena* arena){
-
-    ScratchArena scratch = begin_scratch();
-
-    Bitmap bm;
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/ship2.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Ship].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/circle.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Bullet].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/asteroid.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Asteroid].view, &bm);
-
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/flame1.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Flame1].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/flame2.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Flame2].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/flame3.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Flame3].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/flame4.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Flame4].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/flame5.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Flame5].view, &bm);
-
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/explosion1.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Explosion1].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/explosion2.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Explosion2].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/explosion3.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Explosion3].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/explosion4.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Explosion4].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/explosion5.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Explosion5].view, &bm);
-    bm = load_bitmap(scratch.arena, build_path, str8_literal("sprites/explosion6.bmp"));
-    init_texture_resource(&ts->assets.textures[TextureAsset_Explosion6].view, &bm);
-    Texture texture = {white_shader_resource};
-    ts->assets.textures[TextureAsset_White] = texture;
-
-    end_scratch(scratch);
-
-    ts->assets.waves[WaveAsset_Track1] = load_wave(arena, build_path, str8_literal("sounds/track1.wav"));
-    ts->assets.waves[WaveAsset_Track2] = load_wave(arena, build_path, str8_literal("sounds/track2.wav"));
-    ts->assets.waves[WaveAsset_Track3] = load_wave(arena, build_path, str8_literal("sounds/track3.wav"));
-    ts->assets.waves[WaveAsset_Track4] = load_wave(arena, build_path, str8_literal("sounds/track4.wav"));
-    ts->assets.waves[WaveAsset_Track5] = load_wave(arena, build_path, str8_literal("sounds/track5.wav"));
-    ts->assets.waves[WaveAsset_Rail1] =  load_wave(arena, build_path, str8_literal("sounds/rail1.wav"));
-    ts->assets.waves[WaveAsset_Rail2] =  load_wave(arena, build_path, str8_literal("sounds/rail2.wav"));
-    ts->assets.waves[WaveAsset_Rail3] =  load_wave(arena, build_path, str8_literal("sounds/rail3.wav"));
-    ts->assets.waves[WaveAsset_Rail4] =  load_wave(arena, build_path, str8_literal("sounds/rail4.wav"));
-    ts->assets.waves[WaveAsset_Rail5] =  load_wave(arena, build_path, str8_literal("sounds/rail5.wav"));
-
-    ts->assets.fonts[FontAsset_Arial] =    load_font_ttf(arena, str8_literal("fonts/arial.ttf"), 16);
-    ts->assets.fonts[FontAsset_Golos] =    load_font_ttf(arena, str8_literal("fonts/GolosText-Regular.ttf"), 36);
-    ts->assets.fonts[FontAsset_Consolas] = load_font_ttf(arena, str8_literal("fonts/consola.ttf"), 36);
-}
-
-static void
 init_paths(Arena* arena){
     build_path = os_application_path(global_arena);
     fonts_path = str8_path_append(global_arena, build_path, str8_literal("fonts"));
@@ -276,6 +204,10 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             if(w_param == VK_CONTROL) { ctrl_pressed  = true; }
         } break;
 
+        // TODO: IMPORTANT: These events likely pass in mouse positions, need to store them as part of the event
+        // TODO: IMPORTANT: These events likely pass in mouse positions, need to store them as part of the event
+        // TODO: IMPORTANT: These events likely pass in mouse positions, need to store them as part of the event
+        // TODO: IMPORTANT: These events likely pass in mouse positions, need to store them as part of the event
         case WM_LBUTTONDOWN:
         case WM_LBUTTONUP:{
             Event event = {0};
@@ -399,9 +331,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     init_paths(global_arena);
     init_memory(MB(500), GB(1));
     init_clock(&clock);
-    HRESULT hr = init_audio(2, 48000, 32);
+    HRESULT hr = wasapi_init(2, 48000, 32);
     assert_hr(hr);
-    init_events(&events);
+    events_init(&events);
 
 
     // note: sim measurements
@@ -434,34 +366,29 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         ts->ui_arena = push_arena(&ts->arena, MB(100));
         ts->batch_arena = push_arena(&ts->arena, MB(100));
 
-
-        init_render_batch(ts->batch_arena, &ts->render_batch_type[RenderBatchType_UI], MB(8) / sizeof(Vertex3));
-        init_render_batch(ts->batch_arena, &ts->render_batch_type[RenderBatchType_Entities], MB(8) / sizeof(Vertex3));
-
-        state->game_mode = GameMode_Menu;
+        state->game_mode = GameMode_Game;
 
         show_cursor(true);
-        load_assets(ts->asset_arena);
+        load_assets(ts->asset_arena, &ts->assets);
 
         init_camera();
-        init_console(&state->arena, FontAsset_Arial);
+        console_init(&state->arena, &ts->assets);
         init_console_commands();
-        init_ui(&state->arena, &window, &controller);
+        ui_init(&state->arena, &window, &controller, &ts->assets);
         init_render_commands(ts->render_command_arena);
 
-        state->current_font = FontAsset_Arial;
         state->font = &ts->assets.fonts[FontAsset_Arial];
 
         // setup free entities array in reverse order
         entities_clear();
 
-        //audio_play(WaveAsset_Track1, 0.1f, true);
-        //audio_play(WaveAsset_Track5, 0.0f, true);
-        //audio_play(WaveAsset_Track4, 0.0f, true);
+        //wasapi_play(&ts->assets.waves[WaveAsset_Track1], 0.1f, true);
+        //wasapi_play(&ts->assets.waves[WaveAsset_Track5], 0.0f, true);
+        //wasapi_play(&ts->assets.waves[WaveAsset_Track4], 0.0f, true);
 
         state->scale = 1;
         state->ship = add_ship(TextureAsset_Ship, make_v2(0, 0), make_v2(50, 50));
-        //state->ship = add_ship(TextureAsset_Ship, make_v2(window.width/2, window.height/2), make_v2(30, 30));
+        //state->ship = add_ship(TextureAsset_Ship, makmake_v2(controller->mouse.x,e_v2(window.width/2, window.height/2), make_v2(30, 30));
         state->ship_loaded = true;
         state->lives = 1;
 
@@ -516,7 +443,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             change_resolution(window.handle, 1920, 1080, false);
                         }
                         else{
-                            change_resolution(window.handle, 640, 360, false);
+                            change_resolution(window.handle, SCREEN_WIDTH, SCREEN_HEIGHT, false);
                         }
                     }
                     if(event.keycode == KeyCode_Q){
@@ -528,9 +455,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             window.height = 1080.0f;
                         }
                         else{
-                            d3d_resize_window(640, 360);
-                            window.width = 640.0f;
-                            window.height = 360.0f;
+                            d3d_resize_window(SCREEN_WIDTH, SCREEN_HEIGHT);
+                            window.width = SCREEN_WIDTH;
+                            window.height = SCREEN_HEIGHT;
                         }
 
                         state->screen_top = -window.height/2;
@@ -542,18 +469,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
         }
 
-        v2 world = world_from_screen_space(controller.mouse.pos);
-        v2 screen = screen_from_world_space(world);
-        //print("m(%f, %f) - w(%f, %f) - s(%f, %f)\n",
-        //      controller.mouse.x, controller.mouse.y,
-        //      world.x, world.y,
-        //      screen.x, screen.y);
-        //print("t(%f) b(%f) l(%f) r(%f)\n",
-        //        state->screen_top,
-        //        state->screen_bottom,
-        //        state->screen_left,
-        //        state->screen_right);
-
         //----constant buffer----
         D3D11_MAPPED_SUBRESOURCE mapped_subresource;
         d3d_context->Map(d3d_constant_buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_subresource);
@@ -561,7 +476,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         constants->screen_res = make_v2s32((s32)window.width, (s32)window.height);
         d3d_context->Unmap(d3d_constant_buffer, 0);
 
-        set_render_batch(RenderBatchType_Entities);
         draw_clear_color(BACKGROUND_COLOR);
         if(state->game_mode == GameMode_Menu){
             ui_begin(ts->ui_arena);
@@ -590,19 +504,17 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 ui_close();
             }
             ui_layout();
-            set_render_batch(RenderBatchType_UI);
             ui_draw(ui_root());
             ui_end();
         }
 
         if(state->game_mode == GameMode_Game){
-            Font* font = &ts->assets.fonts[state->current_font];
 
             if(!state->lives){
                 String8 text = str8_formatted(ts->frame_arena, "GAME OVER - Score: %i", state->score);
-                f32 width = font_string_width(state->current_font, text);
+                f32 width = font_string_width(state->font, text);
                 f32 x = window.width/2 - width/2;
-                draw_text(state->current_font, text, make_v2(x, window.height/2 - 200), ORANGE);
+                draw_text(state->font, text, make_v2(x, window.height/2 - 200), ORANGE);
 
                 ui_begin(ts->ui_arena);
 
@@ -629,15 +541,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     ui_close();
                 }
                 ui_layout();
-                set_render_batch(RenderBatchType_UI);
                 ui_draw(ui_root());
                 ui_end();
             }
             else if(game_won()){
                 String8 text = str8_formatted(ts->frame_arena, "CHICKEN DINNER - Score: %i", state->score);
-                f32 width = font_string_width(state->current_font, text);
+                f32 width = font_string_width(state->font, text);
                 f32 x = window.width/2 - width/2;
-                draw_text(state->current_font, text, make_v2(x, window.height/2 - 200), ORANGE);
+                draw_text(state->font, text, make_v2(x, window.height/2 - 200), ORANGE);
 
                 ui_begin(ts->ui_arena);
 
@@ -664,7 +575,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     ui_close();
                 }
                 ui_layout();
-                set_render_batch(RenderBatchType_UI);
                 ui_draw(ui_root());
                 ui_end();
             }
@@ -694,7 +604,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     ui_close();
                 }
                 ui_layout();
-                set_render_batch(RenderBatchType_UI);
                 ui_draw(ui_root());
                 ui_end();
             }
@@ -714,7 +623,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
 
             // todo: also use flags here
-            set_render_batch(RenderBatchType_Entities);
             for(s32 index = 0; index < array_count(state->entities); ++index){
                 begin_timed_scope("build command arena");
                 Entity *e = state->entities + index;
@@ -801,23 +709,23 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             }
 
             String8 score = str8_formatted(ts->frame_arena, "SCORE: %i", state->score);
-            draw_text(state->current_font, score, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale)), ORANGE);
+            draw_text(state->font, score, make_v2(text_padding, text_padding + ((f32)state->font->ascent * state->font->scale)), ORANGE);
 
             String8 lives = str8_formatted(ts->frame_arena, "LIVES: %i", state->lives);
-            f32 width = font_string_width(state->current_font, lives);
-            draw_text(state->current_font, lives, make_v2(window.width - width - text_padding, ((f32)(font->ascent) * font->scale) + text_padding), ORANGE);
+            f32 width = font_string_width(state->font, lives);
+            draw_text(state->font, lives, make_v2(window.width - width - text_padding, ((f32)(state->font->ascent) * state->font->scale) + text_padding), ORANGE);
 
             String8 level_str = str8_formatted(ts->frame_arena, "LEVEL: %i", state->level_index + 1);
-            draw_text(state->current_font, level_str, make_v2(text_padding, text_padding + ((f32)font->ascent * font->scale) + ((f32)font->vertical_offset)), ORANGE);
+            draw_text(state->font, level_str, make_v2(text_padding, text_padding + ((f32)state->font->ascent * state->font->scale) + ((f32)state->font->vertical_offset)), ORANGE);
 
 
             // todo: revaluate where this should be
             String8 fps = str8_formatted(ts->frame_arena, "FPS: %.2f", FPS);
-            draw_text(state->current_font, fps, make_v2(window.width - text_padding - font_string_width(state->current_font, fps), window.height - text_padding), ORANGE);
+            draw_text(state->font, fps, make_v2(window.width - text_padding - font_string_width(state->font, fps), window.height - text_padding), ORANGE);
 
             Level* level = state->current_level;
             String8 info_str = str8_formatted(ts->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", state->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
-            //draw_text(state->current_font, info_str, make_v2(50, window.height/2), TEAL);
+            //draw_text(state->font, info_str, make_v2(50, window.height/2), TEAL);
 
             s32 found_count = 0;
             for(s32 i=0; i < array_count(state->entities); i++){
@@ -825,8 +733,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 if(e->type == EntityType_Asteroid){
                     if(has_flags(e->flags, EntityFlag_Active)){
                         String8 str = str8_formatted(ts->frame_arena, "Asteroids - (%i)", e->health);
-                        f32 str_width = font_string_width(state->current_font, str);
-                        //draw_text(state->current_font, str, make_v2(window.width - str_width, (f32)(100 + (found_count * state->font->vertical_offset))), TEAL);
+                        f32 str_width = font_string_width(state->font, str);
+                        //draw_text(state->font, str, make_v2(window.width - str_width, (f32)(100 + (found_count * state->font->vertical_offset))), TEAL);
                         found_count++;
                     }
                 }
@@ -838,7 +746,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         console_draw();
         draw_commands();
 
-        audio_play_cursors();
+        wasapi_play_cursors();
 
         arena_free(ts->frame_arena);
         arena_free(ts->ui_arena);
@@ -859,7 +767,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
     d3d_release();
     end_profiler();
-    audio_release();
+    wasapi_release();
 
     return(0);
 }
@@ -885,7 +793,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         //ui_label(str8_literal("MY LAHBEL"));
         //if(ui_button(str8_literal("button 1")).pressed_left){
         //    print("button 1: PRESSED\n");
-        //    audio_play(WaveAsset_Rail1, 0.1f, false);
+        //    wasapi_play(WaveAsset_Rail1, 0.1f, false);
         //}
         //ui_spacer(10);
 

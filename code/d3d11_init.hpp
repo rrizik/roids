@@ -1,9 +1,9 @@
 #ifndef D3D11_INIT_H
 #define D3D11_INIT_H
 
-#pragma comment(lib, "d3d11")
-#pragma comment(lib, "d3dcompiler")
-#pragma comment(lib, "dxguid")
+#pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "d3dcompiler.lib")
+#pragma comment(lib, "dxguid.lib")
 #pragma comment(lib, "dxgi.lib")
 
 #if COMPILER_CL
@@ -17,11 +17,6 @@
 #if COMPILER_CL
 #pragma warning(pop)
 #endif
-
-//#include <d3d11.h>
-//#include <dxgidebug.h>
-//#pragma comment(lib, "dxguid.lib")
-
 
 namespace dx = DirectX;
 using namespace dx;
@@ -41,10 +36,6 @@ global ID3D11DepthStencilState* d3d_depthstencil_state;
 global ID3D11RasterizerState1*  d3d_rasterizer_state;
 global ID3D11SamplerState*      d3d_sampler_state;
 global ID3D11BlendState*        d3d_blend_state; // note: maybe use BlendState1 later
-
-//global ID3D11VertexShader* d3d_2d_quad_vs;
-//global ID3D11PixelShader*  d3d_2d_quad_ps;
-//global ID3D11InputLayout*  d3d_2d_quad_il;
 
 global ID3D11VertexShader* d3d_2d_textured_vs;
 global ID3D11PixelShader*  d3d_2d_textured_ps;
@@ -68,6 +59,7 @@ global ID3D11ShaderResourceView* asteroid_shader_resource;
 
 global ID3D11Texture2D* white_texture;
 global ID3D11ShaderResourceView* white_shader_resource;
+//global Texture texture_white = {white_shader_resource};
 
 global D3D11_INPUT_ELEMENT_DESC il_2d_textured[] = {
         // vertex data
@@ -75,12 +67,6 @@ global D3D11_INPUT_ELEMENT_DESC il_2d_textured[] = {
         {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
         {"TEX",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 };
-
-//global D3D11_INPUT_ELEMENT_DESC layout_2d_quad[] = {
-//        // vertex data
-//        {"POS",  0, DXGI_FORMAT_R32G32_FLOAT,       0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-//        {"COL",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-//};
 
 typedef struct ConstantBuffer{
     XMMATRIX view;
@@ -113,11 +99,6 @@ typedef struct Vertex3{
     v2 uv;
 } Vertex3;
 
-typedef struct Vertex2{
-    v2 position;
-    RGBA color;
-} Vertex2;
-
 static RGBA CLEAR =   {1.0f, 1.0f, 1.0f,  0.0f};
 static RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
 static RGBA GREEN =   {0.0f, 1.0f, 0.0f,  1.0f};
@@ -143,10 +124,10 @@ static RGBA CONSOLE_TEXT_OUTPUT_COLOR = {215/255.0f, 175/255.0f, 135/255.0f, 1.0
 static RGBA CONSOLE_CURSOR_COLOR = {226/255.0f, 226/255.0f, 226/255.0f, 1.0f};
 
 static void init_d3d(HWND handle, u32 width, u32 height);
-static void d3d_init_debug_stuff();
-static void d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_count, ID3D11VertexShader** d3d_vs, ID3D11PixelShader** d3d_ps, ID3D11InputLayout** d3d_il);
-static void d3d_load_shader2(String8 shader_path, ID3D11VertexShader** d3d_vs, ID3D11PixelShader** d3d_ps);
-static void init_texture_resource(ID3D11ShaderResourceView** shader_resource, Bitmap* bitmap);
-static void d3d_release();
+static void d3d_init_debug_stuff(void);
+static void d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_count,
+                            ID3D11VertexShader** d3d_vs, ID3D11PixelShader** d3d_ps, ID3D11InputLayout** d3d_il);
+static void d3d_init_texture_resource(ID3D11ShaderResourceView** shader_resource, Bitmap* bitmap);
+static void d3d_release(void);
 
 #endif

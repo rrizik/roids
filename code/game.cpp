@@ -2,7 +2,7 @@
 #define GAME_C
 
 static void
-init_levels(){
+init_levels(void){
     Level* level = 0;
 
     level = state->levels + 0;
@@ -230,7 +230,7 @@ add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
 }
 
 static void
-entities_clear(){
+entities_clear(void){
     state->free_entities_at = ENTITIES_MAX - 1;
     for(u32 i = state->free_entities_at; i <= state->free_entities_at; --i){
         Entity* e = state->entities + i;
@@ -435,7 +435,7 @@ handle_game_events(Event event){
 }
 
 static void
-reset_game(){
+reset_game(void){
     state->lives = MAX_LIVES;
     state->score = 0;
     state->level_index = 0;
@@ -446,7 +446,7 @@ reset_game(){
 }
 
 static void
-reset_ship(){
+reset_ship(void){
     state->ship->dir = make_v2(0, -1);
     state->ship->pos = make_v2(0, 0);
     state->ship->deg = -90;
@@ -463,7 +463,7 @@ reset_ship(){
 }
 
 static bool
-game_won(){
+game_won(void){
     if(state->level_index < MAX_LEVELS){
         return(false);
     }
@@ -476,7 +476,7 @@ game_won(){
     return(true);
 }
 
-static void update_game(){
+static void update_game(void){
 
 
     if(state->game_mode == GameMode_Game && !game_won()){
@@ -506,8 +506,8 @@ static void update_game(){
                         child_e->origin = ship;
 
                         // play rail audio
-                        u32 random_rail = random_range_u32(5) + 5; // hard coded for now, 5 rails
-                        audio_play(random_rail, 0.1f, false);
+                        u32 random_rail = random_range_u32(5) + 6; // todo: hard coded for now, 5 rails 6 offset
+                        wasapi_play(&ts->assets.waves[random_rail], 0.1f, false);
                     }
                 }
                 else{

@@ -45,16 +45,16 @@ typedef struct Font{
     f32 size;
     stbtt_packedchar packed_chars[256];
 
-    Texture atlas;
-    u32 texture;
+    Texture texture;
+    u32 texture_id;
     bool succeed;
 } Font;
 
-static Font load_font_ttf(Arena* arena, String8 path, f32 size);
-static f32 font_char_width(u32 font_id, u8 c);
-static f32 font_string_width(u32 font_id, String8 str);
-static f32 font_vertical_offset(u32 font_id);
-static f32 font_ascent(u32 font_id);
-static f32 font_descent(u32 font_id);
+static Font font_ttf_read(Arena* arena, String8 dir, String8 path, f32 size);
+static f32  font_char_width(Font* font, u8 c);
+static f32  font_string_width(Font* font, String8 str);
+static f32  font_vertical_offset(Font* font);
+static f32  font_ascent(Font* font);
+static f32  font_descent(Font* font);
 
 #endif

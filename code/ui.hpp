@@ -101,6 +101,8 @@ typedef struct UI_Box{
     RGBA background_color;
     f32 border_thickness;
 
+    Font* font;
+
 } UI_Box;
 
 typedef struct BoxCache{
@@ -114,6 +116,7 @@ typedef struct UI_State{
     Arena* arena;
     Window* window;
     Controller* controller;
+    Font* default_font;
 
     UI_Box* root;
 
@@ -131,10 +134,10 @@ typedef struct UI_State{
 } UI_State;
 global UI_State* ui_state;
 
-static void init_ui(Arena* parena, Window* window, Controller* controller);
+static void ui_init(Arena* parena, Window* window, Controller* controller, Assets* assets);
 static void ui_begin(Arena* arena);
-static void ui_end();
-static void ui_layout();
+static void ui_end(void);
+static void ui_layout(void);
 static void ui_draw(UI_Box* box);
 
 static UI_Box*   ui_make_box(String8 str, UI_BoxFlags flags);
@@ -142,14 +145,14 @@ static UI_Box*   ui_box(String8 str, UI_BoxFlags flags = 0);
 static UI_Signal ui_button(String8 string, UI_BoxFlags flags_in = 0);
 static void      ui_label(String8 string);
 static void      ui_spacer(f32 size);
-static Arena*    ui_arena();
-static Window*   ui_window();
-static UI_Box*   ui_root();
-static HashTable ui_table();
-static v2        ui_mouse_pos();
-static Mouse     ui_mouse();
-static bool      ui_closed();
-static void      ui_close();
+static Arena*    ui_arena(void);
+static Window*   ui_window(void);
+static UI_Box*   ui_root(void);
+static HashTable ui_table(void);
+static v2        ui_mouse_pos(void);
+static Mouse     ui_mouse(void);
+static bool      ui_closed(void);
+static void      ui_close(void);
 static String8   ui_text_part_from_key(String8 string);
 
 static BoxCache cache_from_box(UI_Box* box);
@@ -184,6 +187,7 @@ typedef struct UI_TextPaddingNode     { UI_TextPaddingNode*     next; f32 v;    
 typedef struct UI_TextColorNode       { UI_TextColorNode*       next; RGBA v;    } UI_TextColorNode;
 typedef struct UI_BackgroundColorNode { UI_BackgroundColorNode* next; RGBA v;    } UI_BackgroundColorNode;
 typedef struct UI_BorderThicknessNode { UI_BorderThicknessNode* next; f32 v;     } UI_BorderThicknessNode;
+typedef struct UI_FontNode            { UI_FontNode*            next; Font* v;   } UI_FontNode;
 
 // todo:
 // figure what the defaults should be.
@@ -201,6 +205,7 @@ UI_TextPaddingNode*     ui_text_padding_top = 0;
 UI_TextColorNode*       ui_text_color_top = 0;
 UI_BackgroundColorNode* ui_background_color_top = 0;
 UI_BorderThicknessNode* ui_border_thickness_top = 0;
+UI_FontNode*            ui_font_top = 0;
 
 static UI_Box* ui_push_parent(UI_Box* v)        { ui_stack_push_impl(ui_arena(), Parent, parent, v) }
 static f32     ui_push_pos_x(f32 v)             { ui_stack_push_impl(ui_arena(), PosX, pos_x, v) }
@@ -212,6 +217,7 @@ static f32     ui_push_text_padding(f32 v)      { ui_stack_push_impl(ui_arena(),
 static RGBA    ui_push_text_color(RGBA v)       { ui_stack_push_impl(ui_arena(), TextColor, text_color, v) }
 static RGBA    ui_push_background_color(RGBA v) { ui_stack_push_impl(ui_arena(), BackgroundColor, background_color, v) }
 static f32     ui_push_border_thickness(f32 v)  { ui_stack_push_impl(ui_arena(), BorderThickness, border_thickness, v) }
+static Font*   ui_push_font(Font* v)            { ui_stack_push_impl(ui_arena(), Font, font, v) }
 
 static UI_Box* ui_pop_parent(void)              { ui_stack_pop_impl(Parent, parent) }
 static f32     ui_pop_pos_x(void)               { ui_stack_pop_impl(PosX, pos_x) }
@@ -223,6 +229,7 @@ static f32     ui_pop_text_padding(void)        { ui_stack_pop_impl(TextPadding,
 static RGBA    ui_pop_text_color(void)          { ui_stack_pop_impl(TextColor, text_color) }
 static RGBA    ui_pop_background_color(void)    { ui_stack_pop_impl(BackgroundColor, background_color) }
 static f32     ui_pop_border_thickness(void)    { ui_stack_pop_impl(BorderThickness, border_thickness) }
+static Font*   ui_pop_font(void)                { ui_stack_pop_impl(Font, font) }
 
 static UI_Box* ui_top_parent(void)              { ui_stack_top_impl(parent) }
 static f32     ui_top_pos_x(void)               { ui_stack_top_impl(pos_x) }
@@ -234,8 +241,9 @@ static f32     ui_top_text_padding(void)        { ui_stack_top_impl(text_padding
 static RGBA    ui_top_text_color(void)          { ui_stack_top_impl(text_color) }
 static RGBA    ui_top_background_color(void)    { ui_stack_top_impl(background_color) }
 static f32     ui_top_border_thickness(void)    { ui_stack_top_impl(border_thickness) }
+static Font*   ui_top_font(void)                { ui_stack_top_impl(font) }
 
-static void ui_rest_stacks();
+static void ui_rest_stacks(void);
 
 #endif
 

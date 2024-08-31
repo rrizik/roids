@@ -1,9 +1,9 @@
-#ifndef WAVE_CPP
-#define WAVE_CPP
+#ifndef WAVE_C
+#define WAVE_C
 
 // todo: samples to bytes - bytes to samples. Maybe
 static Wave
-load_wave(Arena* arena, String8 dir, String8 filename){
+wave_file_read(Arena* arena, String8 dir, String8 filename){
     Wave result = {0};
 
     ScratchArena scratch = begin_scratch();

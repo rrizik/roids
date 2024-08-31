@@ -2,7 +2,7 @@
 #define CAMERA_C
 
 static void
-init_camera(){
+init_camera(void){
     camera.up = make_v3(0.0f, 1.0f, 0.0f);
     camera.forward = make_v3(0.0f, 0.0f, 1.0f); // note: left handed forward
     camera.pos = make_v3(0.0f, 0.0f, 0.f);

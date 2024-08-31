@@ -3,7 +3,7 @@
 
 // consider: maybe I don't need this. array_count() can be computed in place
 static void
-init_events(Events* events){
+events_init(Events* events){
     events->size = array_count(events->e);
 }
 
@@ -49,7 +49,7 @@ events_next(Events* events){
 }
 
 static void
-clear_controller_pressed(){
+clear_controller_pressed(void){
     for(s32 i=0; i < KeyCode_Count; ++i){
         controller.button[i].pressed = false;
     }

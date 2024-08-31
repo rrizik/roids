@@ -16,7 +16,7 @@ struct Camera{
 };
 static Camera camera;
 
-static void init_camera();
+static void init_camera(void);
 static void update_camera(f32 dx, f32 dy, f32 dt);
 
 #endif

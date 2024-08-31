@@ -2,9 +2,10 @@
 #define CONSOLE_C
 
 static void
-init_console(Arena* arena, u32 font_type){ //note: everything is positioned relative to the output_rect
+console_init(Arena* arena, Assets* assets){ //note: everything is positioned relative to the output_rect
     console.state = CLOSED;
-    console.font_type = font_type;
+    console.font = &assets->fonts[FontAsset_Arial];
+    console.arena = arena;
 
     // some size constraints
     console.text_left_pad = 10;
@@ -33,17 +34,17 @@ init_console(Arena* arena, u32 font_type){ //note: everything is positioned rela
 }
 
 static bool
-console_is_open(){
+console_is_open(void){
     return(console.state != CLOSED);
 }
 
 static bool
-console_is_visible(){
+console_is_visible(void){
     return(console.open_t > 0);
 }
 
 static u8
-console_char_at_cursor(){
+console_char_at_cursor(void){
     u8 result = 0;
     if(console.input_count == console.cursor_index){
         result = 'a';
@@ -91,7 +92,7 @@ input_add_char(u8 c){
 }
 
 static u8
-input_remove_char(){
+input_remove_char(void){
     u8 c = 0;
     if(console.input_count > 0 && console.cursor_index > 0){
         if(console.cursor_index < console.input_count){
@@ -243,7 +244,7 @@ handle_console_events(Event event){
 }
 
 static void
-console_update(){
+console_update(void){
     f32 epsilon = 0.001f;
     f32 open_d = console.open_dt * (f32)clock.dt;
     if(console.open_t < console.open_t_target){
@@ -261,10 +262,10 @@ console_update(){
 }
 
 static void
-console_draw(){
+console_draw(void){
     begin_timed_function();
     if(console_is_visible()){
-        Font* font = &ts->assets.fonts[console.font_type];
+        Font* font = console.font;
 
         // rect setup
         f32 y = (f32)(-font->vertical_offset);
@@ -280,10 +281,10 @@ console_draw(){
 
         String8 str = str8(console.input, (u64)console.cursor_index);
 
-        v2 cursor_p0 = make_v2(console.text_left_pad + font_char_width(console.font_type, '>') + font_string_width(console.font_type, str), input_p0.y);
-        v2 cursor_p1 = make_v2(cursor_p0.x + font_char_width(console.font_type, console_char_at_cursor()), input_p0.y);
-        v2 cursor_p2 = make_v2(cursor_p0.x + font_char_width(console.font_type, console_char_at_cursor()), input_p2.y);
-        v2 cursor_p3 = make_v2(console.text_left_pad + font_char_width(console.font_type, '>') + font_string_width(console.font_type, str), input_p2.y);
+        v2 cursor_p0 = make_v2(console.text_left_pad + font_char_width(font, '>') + font_string_width(font, str), input_p0.y);
+        v2 cursor_p1 = make_v2(cursor_p0.x + font_char_width(font, console_char_at_cursor()), input_p0.y);
+        v2 cursor_p2 = make_v2(cursor_p0.x + font_char_width(font, console_char_at_cursor()), input_p2.y);
+        v2 cursor_p3 = make_v2(console.text_left_pad + font_char_width(font, '>') + font_string_width(font, str), input_p2.y);
 
         // draw regions
         draw_quad(output_p0, output_p1, output_p2, output_p3, console.output_background_color);
@@ -292,10 +293,10 @@ console_draw(){
 
         // draw input
         f32 input_pos_y = input_p2.y + ((f32)font->descent * font->scale);
-        draw_text(console.font_type, str8_literal(">"), make_v2(console.text_left_pad, input_pos_y), console.input_color);
+        draw_text(console.font, str8_literal(">"), make_v2(console.text_left_pad, input_pos_y), console.input_color);
         if(console.input_count > 0){
             String8 input_str = str8(console.input, (u64)console.input_count);
-            draw_text(console.font_type, input_str, make_v2(console.text_left_pad + font_char_width(console.font_type, '>'), input_pos_y), console.input_color);
+            draw_text(console.font, input_str, make_v2(console.text_left_pad + font_char_width(font, '>'), input_pos_y), console.input_color);
         }
 
         // draw history (in reverse order and only if its on screen)
@@ -304,7 +305,7 @@ console_draw(){
             for(s32 i=console.output_history_count-1; i >= 0; --i){
                 if(output_pos_y < (f32)window.height){
                     String8 next_string = console.output_history[i];
-                    draw_text(console.font_type, next_string, make_v2(console.text_left_pad, output_pos_y), console.output_color);
+                    draw_text(console.font, next_string, make_v2(console.text_left_pad, output_pos_y), console.output_color);
                     output_pos_y -= (f32)font->vertical_offset;
                 }
             }

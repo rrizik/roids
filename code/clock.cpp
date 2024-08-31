@@ -9,14 +9,14 @@ get_os_timer_frequency(void){
 }
 
 static u64
-get_os_timer(){
+get_os_timer(void){
     LARGE_INTEGER result;
     QueryPerformanceCounter(&result);
     return((u64)result.QuadPart);
 }
 
 static u64
-get_cpu_timer(){
+get_cpu_timer(void){
     return __rdtsc();
 }
 

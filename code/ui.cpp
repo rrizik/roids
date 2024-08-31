@@ -2,12 +2,12 @@
 #define UI_C
 
 static void
-init_ui(Arena* arena, Window* window, Controller* controller){
+ui_init(Arena* arena, Window* window, Controller* controller, Assets* assets){
     ui_state = push_struct(arena, UI_State);
     ui_state->window = window;
     ui_state->controller = controller;
+    ui_state->default_font = &assets->fonts[FontAsset_Arial];
     //ui_state->generation = 0;
-
     init_table(arena, &ui_state->table);
 }
 
@@ -29,13 +29,14 @@ ui_begin(Arena* ui_arena){
 
     ui_push_background_color(CLEAR);
     ui_push_border_thickness(0);
+    ui_push_font(ui_state->default_font);
 
     ui_state->root = ui_make_box(str8_literal(""), 0);
     ui_push_parent(ui_state->root);
 }
 
 static void
-ui_layout(){
+ui_layout(void){
     for(Axis axis=(Axis)0; axis < Axis_Count; axis = (Axis)(axis + 1)){
         ui_traverse_independent(ui_root(), axis);
         ui_traverse_children(ui_root(), axis);
@@ -45,7 +46,7 @@ ui_layout(){
 }
 
 static void
-ui_end(){
+ui_end(void){
     ui_parent_top = 0;
     ui_pos_x_top = 0;
     ui_pos_y_top = 0;
@@ -58,46 +59,47 @@ ui_end(){
 
     ui_background_color_top = 0;
     ui_border_thickness_top = 0;
+    ui_font_top = 0;
 }
 
 static Arena*
-ui_arena(){
+ui_arena(void){
     return(ui_state->arena);
 }
 
 static Window*
-ui_window(){
+ui_window(void){
     return(ui_state->window);
 }
 
 static UI_Box*
-ui_root(){
+ui_root(void){
     return(ui_state->root);
 }
 
 static HashTable
-ui_table(){
+ui_table(void){
     return(ui_state->table);
 }
 
 static v2
-ui_mouse_pos(){
+ui_mouse_pos(void){
     v2 mouse_pos = make_v2(ui_state->controller->mouse.x, ui_state->controller->mouse.y);
     return(mouse_pos);
 }
 
 static Mouse
-ui_mouse(){
+ui_mouse(void){
     return(ui_state->controller->mouse);
 }
 
 static bool
-ui_closed(){
+ui_closed(void){
     return(ui_state->closed);
 }
 
 static void
-ui_close(){
+ui_close(void){
     ui_state->closed = true;
 }
 
@@ -163,6 +165,7 @@ ui_make_box(String8 string, UI_BoxFlags flags){
 
     result->background_color = ui_top_background_color();
     result->border_thickness = ui_top_border_thickness();
+    result->font = ui_top_font();
 
     BoxCache* cache = table_lookup(BoxCache, &ui_state->table, string);
     if(cache){
@@ -246,19 +249,15 @@ ui_signal_from_box(UI_Box* box){
         else if(ui_state->hot == box->key){
             if(controller->button[MOUSE_BUTTON_LEFT].held &&
                controller->button[MOUSE_BUTTON_LEFT].pressed){
-                //if(ui_state->active == 0){
-                    ui_state->active = box->key;
-                    ui_state->mouse_pos_record = mouse_pos;
-                    ui_state->mouse_pos_record.x -= box->rel_pos[Axis_X];
-                    ui_state->mouse_pos_record.y -= box->rel_pos[Axis_Y];
-                //}
+                ui_state->active = box->key;
+                ui_state->mouse_pos_record = mouse_pos;
+                ui_state->mouse_pos_record.x -= box->rel_pos[Axis_X];
+                ui_state->mouse_pos_record.y -= box->rel_pos[Axis_Y];
             }
         }
     }
 
     if(has_flags(box->flags, UI_BoxFlag_Draggable)){
-        String8 hot_str = string_from_hash(&ui_state->table, ui_state->hot);
-        String8 active_str = string_from_hash(&ui_state->table, ui_state->active);
         if(ui_state->active == box->key && controller->button[MOUSE_BUTTON_LEFT].held){
             box->rel_pos[Axis_X] = (f32)(mouse_pos.x - ui_state->mouse_pos_record.x);
             box->rel_pos[Axis_Y] = (f32)(mouse_pos.y - ui_state->mouse_pos_record.y);
@@ -280,11 +279,11 @@ ui_traverse_independent(UI_Box* box, Axis axis){
         } break;
         case UI_SizeType_TextContent:{
             if(axis == Axis_X){
-                f32 width = font_string_width(0, box->string);
+                f32 width = font_string_width(box->font, box->string);
                 box->size[axis] = (f32)width + box->text_padding;
             }
             if(axis == Axis_Y){
-                f32 height = font_vertical_offset(0);
+                f32 height = font_vertical_offset(box->font);
                 box->size[axis] = height + box->text_padding;
             }
         } break;
@@ -328,8 +327,6 @@ ui_traverse_children(UI_Box* box, Axis axis){
     ui_traverse_children(box->prev, axis);
 }
 
-// absolute position - rendering and hit testing with mouse position
-// otherwise you want relative position
 // there is a root box that is essentially the window, simply the (0, 0) pos and w/h
 static void
 ui_traverse_positions(UI_Box* box, Axis axis){
@@ -421,15 +418,15 @@ ui_draw(UI_Box* box){
     if(has_flags(box->flags, UI_BoxFlag_DrawText)){
         String8 text = ui_text_part_from_key(box->string);
 
-        f32 width = font_string_width(0, text);
-        f32 vertical_offset = font_vertical_offset(0);
-        f32 ascent = font_ascent(0);
-        f32 descent = font_descent(0);
+        f32 width = font_string_width(box->font, text);
+        f32 vertical_offset = font_vertical_offset(box->font);
+        f32 ascent = font_ascent(box->font);
+        f32 descent = font_descent(box->font);
 
         f32 center = ascent - (ascent - descent)/2;
         v2 pos = make_v2(box->rect.min.x + box->size[Axis_X]/2 - width/2,
                          box->rect.min.y + box->size[Axis_Y]/2 + center);
-        draw_text(0, text, pos, box->text_color);
+        draw_text(box->font, text, pos, box->text_color);
     }
 
     if(box->first){

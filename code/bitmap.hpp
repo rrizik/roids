@@ -70,6 +70,6 @@ typedef struct BitScanResult{
 } BitScanResult;
 
 static BitScanResult find_first_set_bit(u32 value);
-static Bitmap load_bitmap(Arena* arena, String8 dir, String8 filename);
+static Bitmap bitmap_file_read(Arena* arena, String8 dir, String8 filename);
 
 #endif

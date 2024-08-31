@@ -1,5 +1,5 @@
-#ifndef WASAPI_CPP
-#define WASAPI_CPP
+#ifndef WASAPI_C
+#define WASAPI_C
 
 // NOTE:
 // Discord Convo: https://discord.com/channels/239737791225790464/1216549745015656459
@@ -8,7 +8,7 @@
 // todo: put WASAPI in base file as it can be standalone
 // todo: change all asserts to error logs
 static HRESULT
-init_audio(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
+wasapi_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
     HRESULT hr = S_OK;
 
     hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), 0, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&device_enumerator);
@@ -78,7 +78,7 @@ init_audio(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
     return(hr);
 }
 
-static HRESULT audio_start(){
+static HRESULT wasapi_start(void){
     hr = audio_client->Start();
     if(FAILED(hr)){
         assert_hr(hr);
@@ -87,7 +87,7 @@ static HRESULT audio_start(){
     return(hr);
 }
 
-static HRESULT audio_stop(){
+static HRESULT wasapi_stop(void){
     hr = audio_client->Stop();
     if(FAILED(hr)){
         assert_hr(hr);
@@ -97,14 +97,15 @@ static HRESULT audio_stop(){
 }
 
 static bool
-audio_play(u32 id, f32 volume, bool loop){
-    WaveCursor cursor = {0};
-    cursor.id = id;
-    cursor.at = 0;
-    cursor.volume = volume;
-    cursor.loop = loop;
-
+wasapi_play(Wave* wave, f32 volume, bool loop){
     if(wave_cursors_count < WAVE_CURSORS_COUNT_MAX){
+        WaveCursor cursor = {0};
+        cursor.base = wave->base;
+        cursor.sample_count = wave->sample_count;
+        cursor.at = 0;
+        cursor.volume = volume;
+        cursor.loop = loop;
+
         wave_cursors[wave_cursors_count++] = cursor;
         return(true);
     }
@@ -112,7 +113,7 @@ audio_play(u32 id, f32 volume, bool loop){
 }
 
 // todo: create a wave drawing function to draw the audio waves. Will be cool to do
-static HRESULT audio_play_cursors(){
+static HRESULT wasapi_play_cursors(void){
     HRESULT hr = S_OK;
 
     u32 padding;
@@ -134,15 +135,14 @@ static HRESULT audio_play_cursors(){
     f32* buffer_f32 = (f32*)buffer;
     for(s32 cursor_i=0; cursor_i < (s32)wave_cursors_count; ++cursor_i){
         WaveCursor* cursor = wave_cursors + cursor_i;
-        Wave* wave = ts->assets.waves + cursor->id;
 
-        u32 wave_remainder = wave->sample_count - cursor->at;
-        u32 iter_size = wave_remainder > available_samples ? available_samples : wave_remainder;
+        u32 wave_remainder = cursor->sample_count - cursor->at;
+        u32 buffer_size = wave_remainder > available_samples ? available_samples : wave_remainder;
 
-        if(cursor->at < wave->sample_count){
-            for(s32 i=0; i < iter_size; ++i){
+        if(cursor->at < cursor->sample_count){
+            for(s32 i=0; i < buffer_size; ++i){
                 s32 a = s16_max;
-                f32 sample = ((s16)(wave->base[(cursor->at + i)])) * (1.0f / 32767.0f); // note: normalize to a range of -1.0f to 1.0f by multiplying by max s16
+                f32 sample = ((s16)(cursor->base[(cursor->at + i)])) * (1.0f / 32767.0f); // note: normalize to a range of -1.0f to 1.0f by multiplying by max s16
 
                 buffer_f32[(i * wave_format.nChannels) + 0] += sample * cursor->volume; // channel 1
                 buffer_f32[(i * wave_format.nChannels) + 1] += sample * cursor->volume; // channel 2
@@ -150,9 +150,9 @@ static HRESULT audio_play_cursors(){
 
         }
 
-        cursor->at += iter_size;
+        cursor->at += buffer_size;
         if(cursor->loop){
-            if(cursor->at >= wave->sample_count){
+            if(cursor->at >= cursor->sample_count){
                 cursor->at = 0;
             }
         }
@@ -168,7 +168,7 @@ static HRESULT audio_play_cursors(){
 }
 
 static void
-audio_release(){
+wasapi_release(void){
     if(audio_client != 0){
         audio_client->Release();
     }

@@ -12,37 +12,36 @@
 #define PROFILER 1
 #include "profiler.h"
 
-#include "assets.h"
 #include "input.hpp"
 #include "clock.hpp"
-#include "wave.h"
-#include "wasapi.h"
 #include "camera.hpp"
 #include "bitmap.hpp"
 #include "d3d11_init.hpp"
-#include "font.hpp"
 #include "d3d11_render.hpp"
-#include "entity.hpp"
+#include "font.hpp"
+#include "wave.hpp"
+#include "wasapi.hpp"
+#include "assets.hpp"
 #include "console.hpp"
 #include "command.hpp"
+#include "draw.hpp"
 #include "ui.hpp"
+#include "entity.hpp"
 #include "game.hpp"
 
 #include "input.cpp"
 #include "clock.cpp"
-#include "wave.cpp"
 #include "camera.cpp"
 #include "bitmap.cpp"
+#include "draw.cpp"
+#include "d3d11_init.cpp"
+#include "font.cpp"
+#include "wave.cpp"
+#include "wasapi.cpp"
+#include "assets.cpp"
 #include "ui.cpp"
 #include "entity.cpp"
-#include "d3d11_init.cpp"
 
-typedef struct Assets{
-    Wave    waves[WaveAsset_Count];
-    Font    fonts[FontAsset_Count];
-    Texture textures[TextureAsset_Count];
-} Assets;
-static void load_assets(Arena* arena, Assets* assets);
 
 
 #define SCREEN_WIDTH 1280
@@ -59,8 +58,6 @@ static String8 saves_path;
 static String8 sprites_path;
 static String8 sounds_path;
 static void init_paths(Arena* arena);
-
-static void u32_buffer_from_u8_buffer(String8* channel_1, String8* channel_4);
 
 typedef struct Memory{
     void* base;
@@ -82,26 +79,11 @@ global bool pause;
 global bool should_quit;
 global Arena* global_arena = os_make_arena(MB(100));
 
+#include "console.cpp"
+#include "command.cpp"
+
 static void show_cursor(bool show);
 
-typedef enum RenderBatchType{
-    RenderBatchType_UI,
-    RenderBatchType_Entities,
-    RenderBatchType_Count,
-} RenderBatch_Type;
-
-typedef struct RenderBatch{
-    Vertex3* buffer;
-    s32 count;
-    s32 at;
-} RenderBatch;
-
-static void
-init_render_batch(Arena* arena, RenderBatch* batch, s32 vertex_count){
-    batch->buffer = push_array(arena, Vertex3, vertex_count);
-    batch->count = vertex_count;
-    batch->at = 0;
-}
 
 #define MAX_LEVELS 3
 #define MAX_LIVES 1
@@ -130,7 +112,6 @@ typedef struct State{
 
     f32 scale;
 
-    u32 current_font;
     f64 spawn_t;
 
     f32 screen_top;
@@ -150,28 +131,15 @@ typedef struct TransientMemory{
     Arena *ui_arena;
     Arena *batch_arena;
 
+    // todo: make this global, make more globals
+    // todo: make this global, make more globals
+    // todo: make this global, make more globals
     Assets assets;
-    RenderBatch render_batch_type[RenderBatchType_Count];
 } TransientMemory, TState;
 global TState* ts;
 
-static void
-set_render_batch(RenderBatch_Type type){
-    state->render_batch = &ts->render_batch_type[type];
-}
-
-static RenderBatch*
-get_render_batch(){
-    return(state->render_batch);
-}
-
-
 // todo: once I fix rendering pipeline, this can move up
 #include "d3d11_render.cpp"
-#include "wasapi.cpp"
-#include "font.cpp"
-#include "console.cpp"
-#include "command.cpp"
 #include "game.cpp"
 
 //todo: get rid of this

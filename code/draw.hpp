@@ -1,0 +1,80 @@
+#ifndef DRAW_H
+#define DRAW_H
+
+Arena* rc_arena = 0;
+
+typedef struct RenderBatch{
+    Vertex3* buffer;
+    s32 count;
+    s32 at;
+    Texture* texture;
+} RenderBatch;
+
+typedef struct RenderBatchNode{
+    RenderBatch* first;
+    RenderBatch* last;
+} RenderBatchNode;
+global RenderBatchNode render_batches;
+
+static void
+init_render_batch(Arena* arena, RenderBatch* batch, s32 vertex_count){
+    batch->buffer = push_array(arena, Vertex3, vertex_count);
+    batch->count = vertex_count;
+    batch->at = 0;
+}
+
+typedef enum RenderCommandType{
+    RenderCommandType_ClearColor,
+    RenderCommandType_Quad,
+    RenderCommandType_Line,
+    RenderCommandType_Texture,
+    RenderCommandType_Text,
+} RenderCommandType;
+
+typedef struct RenderCommand{
+    RenderCommandType type;
+
+    union {
+        v2 pos;
+        v2 p0;
+    };
+    v2 p1;
+    v2 p2;
+    v2 p3;
+
+    RGBA color;
+	Texture* texture;
+    Font* font;
+	u32 texture_id;
+
+    u32 font_id;
+    String8 text;
+} RenderCommand;
+
+static RGBA srgb_to_linear_approx(RGBA value);
+static RGBA linear_to_srgb_approx(RGBA value);
+static RGBA srgb_to_linear(RGBA value);
+
+static void init_render_commands(Arena* arena);
+
+static void draw_clear_color(RGBA color);
+static void draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color);
+static void draw_quad(v2 pos, v2 dim, RGBA color);
+static void draw_quad(Rect rect, RGBA color);
+static void draw_quad(Quad quad, RGBA color);
+
+// todo: not implemented yet
+static void draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, v2 uv0, v2 uv1, v2 uv2, v2 uv3, RGBA color);
+static void draw_quad(v2 pos, v2 dim, v2 uv0, v2 uv1, v2 uv2, v2 uv3, RGBA color);
+static void draw_quad(Quad quad, v2 uv0, v2 uv1, v2 uv2, v2 uv3, RGBA color);
+static void draw_quad(Rect rect, v2 uv0, v2 uv1, v2 uv2, v2 uv3, RGBA color);
+
+static void draw_line(v2 p0, v2 p1, f32 width, RGBA color);
+static void draw_text(Font* font, String8 text, v2 pos, RGBA color);
+static void draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE);
+
+global Texture* texture;
+static void set_texture(Texture* texture);
+static Texture* get_texture(void);
+
+#endif

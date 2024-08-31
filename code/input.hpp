@@ -149,7 +149,7 @@ typedef struct Controller{
 } Controller;
 global Controller controller;
 
-static void clear_controller_pressed();
+static void clear_controller_pressed(void);
 
 // NOTE: EVENTS:
 global bool alt_pressed;
@@ -189,7 +189,7 @@ typedef struct Events{
 } Events;
 global Events events;
 
-static void  init_events(Events* events);
+static void  events_init(Events* events);
 static u32   events_count(Events* events);
 static bool  events_full(Events* events);
 static bool  events_empty(Events* events);

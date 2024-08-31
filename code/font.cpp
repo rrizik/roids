@@ -2,11 +2,11 @@
 #define FONT_C
 
 static Font
-load_font_ttf(Arena* arena, String8 filename, f32 size){
+font_ttf_read(Arena* arena, String8 dir, String8 filename, f32 size){
     // open file
 
     ScratchArena scratch = begin_scratch();
-    String8 full_path = str8_concatenate(scratch.arena, build_path, filename);
+    String8 full_path = str8_concatenate(scratch.arena, dir, filename);
     File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
     end_scratch(scratch);
     assert_h(file.handle);
@@ -57,7 +57,19 @@ load_font_ttf(Arena* arena, String8 filename, f32 size){
     String8 bitmap_rgba;
     bitmap_rgba.size = (u64)(result.texture_w * result.texture_h * 4);
     bitmap_rgba.str = push_array(scratch.arena, u8, bitmap_rgba.size);
-    u32_buffer_from_u8_buffer(&bitmap_a, &bitmap_rgba); // convert from Alpha to RBGA in order to use 1 shader
+
+    // note: convert 1 channel to 4 channel.
+    // todo: get rid of this when you create a text specific shader, this is a waste
+    u32* base_rgba = (u32*)bitmap_rgba.str;
+    u8* base_a = (u8*)bitmap_a.str;
+    for(s32 i=0; i < bitmap_a.size; ++i){
+        *base_rgba = (u32)(*base_a << 24 |
+                               255 << 16 |
+                               255 << 8  |
+                               255 << 0);
+        base_rgba++;
+        base_a++;
+    }
 
     D3D11_TEXTURE2D_DESC desc = {
         .Width = (u32)result.texture_w,
@@ -77,7 +89,7 @@ load_font_ttf(Arena* arena, String8 filename, f32 size){
     ID3D11Texture2D* texture;
     hr = d3d_device->CreateTexture2D(&desc, &shader_data, &texture);
     assert_hr(hr);
-    hr = d3d_device->CreateShaderResourceView(texture, 0, &result.atlas.view);
+    hr = d3d_device->CreateShaderResourceView(texture, 0, &result.texture.view);
     assert_hr(hr);
 
     texture->Release();
@@ -88,10 +100,9 @@ load_font_ttf(Arena* arena, String8 filename, f32 size){
 
 // todo: all these functions need to take in Font*
 static f32
-font_char_width(u32 font_id, u8 c){
+font_char_width(Font* font, u8 c){
     f32 result = 0;
 
-    Font* font = &ts->assets.fonts[font_id];
     s32 advance_width, lsb;
     stbtt_GetCodepointHMetrics(&font->info, c, &advance_width, &lsb);
     result = (f32)advance_width * font->scale;
@@ -99,10 +110,9 @@ font_char_width(u32 font_id, u8 c){
 }
 
 static f32
-font_string_width(u32 font_id, String8 str){
+font_string_width(Font* font, String8 str){
     f32 result = 0;
 
-    Font* font = &ts->assets.fonts[font_id];
     s32 advance_width, lsb;
     for(s32 i=0; i < str.size; ++i){
         u8 c = str.str[i];
@@ -113,21 +123,18 @@ font_string_width(u32 font_id, String8 str){
 }
 
 static f32
-font_vertical_offset(u32 font_id){
-    Font* font = &ts->assets.fonts[font_id];
+font_vertical_offset(Font* font){
     return(font->vertical_offset);
 }
 
 static f32
-font_ascent(u32 font_id){
-    Font* font = &ts->assets.fonts[font_id];
+font_ascent(Font* font){
     f32 result = round_f32((f32)font->ascent * font->scale);
     return(result);
 }
 
 static f32
-font_descent(u32 font_id){
-    Font* font = &ts->assets.fonts[font_id];
+font_descent(Font* font){
     f32 result = round_f32((f32)font->descent * font->scale);
     return(result);
 }
