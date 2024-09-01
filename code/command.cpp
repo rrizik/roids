@@ -2,6 +2,17 @@
 #define COMMAND_C
 
 static void
+init_console_commands(void){
+    //add_command(str8_literal("saves"), 1, 1, command_save);
+    add_command(str8_literal("add"), 2, 2, command_add);
+    add_command(str8_literal("save"), 1, 1, command_save);
+    add_command(str8_literal("load"), 1, 1, command_load);
+    add_command(str8_literal("exit"), 0, 0, command_exit);
+    add_command(str8_literal("quit"), 0, 0, command_exit);
+    add_command(str8_literal("help"), 0, 0, command_help);
+}
+
+static void
 add_command(String8 name, u32 min, u32 max, Proc* proc){
     CommandInfo command = {0};
     command.name = name;
@@ -22,20 +33,22 @@ command_help(String8* args){
 static void
 command_exit(String8* args){
     console.output_history[console.output_history_count++] = str8_literal("Existing!");
-    should_quit = true;
+    Event event = {0};
+    event.type = QUIT;
+    events_add(&events, event);
 }
 
 static void
 command_load(String8* args){
-    console.output_history[console.output_history_count++] = str8_formatted(global_arena, "loading from file: %s", args->str);
+    console.output_history[console.output_history_count++] = str8_formatted(console.arena, "loading from file: %s", args->str);
     deserialize_data(*args);
 }
 
 static void
 command_save(String8* args){
-    console.output_history[console.output_history_count++] = str8_formatted(global_arena, "saving to file: %s", args->str);
+    console.output_history[console.output_history_count++] = str8_formatted(console.arena, "saving to file: %s", args->str);
     serialize_data(*args);
-    //console_store_output(str8_formatted(global_arena, "saving to file: %s", args->str));
+    //console_store_output(str8_formatted(console.arena, "saving to file: %s", args->str));
 }
 
 static void
@@ -43,7 +56,7 @@ command_add(String8* args){
     s32 left = atoi((char const*)(args->str));
     s32 right = atoi((char const*)(args + 1)->str);
     s32 value = left + right;
-    String8 result = str8_formatted(global_arena, "Result: %i", value);
+    String8 result = str8_formatted(console.arena, "Result: %i", value);
     console.output_history[console.output_history_count++] = result;
 }
 
@@ -65,17 +78,6 @@ command_saves(String8* args){
     end_scratch(scratch);
 }
 
-static void
-init_console_commands(void){
-    //add_command(str8_literal("saves"), 1, 1, command_save);
-    add_command(str8_literal("add"), 2, 2, command_add);
-    add_command(str8_literal("save"), 1, 1, command_save);
-    add_command(str8_literal("load"), 1, 1, command_load);
-    add_command(str8_literal("exit"), 0, 0, command_exit);
-    add_command(str8_literal("quit"), 0, 0, command_exit);
-    add_command(str8_literal("help"), 0, 0, command_help);
-}
-
 static String8
 push_str8(Arena* arena, String8 value){
     u8* str = push_array(arena, u8, value.count + 1);
@@ -85,7 +87,7 @@ push_str8(Arena* arena, String8 value){
 }
 
 static u64
-parse_line_args(String8 line){
+command_parse_args(String8 line){
     u64 args_count = 0;
     String8 remaining = line;
     while(remaining.size){
@@ -95,12 +97,12 @@ parse_line_args(String8 line){
         s64 index = byte_index_from_left(remaining, ' ');
         if(index != -1){
             String8 left_arg = str8_split_left(remaining, (u64)index);
-            String8 arg = push_str8(global_arena, left_arg);
+            String8 arg = push_str8(console.arena, left_arg);
             command_args[command_args_count++] = arg;
             remaining = str8_advance(remaining, (u64)index);
         }
         else{
-            String8 arg = push_str8(global_arena, remaining);
+            String8 arg = push_str8(console.arena, remaining);
             command_args[command_args_count++] = arg;
             remaining = str8_advance(remaining, remaining.count);
         }
@@ -124,11 +126,11 @@ run_command(String8 line){
         if(str8_compare(command_name, command.name)){
             found = true;
             if(command.min_args > command_args_count){
-                console.output_history[console.output_history_count++] = str8_formatted(global_arena, "Argument count less than min - Expected %i - Got: %i", command.min_args, command_args_count);
+                console.output_history[console.output_history_count++] = str8_formatted(console.arena, "Argument count less than min - Expected %i - Got: %i", command.min_args, command_args_count);
                 break;
             }
             if(command.max_args < command_args_count){
-                console.output_history[console.output_history_count++] = str8_formatted(global_arena, "Argument count greater than max - Expected %i - Got: %i", command.max_args, command_args_count);
+                console.output_history[console.output_history_count++] = str8_formatted(console.arena, "Argument count greater than max - Expected %i - Got: %i", command.max_args, command_args_count);
                 break;
             }
 
@@ -139,7 +141,7 @@ run_command(String8 line){
 
     // output unkown command
     if(!found){
-        console.output_history[console.output_history_count++] = str8_formatted(global_arena, "Unkown command: %s", command_name.str);
+        console.output_history[console.output_history_count++] = str8_formatted(console.arena, "Unkown command: %s", command_name.str);
     }
     command_args_count = 0;
 }

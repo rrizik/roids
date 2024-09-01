@@ -2,9 +2,10 @@
 #define CONSOLE_C
 
 static void
-console_init(Arena* arena, Assets* assets){ //note: everything is positioned relative to the output_rect
+init_console(Arena* arena, Window* window, Assets* assets){ //note: everything is positioned relative to the output_rect
     console.state = CLOSED;
-    console.font = &assets->fonts[FontAsset_Arial];
+    console.font = &assets->fonts[FontAsset_Consolas];
+    console.window = window;
     console.arena = arena;
 
     // some size constraints
@@ -31,6 +32,8 @@ console_init(Arena* arena, Assets* assets){ //note: everything is positioned rel
     console.input_history_index = 0;
     console.input_count = 0;
     console.cursor_index = 0;
+
+    init_console_commands();
 }
 
 static bool
@@ -59,31 +62,11 @@ static void
 input_add_char(u8 c){
     if(console.input_count < INPUT_COUNT_MAX){
         if(console.cursor_index < console.input_count){
-            ScratchArena scratch = begin_scratch();
-
-            String8 left = {
-                .str = push_array(scratch.arena, u8, (u32)console.cursor_index),
-                .size = (u64)console.cursor_index,
-            };
-            memory_copy(left.str, console.input, left.size);
-            String8 right = {
-                .str = push_array(scratch.arena, u8, (u32)(console.input_count - console.cursor_index)),
-                .size = (u64)(console.input_count - console.cursor_index)
-            };
-            memory_copy(right.str, console.input + console.cursor_index, right.size);
-
-            u32 index = 0;
-            for(u32 i=0; i < left.size; ++i){
-                console.input[index++] = left.str[i];
+            for(s32 i=console.input_count; i > console.cursor_index; --i){
+                console.input[i] = console.input[i - 1];
             }
-            console.input[index++] = c;
-            for(u32 i=0; i < right.size; ++i){
-                console.input[index++] = right.str[i];
-            }
-
             console.input_count++;
-
-            end_scratch(scratch);
+            console.input[console.cursor_index] = c;
         }
         else{
             console.input[console.input_count++] = c;
@@ -91,41 +74,20 @@ input_add_char(u8 c){
     }
 }
 
-static u8
+static void
 input_remove_char(void){
     u8 c = 0;
     if(console.input_count > 0 && console.cursor_index > 0){
         if(console.cursor_index < console.input_count){
-            ScratchArena scratch = begin_scratch();
-
-            String8 left = {
-                .str = push_array(scratch.arena, u8, (u32)(console.cursor_index-1)),
-                .size = (u64)console.cursor_index-1,
-            };
-            memory_copy(left.str, console.input, left.size);
-            String8 right = {
-                .str = push_array(scratch.arena, u8, (u32)(console.input_count - console.cursor_index)),
-                .size = (u64)console.input_count - (u64)console.cursor_index,
-            };
-            memory_copy(right.str, console.input + console.cursor_index, right.size);
-
-            console.input_count--;
-            c = console.input[console.cursor_index - 1];
-            u32 index = 0;
-            for(u32 i=0; i < left.size; ++i){
-                console.input[index++] = left.str[i];
+            for(s32 i=console.cursor_index; i < console.input_count; ++i){
+                console.input[i - 1] = console.input[i];
             }
-            for(u32 i=0; i < right.size; ++i){
-                console.input[index++] = right.str[i];
-            }
-
-            end_scratch(scratch);
+            --console.input_count;
         }
         else{
-            c = console.input[--console.input_count];
+            --console.input_count;
         }
     }
-    return(c);
 }
 
 static void
@@ -182,7 +144,7 @@ handle_console_events(Event event){
             }
             if(event.keycode == KeyCode_BACKSPACE){
                 if(console.cursor_index > 0){
-                    u8 c = input_remove_char();
+                    input_remove_char();
 
                     console.cursor_index--;
                 }
@@ -219,13 +181,13 @@ handle_console_events(Event event){
                 }
             }
             if(event.keycode == KeyCode_ENTER){
-                u8* line_u8 = (u8*)push_array(global_arena, u8, console.input_count + 1);
+                u8* line_u8 = (u8*)push_array(console.arena, u8, console.input_count + 1);
                 memory_copy(line_u8, console.input, (size_t)console.input_count);
 
                 String8 line_str8 = {line_u8, (u64)console.input_count};
                 line_str8 = str8_eat_spaces(line_str8);
 
-                u64 args_count = parse_line_args(line_str8);
+                u64 args_count = command_parse_args(line_str8);
                 if(!args_count){ return(false); }
 
                 console.input_history[console.input_history_count++] = line_str8;
@@ -270,13 +232,13 @@ console_draw(void){
         // rect setup
         f32 y = (f32)(-font->vertical_offset);
         v2 output_p0 = make_v2(0                , y);
-        v2 output_p1 = make_v2((f32)window.width, y);
-        v2 output_p2 = make_v2((f32)window.width, (console.open_t * (f32)window.height) + y);
-        v2 output_p3 = make_v2(0                , (console.open_t * (f32)window.height) + y);
+        v2 output_p1 = make_v2((f32)console.window->width, y);
+        v2 output_p2 = make_v2((f32)console.window->width, (console.open_t * (f32)console.window->height) + y);
+        v2 output_p3 = make_v2(0                , (console.open_t * (f32)console.window->height) + y);
 
         v2 input_p0 = make_v2(0                , output_p2.y);
-        v2 input_p1 = make_v2((f32)window.width, output_p2.y);
-        v2 input_p2 = make_v2((f32)window.width, output_p2.y + (f32)font->vertical_offset);
+        v2 input_p1 = make_v2((f32)console.window->width, output_p2.y);
+        v2 input_p2 = make_v2((f32)console.window->width, output_p2.y + (f32)font->vertical_offset);
         v2 input_p3 = make_v2(0                , output_p2.y + (f32)font->vertical_offset);
 
         String8 str = str8(console.input, (u64)console.cursor_index);
@@ -303,7 +265,7 @@ console_draw(void){
         if(console.output_history_count > 0){
             f32 output_pos_y = output_p2.y + ((f32)font->descent * font->scale);
             for(s32 i=console.output_history_count-1; i >= 0; --i){
-                if(output_pos_y < (f32)window.height){
+                if(output_pos_y < (f32)console.window->height){
                     String8 next_string = console.output_history[i];
                     draw_text(console.font, next_string, make_v2(console.text_left_pad, output_pos_y), console.output_color);
                     output_pos_y -= (f32)font->vertical_offset;

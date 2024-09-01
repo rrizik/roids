@@ -33,15 +33,16 @@
 #include "clock.cpp"
 #include "camera.cpp"
 #include "bitmap.cpp"
-#include "draw.cpp"
 #include "d3d11_init.cpp"
 #include "font.cpp"
 #include "wave.cpp"
 #include "wasapi.cpp"
 #include "assets.cpp"
+#include "console.cpp"
+#include "command.cpp"
+#include "draw.cpp"
 #include "ui.cpp"
 #include "entity.cpp"
-
 
 
 #define SCREEN_WIDTH 1280
@@ -79,8 +80,6 @@ global bool pause;
 global bool should_quit;
 global Arena* global_arena = os_make_arena(MB(100));
 
-#include "console.cpp"
-#include "command.cpp"
 
 static void show_cursor(bool show);
 
@@ -119,7 +118,7 @@ typedef struct State{
     f32 screen_left;
     f32 screen_right;
 
-    RenderBatch* render_batch;
+    //RenderBatch* render_batch;
 } State, PermanentMemory;
 global State* state;
 

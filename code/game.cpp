@@ -421,6 +421,7 @@ handle_game_events(Event event){
             if(event.keycode == KeyCode_ESCAPE){
                 if(state->game_mode == GameMode_Game){
                     if(!game_won() && state->lives){
+                        //should_quit = true;
                         pause = !pause;
                         return(true);
                     }
@@ -474,6 +475,14 @@ game_won(void){
     }
 
     return(true);
+}
+
+static bool
+game_over(void){
+    if(state->lives == 0){
+        return(true);
+    }
+    return(false);
 }
 
 static void update_game(void){

@@ -2,8 +2,11 @@
 #define DRAW_H
 
 Arena* rc_arena = 0;
+Arena* rb_arena = 0;
 
+#define DEFAULT_BATCH_SIZE MB(8)
 typedef struct RenderBatch{
+    RenderBatch* next;
     Vertex3* buffer;
     s32 count;
     s32 at;
@@ -13,15 +16,14 @@ typedef struct RenderBatch{
 typedef struct RenderBatchNode{
     RenderBatch* first;
     RenderBatch* last;
+    u32 batch_count;
 } RenderBatchNode;
-global RenderBatchNode render_batches;
+global RenderBatchNode render_batches = {0};
 
-static void
-init_render_batch(Arena* arena, RenderBatch* batch, s32 vertex_count){
-    batch->buffer = push_array(arena, Vertex3, vertex_count);
-    batch->count = vertex_count;
-    batch->at = 0;
-}
+global Texture* r_texture;
+static void set_texture(Texture* texture);
+static Texture* get_texture(void);
+static RenderBatch* get_render_batch(void);
 
 typedef enum RenderCommandType{
     RenderCommandType_ClearColor,
@@ -43,11 +45,9 @@ typedef struct RenderCommand{
     v2 p3;
 
     RGBA color;
-	Texture* texture;
     Font* font;
 	u32 texture_id;
 
-    u32 font_id;
     String8 text;
 } RenderCommand;
 
@@ -73,8 +73,7 @@ static void draw_line(v2 p0, v2 p1, f32 width, RGBA color);
 static void draw_text(Font* font, String8 text, v2 pos, RGBA color);
 static void draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE);
 
-global Texture* texture;
-static void set_texture(Texture* texture);
-static Texture* get_texture(void);
+static void draw_render_batches(void);
+static void render_batches_reset(void);
 
 #endif

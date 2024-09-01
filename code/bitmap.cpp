@@ -32,8 +32,7 @@ find_first_set_bit(u32 value){
 }
 
 // NOTE: This is not a complete BMP loader. Use stb_image.h to load bmps instead if you want something complete
-static Bitmap
-bitmap_file_read(Arena* arena, String8 dir, String8 filename){
+static Bitmap bitmap_file_read(Arena* arena, String8 dir, String8 filename){
     Bitmap result = {0};
 
     ScratchArena scratch = begin_scratch();

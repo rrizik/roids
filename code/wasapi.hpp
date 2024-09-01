@@ -28,11 +28,11 @@ static u32 buffer_samples;
 REFERENCE_TIME default_device_period;
 REFERENCE_TIME minimum_device_period;
 
-static HRESULT wasapi_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample);
-static HRESULT wasapi_start(void);
-static HRESULT wasapi_stop(void);
+static void init_wasapi(u16 channels, u32 samples_per_sec, u16 bits_per_sample);
+static void wasapi_start(void);
+static void wasapi_stop(void);
 //static HRESULT audio_play_sine(f32 freq);
-static HRESULT wasapi_play_cursors(void);
+static void wasapi_play_cursors(void);
 static bool wasapi_play(Wave* wave, f32 volume, bool loop);
 static void wasapi_release(void);
 

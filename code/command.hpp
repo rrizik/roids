@@ -28,7 +28,7 @@ static void command_add(String8* args);
 static void command_saves(String8* args);
 
 static void init_console_commands(void);
-static u64 parse_line_args(String8 line);
+static u64 command_parse_args(String8 line);
 static void run_command(String8 line);
 
 #endif

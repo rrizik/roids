@@ -10,6 +10,7 @@ typedef enum ConsoleState{
 typedef struct Console{
     ConsoleState state;
     Font* font;
+    Window* window;
     Arena* arena;
 
     f32 text_left_pad;
@@ -47,14 +48,14 @@ typedef struct Console{
 } Console;
 global Console console;
 
-static void console_init(Arena* arena, Assets* assets);
+static void init_console(Arena* arena, Window* window, Assets* assets);
 static bool console_is_open(void);
 static bool console_is_visible(void);
 static   u8 console_char_at_cursor(void);
 static   u8 console_char_at_cursor(void);
 
 static void input_add_char(u8 c);
-static   u8 input_remove_char(void);
+static void input_remove_char(void);
 
 static void console_set_state(ConsoleState state);
 static bool handle_console_events(Event event);

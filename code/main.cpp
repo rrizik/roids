@@ -331,9 +331,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     init_paths(global_arena);
     init_memory(MB(500), GB(1));
     init_clock(&clock);
-    HRESULT hr = wasapi_init(2, 48000, 32);
-    assert_hr(hr);
-    events_init(&events);
+    init_wasapi(2, 48000, 32);
+    init_events(&events);
 
 
     // note: sim measurements
@@ -366,16 +365,15 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         ts->ui_arena = push_arena(&ts->arena, MB(100));
         ts->batch_arena = push_arena(&ts->arena, MB(100));
 
-        state->game_mode = GameMode_Game;
+        state->game_mode = GameMode_Menu;
 
         show_cursor(true);
         load_assets(ts->asset_arena, &ts->assets);
 
         init_camera();
-        console_init(&state->arena, &ts->assets);
-        init_console_commands();
-        ui_init(&state->arena, &window, &controller, &ts->assets);
-        init_render_commands(ts->render_command_arena);
+        init_console(global_arena, &window, &ts->assets);
+        init_ui(&state->arena, &window, &controller, &ts->assets);
+        init_render_commands(ts->render_command_arena, ts->batch_arena);
 
         state->font = &ts->assets.fonts[FontAsset_Arial];
 
@@ -477,137 +475,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         d3d_context->Unmap(d3d_constant_buffer, 0);
 
         draw_clear_color(BACKGROUND_COLOR);
-        if(state->game_mode == GameMode_Menu){
-            ui_begin(ts->ui_arena);
-
-            ui_push_pos_x(window.width/2 - 50);
-            ui_push_pos_y(window.height/2 - 100);
-            ui_push_size_w(ui_size_children(0));
-            ui_push_size_h(ui_size_children(0));
-
-            UI_Box* box1 = ui_box(str8_literal("box1##1"));
-            ui_push_parent(box1);
-            ui_pop_pos_x();
-            ui_pop_pos_y();
-
-            ui_push_size_w(ui_size_pixel(100, 0));
-            ui_push_size_h(ui_size_pixel(50, 0));
-            ui_push_background_color(BLUE);
-            if(ui_button(str8_literal("Play##1")).pressed_left){
-                state->game_mode = GameMode_Game;
-                reset_game();
-                ui_close();
-            }
-            ui_spacer(10);
-            if(ui_button(str8_literal("Exit##1")).pressed_left){
-                should_quit = true;
-                ui_close();
-            }
-            ui_layout();
-            ui_draw(ui_root());
-            ui_end();
-        }
-
         if(state->game_mode == GameMode_Game){
 
-            if(!state->lives){
-                String8 text = str8_formatted(ts->frame_arena, "GAME OVER - Score: %i", state->score);
-                f32 width = font_string_width(state->font, text);
-                f32 x = window.width/2 - width/2;
-                draw_text(state->font, text, make_v2(x, window.height/2 - 200), ORANGE);
-
-                ui_begin(ts->ui_arena);
-
-                ui_push_pos_x(window.width/2 - 50);
-                ui_push_pos_y(window.height/2 - 100);
-                ui_push_size_w(ui_size_children(0));
-                ui_push_size_h(ui_size_children(0));
-
-                UI_Box* box1 = ui_box(str8_literal("box1"));
-                ui_push_parent(box1);
-                ui_pop_pos_x();
-                ui_pop_pos_y();
-
-                ui_push_size_w(ui_size_pixel(100, 0));
-                ui_push_size_h(ui_size_pixel(50, 0));
-                ui_push_background_color(BLUE);
-                if(ui_button(str8_literal("Restart")).pressed_left){
-                    reset_game();
-                    ui_close();
-                }
-                ui_spacer(10);
-                if(ui_button(str8_literal("Exit")).pressed_left){
-                    should_quit = true;
-                    ui_close();
-                }
-                ui_layout();
-                ui_draw(ui_root());
-                ui_end();
-            }
-            else if(game_won()){
-                String8 text = str8_formatted(ts->frame_arena, "CHICKEN DINNER - Score: %i", state->score);
-                f32 width = font_string_width(state->font, text);
-                f32 x = window.width/2 - width/2;
-                draw_text(state->font, text, make_v2(x, window.height/2 - 200), ORANGE);
-
-                ui_begin(ts->ui_arena);
-
-                ui_push_pos_x(window.width/2 - 50);
-                ui_push_pos_y(window.height/2 - 100);
-                ui_push_size_w(ui_size_children(0));
-                ui_push_size_h(ui_size_children(0));
-
-                UI_Box* box1 = ui_box(str8_literal("box1"));
-                ui_push_parent(box1);
-                ui_pop_pos_x();
-                ui_pop_pos_y();
-
-                ui_push_size_w(ui_size_pixel(100, 0));
-                ui_push_size_h(ui_size_pixel(50, 0));
-                ui_push_background_color(BLUE);
-                if(ui_button(str8_literal("Restart")).pressed_left){
-                    reset_game();
-                    ui_close();
-                }
-                ui_spacer(10);
-                if(ui_button(str8_literal("Exit")).pressed_left){
-                    should_quit = true;
-                    ui_close();
-                }
-                ui_layout();
-                ui_draw(ui_root());
-                ui_end();
-            }
-            if(pause && !game_won() && state->lives){
-                ui_begin(ts->ui_arena);
-
-                ui_push_pos_x(window.width/2 - 50);
-                ui_push_pos_y(window.height/2 - 100);
-                ui_push_size_w(ui_size_children(0));
-                ui_push_size_h(ui_size_children(0));
-
-                UI_Box* box1 = ui_box(str8_literal("box1"));
-                ui_push_parent(box1);
-                ui_pop_pos_x();
-                ui_pop_pos_y();
-
-                ui_push_size_w(ui_size_pixel(100, 0));
-                ui_push_size_h(ui_size_pixel(50, 0));
-                ui_push_background_color(BLUE);
-                if(ui_button(str8_literal("Resume")).pressed_left){
-                    pause = false;
-                    ui_close();
-                }
-                ui_spacer(10);
-                if(ui_button(str8_literal("Exit")).pressed_left){
-                    should_quit = true;
-                    ui_close();
-                }
-                ui_layout();
-                ui_draw(ui_root());
-                ui_end();
-            }
-            else{
+            if(!pause){
                 simulations = 0;
                 accumulator += frame_time;
                 while(accumulator >= clock.dt){
@@ -618,7 +488,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     time_elapsed += clock.dt;
                     simulations++;
 
-                    clear_controller_pressed();
                 }
             }
 
@@ -643,6 +512,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             p2 = rotate_point_deg(p2, e->deg, pos);
                             p3 = rotate_point_deg(p3, e->deg, pos);
 
+                            set_texture(&ts->assets.textures[TextureAsset_White]);
                             draw_quad(p0, p1, p2, p3, e->color);
                         } break;
                         case EntityType_Asteroid:
@@ -677,6 +547,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             p2 = rotate_point_deg(p2, e->deg, pos);
                             p3 = rotate_point_deg(p3, e->deg, pos);
 
+                            set_texture(&ts->assets.textures[TextureAsset_White]);
                             draw_line(p0, p1, 5, GREEN);
                             draw_line(p1, p2, 5, GREEN);
                             draw_line(p2, p3, 5, GREEN);
@@ -699,7 +570,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                                 p2.y += (55 * (-e->dir.y));
                                 p3.x += (55 * (-e->dir.x));
                                 p3.y += (55 * (-e->dir.y));
-                                u32 random_flame = random_range_u32(5) + 3;
+                                u32 random_flame = random_range_u32(5) + 4;
                                 draw_texture(random_flame, p0, p1, p2, p3, e->color);
                             }
 
@@ -720,6 +591,11 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
 
             // todo: revaluate where this should be
+            // todo: revaluate where this should be
+            // todo: revaluate where this should be
+            // todo: revaluate where this should be
+            // todo: revaluate where this should be
+            // todo: revaluate where this should be
             String8 fps = str8_formatted(ts->frame_arena, "FPS: %.2f", FPS);
             draw_text(state->font, fps, make_v2(window.width - text_padding - font_string_width(state->font, fps), window.height - text_padding), ORANGE);
 
@@ -739,18 +615,162 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     }
                 }
             }
+
+            if(game_won()){
+                String8 text = str8_formatted(ts->frame_arena, "CHICKEN DINNER - Score: %i", state->score);
+                f32 font_width = font_string_width(state->font, text);
+                f32 x = window.width/2 - font_width/2;
+                draw_text(state->font, text, make_v2(x, window.height/2 - 200), ORANGE);
+
+                ui_begin(ts->ui_arena);
+
+                ui_push_pos_x(window.width/2 - 50);
+                ui_push_pos_y(window.height/2 - 100);
+                ui_push_size_w(ui_size_children(0));
+                ui_push_size_h(ui_size_children(0));
+
+                UI_Box* box1 = ui_box(str8_literal("box1"));
+                ui_push_parent(box1);
+                ui_pop_pos_x();
+                ui_pop_pos_y();
+
+                ui_push_size_w(ui_size_pixel(100, 0));
+                ui_push_size_h(ui_size_pixel(50, 0));
+                ui_push_background_color(BLUE);
+                if(ui_button(str8_literal("Restart")).pressed_left){
+                    reset_game();
+                    ui_close();
+                }
+                ui_spacer(10);
+                if(ui_button(str8_literal("Exit")).pressed_left){
+                    events_quit(&events);
+                    ui_close();
+                }
+                ui_layout();
+                set_texture(&ts->assets.textures[TextureAsset_White]);
+                ui_draw(ui_root());
+                ui_end();
+            }
+            else if(game_over()){
+                String8 text = str8_formatted(ts->frame_arena, "GAME OVER - Score: %i", state->score);
+                f32 font_width = font_string_width(state->font, text);
+                f32 x = window.width/2 - font_width/2;
+                draw_text(state->font, text, make_v2(x, window.height/2 - 200), ORANGE);
+
+                ui_begin(ts->ui_arena);
+
+                ui_push_pos_x(window.width/2 - 50);
+                ui_push_pos_y(window.height/2 - 100);
+                ui_push_size_w(ui_size_children(0));
+                ui_push_size_h(ui_size_children(0));
+
+                UI_Box* box1 = ui_box(str8_literal("box1"));
+                ui_push_parent(box1);
+                ui_pop_pos_x();
+                ui_pop_pos_y();
+
+                ui_push_size_w(ui_size_pixel(100, 0));
+                ui_push_size_h(ui_size_pixel(50, 0));
+                ui_push_background_color(BLUE);
+                if(ui_button(str8_literal("Restart")).pressed_left){
+                    reset_game();
+                    ui_close();
+                }
+                ui_spacer(10);
+                if(ui_button(str8_literal("Exit")).pressed_left){
+                    events_quit(&events);
+                    ui_close();
+                }
+                ui_layout();
+                set_texture(&ts->assets.textures[TextureAsset_White]);
+                ui_draw(ui_root());
+                ui_end();
+            }
+            else if(pause && !game_won() && !game_over()){
+                ui_begin(ts->ui_arena);
+
+                ui_push_pos_x(window.width/2 - 50);
+                ui_push_pos_y(window.height/2 - 100);
+                ui_push_size_w(ui_size_children(0));
+                ui_push_size_h(ui_size_children(0));
+
+                UI_Box* box1 = ui_box(str8_literal("box1"));
+                ui_push_parent(box1);
+                ui_pop_pos_x();
+                ui_pop_pos_y();
+
+                ui_push_size_w(ui_size_pixel(100, 0));
+                ui_push_size_h(ui_size_pixel(50, 0));
+                ui_push_background_color(BLUE);
+                if(ui_button(str8_literal("Resume")).pressed_left){
+                    pause = false;
+                    ui_close();
+                }
+                ui_spacer(10);
+                if(ui_button(str8_literal("Exit")).pressed_left){
+                    events_quit(&events);
+                    ui_close();
+                }
+                ui_layout();
+                set_texture(&ts->assets.textures[TextureAsset_White]);
+                ui_draw(ui_root());
+                ui_end();
+            }
         }
+
+        if(state->game_mode == GameMode_Menu){
+            ui_begin(ts->ui_arena);
+
+            ui_push_pos_x(window.width/2 - 50);
+            ui_push_pos_y(window.height/2 - 100);
+            ui_push_size_w(ui_size_children(0));
+            ui_push_size_h(ui_size_children(0));
+
+            UI_Box* box1 = ui_box(str8_literal("box1##1"));
+            ui_push_parent(box1);
+            ui_pop_pos_x();
+            ui_pop_pos_y();
+
+            ui_push_size_w(ui_size_pixel(100, 0));
+            ui_push_size_h(ui_size_pixel(50, 0));
+            ui_push_background_color(BLUE);
+            if(ui_button(str8_literal("Play##1")).pressed_left){
+                state->game_mode = GameMode_Game;
+                reset_game();
+                ui_close();
+            }
+            ui_spacer(10);
+            if(ui_button(str8_literal("Exit##1")).pressed_left){
+                events_quit(&events);
+                ui_close();
+            }
+            ui_layout();
+            set_texture(&ts->assets.textures[TextureAsset_White]);
+            ui_draw(ui_root());
+            ui_end();
+        }
+
+
         console_update();
 
         // draw everything
+        set_texture(&ts->assets.textures[TextureAsset_White]);
         console_draw();
+        clear_controller_pressed();
         draw_commands();
 
         wasapi_play_cursors();
+        //print("count: %i, at: %i, count: %i\n", render_batches.batch_count, render_batches.last->at, render_batches.last->count);
+        draw_render_batches();
+        {
+            d3d_swapchain->Present(1, 0);
+        }
+        render_batches_reset();
 
         arena_free(ts->frame_arena);
         arena_free(ts->ui_arena);
         arena_free(ts->render_command_arena);
+        arena_free(ts->batch_arena);
 
         frame_inc++;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
@@ -759,7 +779,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             frame_tick_start = clock.get_os_timer();
             frame_inc = 0;
         }
-        frame_count++;
 
         // todo: why is this here?
         //end_profiler();

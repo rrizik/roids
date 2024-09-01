@@ -189,12 +189,13 @@ typedef struct Events{
 } Events;
 global Events events;
 
-static void  events_init(Events* events);
+static void  init_events(Events* events);
 static u32   events_count(Events* events);
 static bool  events_full(Events* events);
 static bool  events_empty(Events* events);
 static u32   mask(Events* events, u32 idx);
 static void  events_add(Events* events, Event event);
 static Event events_next(Events* events);
+static void  events_quit(Events* events);
 
 #endif

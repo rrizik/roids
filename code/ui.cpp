@@ -2,7 +2,7 @@
 #define UI_C
 
 static void
-ui_init(Arena* arena, Window* window, Controller* controller, Assets* assets){
+init_ui(Arena* arena, Window* window, Controller* controller, Assets* assets){
     ui_state = push_struct(arena, UI_State);
     ui_state->window = window;
     ui_state->controller = controller;

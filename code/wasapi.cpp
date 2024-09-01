@@ -7,21 +7,19 @@
 
 // todo: put WASAPI in base file as it can be standalone
 // todo: change all asserts to error logs
-static HRESULT
-wasapi_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
+static void
+init_wasapi(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
     HRESULT hr = S_OK;
 
     hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), 0, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&device_enumerator);
     if(FAILED(hr)){
         assert_hr(hr);
-        return(hr);
     }
 
     // get the default audio device
     hr = device_enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &audio_device);
     if(FAILED(hr)){
         assert_hr(hr);
-        return(hr);
     }
     device_enumerator->Release();
 
@@ -29,14 +27,12 @@ wasapi_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
     hr = audio_device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, 0, (void**)&audio_client);
     if(FAILED(hr)){
         assert_hr(hr);
-        return(hr);
     }
     audio_device->Release();
 
     hr = audio_client->GetDevicePeriod(&default_device_period, &minimum_device_period);
     if(FAILED(hr)){
         assert_hr(hr);
-        return(hr);
     }
 
     wave_format = {0};
@@ -51,49 +47,40 @@ wasapi_init(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
     hr = audio_client->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, default_device_period, 0, &wave_format, 0);
     if (FAILED(hr)) {
         assert_hr(hr);
-        return(hr);
     }
 
     // get the size of the buffer
     hr = audio_client->GetBufferSize(&buffer_samples);
     if(FAILED(hr)){
         assert_hr(hr);
-        return(hr);
     }
 
     // get the render client
     hr = audio_client->GetService(__uuidof(IAudioRenderClient), (void**)&render_client);
     if(FAILED(hr)){
         assert_hr(hr);
-        return(hr);
     }
 
     // start the audio stream
     hr = audio_client->Start();
     if(FAILED(hr)){
         assert_hr(hr);
-        return(hr);
     }
 
-    return(hr);
 }
 
-static HRESULT wasapi_start(void){
+static void wasapi_start(void){
     hr = audio_client->Start();
     if(FAILED(hr)){
         assert_hr(hr);
-        return(hr);
     }
-    return(hr);
 }
 
-static HRESULT wasapi_stop(void){
+static void wasapi_stop(void){
     hr = audio_client->Stop();
     if(FAILED(hr)){
         assert_hr(hr);
-        return(hr);
     }
-    return(hr);
 }
 
 static bool
@@ -113,14 +100,13 @@ wasapi_play(Wave* wave, f32 volume, bool loop){
 }
 
 // todo: create a wave drawing function to draw the audio waves. Will be cool to do
-static HRESULT wasapi_play_cursors(void){
+static void wasapi_play_cursors(void){
     HRESULT hr = S_OK;
 
     u32 padding;
     hr = audio_client->GetCurrentPadding(&padding);
     if (FAILED(hr)) {
         assert_hr(hr);
-        return(hr);
     }
     u32 available_samples = buffer_samples - padding;
 
@@ -128,7 +114,6 @@ static HRESULT wasapi_play_cursors(void){
     hr = render_client->GetBuffer(available_samples, &buffer);
     if (FAILED(hr)) {
         assert_hr(hr);
-        return(hr);
     }
 
     memset(buffer, 0, available_samples * wave_format.nBlockAlign); // clear buffer from previously written data
@@ -161,10 +146,7 @@ static HRESULT wasapi_play_cursors(void){
     hr = render_client->ReleaseBuffer(available_samples, 0);
     if(FAILED(hr)){
         assert_hr(hr);
-        return(hr);
     }
-
-    return(hr);
 }
 
 static void

@@ -23,7 +23,7 @@ d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_co
 
     ScratchArena scratch = begin_scratch();
     //String8 utf8_shader_path = str8_path_append(scratch.arena, path_shaders, shader_file);
-    String16 utf16_shader_path = os_utf8_utf16(scratch.arena, shader_path);
+    String16 utf16_shader_path = os_utf16_from_utf8(scratch.arena, shader_path);
 
     ID3DBlob* vs_blob, *ps_blob, *error;
     hr = D3DCompileFromFile((wchar*)utf16_shader_path.str, 0, 0, "vs_main", "vs_5_0", shader_compile_flags, 0, &vs_blob, &error);
@@ -191,8 +191,7 @@ init_d3d(HWND window_handle, u32 width, u32 height){
     // ---------------------------------------------------------------------------------
     // Load Shaders
     // ---------------------------------------------------------------------------------
-	d3d_load_shader(str8_literal("shaders\\2d_texture_shader.hlsl"), il_2d_textured, 3, &d3d_2d_textured_vs, &d3d_2d_textured_ps, &d3d_2d_textured_il);
-	//d3d_load_shader(str8_literal("shaders\\2d_quad_shader.hlsl"), layout_2d_quad, 2, &d3d_2d_quad_vs, &d3d_2d_quad_ps, &d3d_2d_quad_il);
+	d3d_load_shader(str8_literal("shaders/2d_texture_shader.hlsl"), il_2d_textured, 3, &d3d_2d_textured_vs, &d3d_2d_textured_ps, &d3d_2d_textured_il);
 
     // ---------------------------------------------------------------------------------
     // Vertex Buffers
@@ -320,44 +319,25 @@ d3d_release(void){
     d3d_swapchain->SetFullscreenState(false, 0);
     if(d3d_swapchain) d3d_swapchain->Release();
 
-    if(d3d_framebuffer) d3d_framebuffer->Release();
-    if(d3d_depthbuffer) d3d_depthbuffer->Release();
+    if(d3d_framebuffer)      d3d_framebuffer->Release();
     if(d3d_framebuffer_view) d3d_framebuffer_view->Release();
+    if(d3d_depthbuffer)      d3d_depthbuffer->Release();
     if(d3d_depthbuffer_view) d3d_depthbuffer_view->Release();
 
-    //d3d_texture->Release();
-    //d3d_shader_resource->Release();
+    if(d3d_depthstencil_state) d3d_depthstencil_state->Release();
+    if(d3d_rasterizer_state)   d3d_rasterizer_state->Release();
+    if(d3d_sampler_state)      d3d_sampler_state->Release();
+    if(d3d_blend_state)        d3d_blend_state->Release();
 
-    //if(d3d_2d_quad_vs) d3d_2d_quad_vs->Release();
-    //if(d3d_2d_quad_ps)  d3d_2d_quad_ps->Release();
-    //if(d3d_2d_quad_il)  d3d_2d_quad_il->Release();
     if(d3d_2d_textured_vs) d3d_2d_textured_vs->Release();
-    if(d3d_2d_textured_ps)  d3d_2d_textured_ps->Release();
-    if(d3d_2d_textured_il)  d3d_2d_textured_il->Release();
+    if(d3d_2d_textured_ps) d3d_2d_textured_ps->Release();
+    if(d3d_2d_textured_il) d3d_2d_textured_il->Release();
 
     if(d3d_vertex_buffer_8mb) d3d_vertex_buffer_8mb->Release();
     if(d3d_index_buffer)      d3d_index_buffer->Release();
-    if(d3d_constant_buffer)   d3d_constant_buffer->Release();
     if(d3d_instance_buffer)   d3d_instance_buffer->Release();
+    if(d3d_constant_buffer)   d3d_constant_buffer->Release();
 
-    if(d3d_blend_state)        d3d_blend_state->Release();
-    if(d3d_sampler_state)      d3d_sampler_state->Release();
-    if(d3d_rasterizer_state)   d3d_rasterizer_state->Release();
-    if(d3d_depthstencil_state) d3d_depthstencil_state->Release();
-
-    //if(image_texture)  image_texture->Release();
-    //if(ship_texture)   ship_texture->Release();
-    //if(tree_texture)   tree_texture->Release();
-    //if(circle_texture) circle_texture->Release();
-    //if(bullet_texture) bullet_texture->Release();
-    //if(test_texture)   test_texture->Release();
-
-    if(image_shader_resource)  image_shader_resource->Release();
-    if(ship_shader_resource)   ship_shader_resource->Release();
-    if(tree_shader_resource)   tree_shader_resource->Release();
-    if(circle_shader_resource) circle_shader_resource->Release();
-    if(bullet_shader_resource) bullet_shader_resource->Release();
-    if(test_shader_resource)   test_shader_resource->Release();
     if(white_shader_resource) white_shader_resource->Release();
 
 #ifdef DEBUG

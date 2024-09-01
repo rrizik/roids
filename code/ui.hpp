@@ -134,7 +134,7 @@ typedef struct UI_State{
 } UI_State;
 global UI_State* ui_state;
 
-static void ui_init(Arena* parena, Window* window, Controller* controller, Assets* assets);
+static void init_ui(Arena* parena, Window* window, Controller* controller, Assets* assets);
 static void ui_begin(Arena* arena);
 static void ui_end(void);
 static void ui_layout(void);

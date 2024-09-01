@@ -41,25 +41,13 @@ global ID3D11VertexShader* d3d_2d_textured_vs;
 global ID3D11PixelShader*  d3d_2d_textured_ps;
 global ID3D11InputLayout*  d3d_2d_textured_il;
 
-global ID3D11VertexShader* d3d_d7_sprite_vs;
-global ID3D11PixelShader*  d3d_d7_sprite_ps;
-
 global ID3D11Buffer* d3d_vertex_buffer_8mb;
 global ID3D11Buffer* d3d_index_buffer;
 global ID3D11Buffer* d3d_instance_buffer;
 global ID3D11Buffer* d3d_constant_buffer;
 
-global ID3D11ShaderResourceView* image_shader_resource;
-global ID3D11ShaderResourceView* ship_shader_resource;
-global ID3D11ShaderResourceView* tree_shader_resource;
-global ID3D11ShaderResourceView* circle_shader_resource;
-global ID3D11ShaderResourceView* bullet_shader_resource;
-global ID3D11ShaderResourceView* test_shader_resource;
-global ID3D11ShaderResourceView* asteroid_shader_resource;
-
 global ID3D11Texture2D* white_texture;
 global ID3D11ShaderResourceView* white_shader_resource;
-//global Texture texture_white = {white_shader_resource};
 
 global D3D11_INPUT_ELEMENT_DESC il_2d_textured[] = {
         // vertex data

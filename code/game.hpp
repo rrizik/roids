@@ -45,6 +45,7 @@ static void reset_ship(void);
 
 static void update_game(void);
 static bool game_won(void);
+static bool game_over(void);
 
 #endif
 

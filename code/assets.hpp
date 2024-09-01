@@ -26,6 +26,97 @@ typedef enum WaveAsset{
     WaveAsset_Count,
 } WaveAsset;
 
+static u64
+hash_from_key(String8 key){
+    u64 result = 5381;
+
+    for(u64 i=0; i < key.count; ++i){
+        result = ((result << 5) + result) + key.data[i];
+    }
+
+    return(result);
+}
+
+typedef struct TextureHashNode{
+    TextureHashNode* next;
+    u64 hash;
+    String8 key;
+    Texture value;
+} TextureHashNode;
+
+typedef struct TextureHashTable{
+    Arena* arena;
+    u64 count;
+    TextureHashNode** slots;
+} TextureHashTable;
+global TextureHashTable texture_table;
+
+static void
+init_texture_table(Arena* arena, TextureHashTable* table){
+    table->arena = arena;
+    table->count = TABLE_DEFAULT_COUNT;
+    table->slots = push_array(table->arena, TextureHashNode*, table->count);
+}
+
+static void
+texture_table_insert(TextureHashTable* table, String8 key, Texture texture){
+    // if new table, allocate default amount
+    if(table->count == 0){
+        table->count = TABLE_DEFAULT_COUNT;
+        table->slots = push_array(table->arena, TextureHashNode*, table->count);
+    }
+
+    u64 hash = hash_from_key(key);
+    u64 slot_idx = hash % table->count;
+    TextureHashNode* found_node = 0;
+
+    TextureHashNode* n = table->slots[slot_idx];
+    while(n != 0){
+        if(n->hash == hash && str8_compare(n->key, key)){
+            found_node = n;
+            break;
+        }
+        n = n->next;
+    }
+
+    // overwrite found node.
+    if(found_node != 0){
+        found_node->value = texture;
+    }
+
+    // node not found. create new one.
+    if(found_node == 0){
+        TextureHashNode* node = push_struct(table->arena, TextureHashNode);
+        node->value = texture;
+        node->hash = hash;
+        node->key = key;
+        node->next = table->slots[slot_idx];
+        table->slots[slot_idx] = node;
+    }
+}
+
+static Texture
+texture_table_lookup(TextureHashTable* table, String8 key){
+    u64 hash = hash_from_key(key);
+    u64 slot_idx = hash % table->count;
+    TextureHashNode* found_node = 0;
+
+    TextureHashNode* n = table->slots[slot_idx];
+    while(n != 0){
+        if(n->hash == hash && str8_compare(n->key, key)){
+            found_node = n;
+            break;
+        }
+        n = n->next;
+    }
+
+    Texture result = {0};
+    if(found_node != 0){
+        result = found_node->value;
+    }
+    return(result);
+}
+
 typedef enum TextureAsset{
     TextureAsset_None,
     TextureAsset_Ship,

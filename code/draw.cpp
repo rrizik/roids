@@ -51,8 +51,20 @@ srgb_to_linear(RGBA value){
     return(result);
 }
 
-static void init_render_commands(Arena* arena){
+static void
+init_render_commands(Arena* arena, Arena* arena_b){
     rc_arena = arena;
+    rb_arena = arena_b;
+}
+
+static void
+set_texture(Texture* texture){
+    r_texture = texture;
+}
+
+static Texture*
+get_texture(void){
+    return(r_texture);
 }
 
 static void
@@ -74,22 +86,15 @@ draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
     command->p3 = p3;
     command->texture_id = TextureAsset_White;
 
-    //RenderBatch *batch = render_batches.last;
-    //if(batch == 0 || batch->at >= batch->count || batch->texture != texture){
-    //  batch = push_array(rb_arena, RenderBatch, 1);
-    //  sll_queue_push(render_batches_list.first, render_batches_list.last, batch);
-    //  batch->texture = texture;
-    //}
-    // add data to batch
+    RenderBatch *batch = get_render_batch();
 
-    //RenderBatch* batch = get_render_batch();
-    //RGBA linear_color = srgb_to_linear(color); // gamma correction
-    //batch->buffer[batch->at++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { p1, linear_color, make_v2(1.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { p2, linear_color, make_v2(1.0f, 1.0f) };
-    //batch->buffer[batch->at++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { p2, linear_color, make_v2(1.0f, 1.0f) };
-    //batch->buffer[batch->at++] = { p3, linear_color, make_v2(0.0f, 1.0f) };
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void
@@ -103,14 +108,15 @@ draw_quad(v2 pos, v2 dim, RGBA color){
     command->p3 = make_v2(pos.x, pos.y + dim.h);
     command->texture_id = TextureAsset_White;
 
-    //RenderBatch* batch = get_render_batch();
-    //RGBA linear_color = srgb_to_linear(color); // gamma correction
-    //batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
-    //batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
-    //batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
+    RenderBatch *batch = get_render_batch();
+
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void
@@ -124,14 +130,15 @@ draw_quad(Rect rect, RGBA color){
     command->p3 = make_v2(rect.x0, rect.y1);
     command->texture_id = TextureAsset_White;
 
-    //RenderBatch* batch = get_render_batch();
-    //RGBA linear_color = srgb_to_linear(color); // gamma correction
-    //batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
-    //batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
-    //batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
+    RenderBatch *batch = get_render_batch();
+
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void
@@ -145,14 +152,15 @@ draw_quad(Quad quad, RGBA color){
     command->p3 = quad.p3;
     command->texture_id = TextureAsset_White;
 
-    //RenderBatch* batch = get_render_batch();
-    //RGBA linear_color = srgb_to_linear(color); // gamma correction
-    //batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
-    //batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
-    //batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
+    RenderBatch *batch = get_render_batch();
+
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void
@@ -170,14 +178,15 @@ draw_line(v2 p0, v2 p1, f32 width, RGBA color){
     command->p3 = command->p0 + (perp * width);
     command->texture_id = TextureAsset_White;
 
-    //RenderBatch* batch = get_render_batch();
-    //RGBA linear_color = srgb_to_linear(color); // gamma correction
-    //batch->buffer[batch->at++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { p1, linear_color, make_v2(1.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { p2, linear_color, make_v2(1.0f, 1.0f) };
-    //batch->buffer[batch->at++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
-    //batch->buffer[batch->at++] = { p2, linear_color, make_v2(1.0f, 1.0f) };
-    //batch->buffer[batch->at++] = { p3, linear_color, make_v2(0.0f, 1.0f) };
+    RenderBatch *batch = get_render_batch();
+
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p1, linear_color, make_v2(1.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->at++] = { command->p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->at++] = { command->p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void
@@ -207,15 +216,75 @@ draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
     command->texture_id = texture;
 }
 
+static RenderBatch*
+get_render_batch(void){
+    Texture* texture = get_texture();
+
+    RenderBatch *batch = render_batches.last;
+    if(batch == 0 || batch->at >= batch->count || batch->texture != texture){
+        batch = push_array(rb_arena, RenderBatch, 1);
+        batch->buffer = push_array(rb_arena, Vertex3, DEFAULT_BATCH_SIZE / sizeof(Vertex3));
+        batch->count = DEFAULT_BATCH_SIZE / sizeof(Vertex3);
+        batch->at = 0;
+        batch->texture = texture;
+        if(render_batches.last == 0){
+            render_batches.last = batch;
+            render_batches.first = batch;
+        }
+        else{
+            render_batches.last->next = batch;
+            render_batches.last = batch;
+        }
+        render_batches.batch_count++;
+    }
+    assert(batch->at < batch->count);
+    return(batch);
+}
+
+
 static void
-set_texture(Texture* texture){
-    texture = texture;
+draw_render_batches(){
+    for(RenderBatch* batch = render_batches.first; batch != 0; batch = batch->next){
+        {
+            D3D11_MAPPED_SUBRESOURCE resource;
+            hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+            assert_hr(hr);
+
+            memcpy(resource.pData, batch->buffer, sizeof(Vertex3) * batch->at);
+            d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
+
+            ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
+            u32 strides[] = {sizeof(Vertex3)};
+            u32 offset[] = {0};
+
+            d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
+        }
+
+        //-------------------------------------------------------------------
+
+        d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+        d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
+        d3d_context->PSSetShaderResources(0, 1, &batch->texture->view);
+
+        d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
+        d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
+        d3d_context->RSSetState(d3d_rasterizer_state);
+
+        d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
+
+        d3d_context->RSSetViewports(1, &d3d_viewport);
+        d3d_context->IASetInputLayout(d3d_2d_textured_il);
+        d3d_context->VSSetShader(d3d_2d_textured_vs, 0, 0);
+        d3d_context->PSSetShader(d3d_2d_textured_ps, 0, 0);
+
+        d3d_context->Draw((u32)batch->at, 0);
+    }
 }
 
-static Texture*
-get_texture(void){
-    return(texture);
+static void
+render_batches_reset(void){
+    render_batches.first = 0;
+    render_batches.last = 0;
+    render_batches.batch_count = 0;
 }
-
-
 #endif
