@@ -7,7 +7,6 @@ typedef struct Level{
     s32 asteroid_count_max;
 } Level;
 
-static void init_levels(void);
 
 typedef enum GameMode{
     GameMode_FirstPerson,
@@ -16,6 +15,9 @@ typedef enum GameMode{
     GameMode_Menu,
 } GameMode;
 
+
+static v2 world_from_screen_space(v2 point);
+static v2 screen_from_world_space(v2 point);
 
 //static Bitmap* get_bitmap(Assets* assets, BitmapAsset id);
 
@@ -44,6 +46,7 @@ static void reset_game(void);
 static void reset_ship(void);
 
 static void update_game(void);
+static void init_levels(void);
 static bool game_won(void);
 static bool game_over(void);
 

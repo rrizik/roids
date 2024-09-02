@@ -12,12 +12,12 @@
 #define PROFILER 1
 #include "profiler.h"
 
+#include <string.h>
 #include "input.hpp"
 #include "clock.hpp"
 #include "camera.hpp"
 #include "bitmap.hpp"
 #include "d3d11_init.hpp"
-#include "d3d11_render.hpp"
 #include "font.hpp"
 #include "wave.hpp"
 #include "wasapi.hpp"
@@ -117,15 +117,12 @@ typedef struct State{
     f32 screen_bottom;
     f32 screen_left;
     f32 screen_right;
-
-    //RenderBatch* render_batch;
 } State, PermanentMemory;
 global State* state;
 
 typedef struct TransientMemory{
     Arena arena;
     Arena *frame_arena;
-    Arena *render_command_arena;
     Arena *asset_arena;
     Arena *ui_arena;
     Arena *batch_arena;
@@ -138,7 +135,6 @@ typedef struct TransientMemory{
 global TState* ts;
 
 // todo: once I fix rendering pipeline, this can move up
-#include "d3d11_render.cpp"
 #include "game.cpp"
 
 //todo: get rid of this

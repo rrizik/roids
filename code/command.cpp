@@ -81,7 +81,7 @@ command_saves(String8* args){
 static String8
 push_str8(Arena* arena, String8 value){
     u8* str = push_array(arena, u8, value.count + 1);
-    memory_copy(str, value.data, value.count);
+    memcpy(str, value.data, value.count);
     String8 result = {str, value.count};
     return(result);
 }

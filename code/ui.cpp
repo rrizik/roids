@@ -134,7 +134,7 @@ static BoxCache cache_from_box(UI_Box* box) {
 
 static UI_Box*
 ui_make_box(String8 string, UI_BoxFlags flags){
-    UI_Box* result = push_struct(ui_state->arena, UI_Box);
+    UI_Box* result = push_struct_zero(ui_state->arena, UI_Box);
 
     if(ui_parent_top != 0){
         UI_Box* top_parent = ui_top_parent();

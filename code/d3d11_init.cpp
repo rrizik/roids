@@ -313,6 +313,16 @@ assert_hr(hr);
 }
 
 static void
+d3d_clear_color(RGBA color){
+    d3d_context->ClearRenderTargetView(d3d_framebuffer_view, color.e);
+}
+
+static void
+d3d_present(){
+    d3d_swapchain->Present(1, 0);
+}
+
+static void
 d3d_release(void){
     if(d3d_device) d3d_device->Release();
     if(d3d_context) d3d_context->Release();

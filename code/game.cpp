@@ -1,6 +1,23 @@
 #ifndef GAME_C
 #define GAME_C
 
+static v2
+world_from_screen_space(v2 point){
+    v2 result = {0};
+    result.x = (point.x - (window.width / 2.0f));
+    result.y = (window.height / 2.0f - point.y);
+    result.y = -result.y;
+    return(result);
+}
+
+static v2
+screen_from_world_space(v2 point){
+    v2 result = {0};
+    result.x = (point.x + (window.width / 2.0f));
+    result.y = ((window.height / 2.0f) + point.y);
+    return(result);
+}
+
 static void
 init_levels(void){
     Level* level = 0;
@@ -442,6 +459,15 @@ reset_game(void){
     state->level_index = 0;
     init_levels();
     state->current_level = &state->levels[0];
+    state->current_level->asteroid_spawned = 0;
+
+
+    for(s32 i=0; i < array_count(state->entities); i++){
+        Entity* e = state->entities + i;
+        if(e->type == EntityType_Asteroid){
+           remove_entity(e);
+        }
+    }
 
     reset_ship();
 }
@@ -612,7 +638,6 @@ static void update_game(void){
 
         // resolve entity motion
         for(s32 i = 0; i < array_count(state->entities); ++i){
-            begin_timed_scope("entity_motion");
             Entity *e = state->entities + i;
             if(!has_flags(e->flags, EntityFlag_Active)){
                 continue;
@@ -649,7 +674,6 @@ static void update_game(void){
 
         // resolve death
         for(s32 i = 0; i < array_count(state->entities); ++i){
-            begin_timed_scope("entity_motion");
             Entity *e = state->entities + i;
             if(!has_flags(e->flags, EntityFlag_Active)){
                 continue;
@@ -729,7 +753,6 @@ static void update_game(void){
 
         // type loop
         for(s32 i = 0; i < array_count(state->entities); ++i){
-            begin_timed_scope("type_loop");
             Entity *e = state->entities + i;
             Rect e_rect = rect_from_entity(e);
 

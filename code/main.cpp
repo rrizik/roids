@@ -61,7 +61,7 @@ init_memory(u64 permanent, u64 transient){
     memory.transient_size = transient;
     memory.size = memory.permanent_size + memory.transient_size;
 
-    memory.base = os_virtual_alloc(memory.size);
+    memory.base = os_alloc(memory.size);
     memory.permanent_base = memory.base;
     memory.transient_base = (u8*)memory.base + memory.permanent_size;
 }
@@ -114,7 +114,6 @@ show_cursor(bool show){
 }
 
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param){
-    begin_timed_function();
     LRESULT result = 0;
 
     switch(message){
@@ -359,7 +358,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_arena(&state->arena, (u8*)memory.permanent_base + sizeof(PermanentMemory), memory.permanent_size - sizeof(PermanentMemory));
         init_arena(&ts->arena, (u8*)memory.transient_base + sizeof(TransientMemory), memory.transient_size - sizeof(TransientMemory));
 
-        ts->render_command_arena = push_arena(&ts->arena, MB(100));
         ts->frame_arena = push_arena(&ts->arena, MB(100));
         ts->asset_arena = push_arena(&ts->arena, MB(100));
         ts->ui_arena = push_arena(&ts->arena, MB(100));
@@ -373,7 +371,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         init_camera();
         init_console(global_arena, &window, &ts->assets);
         init_ui(&state->arena, &window, &controller, &ts->assets);
-        init_render_commands(ts->render_command_arena, ts->batch_arena);
+        init_render_commands(ts->batch_arena, &ts->assets);
 
         state->font = &ts->assets.fonts[FontAsset_Arial];
 
@@ -474,14 +472,15 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         constants->screen_res = make_v2s32((s32)window.width, (s32)window.height);
         d3d_context->Unmap(d3d_constant_buffer, 0);
 
-        draw_clear_color(BACKGROUND_COLOR);
+        //draw_clear_color(BACKGROUND_COLOR);
+        d3d_clear_color(BACKGROUND_COLOR);
         if(state->game_mode == GameMode_Game){
 
+            begin_timed_scope("GameMode_Game");
             if(!pause){
                 simulations = 0;
                 accumulator += frame_time;
                 while(accumulator >= clock.dt){
-                    begin_timed_scope("simulation");
                     update_game();
 
                     accumulator -= clock.dt;
@@ -493,7 +492,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
             // todo: also use flags here
             for(s32 index = 0; index < array_count(state->entities); ++index){
-                begin_timed_scope("build command arena");
                 Entity *e = state->entities + index;
 
                 v2 pos = screen_from_world_space(e->pos);
@@ -512,12 +510,65 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             p2 = rotate_point_deg(p2, e->deg, pos);
                             p3 = rotate_point_deg(p3, e->deg, pos);
 
-                            set_texture(&ts->assets.textures[TextureAsset_White]);
+                            //set_texture(&ts->assets.textures[TextureAsset_White]);
                             draw_quad(p0, p1, p2, p3, e->color);
                         } break;
-                        case EntityType_Asteroid:
-                        case EntityType_Bullet:
-                        case EntityType_Particle:
+                        case EntityType_Asteroid:{
+                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+
+                            p0 = rotate_point_deg(p0, e->deg, pos);
+                            p1 = rotate_point_deg(p1, e->deg, pos);
+                            p2 = rotate_point_deg(p2, e->deg, pos);
+                            p3 = rotate_point_deg(p3, e->deg, pos);
+
+                            //push_line(p0, p1, 2, GREEN);
+                            //push_line(p1, p2, 2, GREEN);
+                            //push_line(p2, p3, 2, GREEN);
+                            //push_line(p3, p0, 2, GREEN);
+
+                            set_texture(&r_assets->textures[TextureAsset_Asteroid]);
+                            draw_texture(e->texture, p0, p1, p2, p3, e->color);
+                        } break;
+                        case EntityType_Bullet:{
+                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+
+                            p0 = rotate_point_deg(p0, e->deg, pos);
+                            p1 = rotate_point_deg(p1, e->deg, pos);
+                            p2 = rotate_point_deg(p2, e->deg, pos);
+                            p3 = rotate_point_deg(p3, e->deg, pos);
+
+                            //push_line(p0, p1, 2, GREEN);
+                            //push_line(p1, p2, 2, GREEN);
+                            //push_line(p2, p3, 2, GREEN);
+                            //push_line(p3, p0, 2, GREEN);
+
+                            set_texture(&r_assets->textures[TextureAsset_Bullet]);
+                            draw_texture(e->texture, p0, p1, p2, p3, e->color);
+                        } break;
+                        case EntityType_Particle:{
+                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
+                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+
+                            p0 = rotate_point_deg(p0, e->deg, pos);
+                            p1 = rotate_point_deg(p1, e->deg, pos);
+                            p2 = rotate_point_deg(p2, e->deg, pos);
+                            p3 = rotate_point_deg(p3, e->deg, pos);
+
+                            //push_line(p0, p1, 2, GREEN);
+                            //push_line(p1, p2, 2, GREEN);
+                            //push_line(p2, p3, 2, GREEN);
+                            //push_line(p3, p0, 2, GREEN);
+
+                            draw_texture(e->texture, p0, p1, p2, p3, e->color);
+                        } break;
                         case EntityType_Texture:{
                             v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
                             v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
@@ -547,12 +598,13 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             p2 = rotate_point_deg(p2, e->deg, pos);
                             p3 = rotate_point_deg(p3, e->deg, pos);
 
-                            set_texture(&ts->assets.textures[TextureAsset_White]);
+                            //set_texture(&ts->assets.textures[TextureAsset_White]);
                             draw_line(p0, p1, 5, GREEN);
                             draw_line(p1, p2, 5, GREEN);
                             draw_line(p2, p3, 5, GREEN);
                             draw_line(p3, p0, 5, GREEN);
 
+                            set_texture(&r_assets->textures[e->texture]);
                             if(state->ship->immune){
                                 draw_texture(e->texture, p0, p1, p2, p3, ORANGE);
                             }
@@ -571,6 +623,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                                 p3.x += (55 * (-e->dir.x));
                                 p3.y += (55 * (-e->dir.y));
                                 u32 random_flame = random_range_u32(5) + 4;
+                                set_texture(&r_assets->textures[random_flame]);
                                 draw_texture(random_flame, p0, p1, p2, p3, e->color);
                             }
 
@@ -596,8 +649,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             // todo: revaluate where this should be
             // todo: revaluate where this should be
             // todo: revaluate where this should be
-            String8 fps = str8_formatted(ts->frame_arena, "FPS: %.2f", FPS);
-            draw_text(state->font, fps, make_v2(window.width - text_padding - font_string_width(state->font, fps), window.height - text_padding), ORANGE);
 
             Level* level = state->current_level;
             String8 info_str = str8_formatted(ts->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", state->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
@@ -647,7 +698,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     ui_close();
                 }
                 ui_layout();
-                set_texture(&ts->assets.textures[TextureAsset_White]);
                 ui_draw(ui_root());
                 ui_end();
             }
@@ -682,7 +732,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     ui_close();
                 }
                 ui_layout();
-                set_texture(&ts->assets.textures[TextureAsset_White]);
                 ui_draw(ui_root());
                 ui_end();
             }
@@ -712,7 +761,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                     ui_close();
                 }
                 ui_layout();
-                set_texture(&ts->assets.textures[TextureAsset_White]);
                 ui_draw(ui_root());
                 ui_end();
             }
@@ -745,32 +793,40 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 ui_close();
             }
             ui_layout();
-            set_texture(&ts->assets.textures[TextureAsset_White]);
             ui_draw(ui_root());
             ui_end();
         }
 
+        String8 fps = str8_formatted(ts->frame_arena, "FPS: %.2f", FPS);
+        draw_text(state->font, fps, make_v2(window.width - text_padding - font_string_width(state->font, fps), window.height - text_padding), ORANGE);
 
         console_update();
 
         // draw everything
-        set_texture(&ts->assets.textures[TextureAsset_White]);
+        //set_texture(&ts->assets.textures[TextureAsset_White]);
         console_draw();
         clear_controller_pressed();
-        draw_commands();
+        //draw_commands();
 
         wasapi_play_cursors();
-        //print("count: %i, at: %i, count: %i\n", render_batches.batch_count, render_batches.last->at, render_batches.last->count);
-        draw_render_batches();
-        {
-            d3d_swapchain->Present(1, 0);
+        print("batch_arena_size: %i, batch_arena_at: %i\n",  ts->batch_arena->size, ts->batch_arena->at);
+        for(RenderBatch* batch = render_batches.first; batch != 0; batch = batch->next){
+            print("id: %i, total batches: %i, batch_count: %i, batch_cap: %i\n",
+                    batch->id, render_batches.count, batch->count, batch->cap);
         }
-        render_batches_reset();
+        print("last_id: %i - total: %i\n", render_batches.last->id, render_batches.count);
+        print("-----------------------------\n");
 
+        draw_render_batches();
+        d3d_present();
+
+        render_batches_reset();
+        arena_free(ts->batch_arena);
         arena_free(ts->frame_arena);
         arena_free(ts->ui_arena);
-        arena_free(ts->render_command_arena);
-        arena_free(ts->batch_arena);
+
+        // todo: why is this here?
+        //end_profiler();
 
         frame_inc++;
         f64 second_elapsed = clock.get_seconds_elapsed(clock.get_os_timer(), frame_tick_start);
@@ -780,8 +836,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             frame_inc = 0;
         }
 
-        // todo: why is this here?
-        //end_profiler();
     }
 
     d3d_release();

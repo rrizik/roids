@@ -116,6 +116,8 @@ static void d3d_init_debug_stuff(void);
 static void d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_count,
                             ID3D11VertexShader** d3d_vs, ID3D11PixelShader** d3d_ps, ID3D11InputLayout** d3d_il);
 static void d3d_init_texture_resource(ID3D11ShaderResourceView** shader_resource, Bitmap* bitmap);
+static void d3d_clear_color(RGBA color);
+static void d3d_present(void);
 static void d3d_release(void);
 
 #endif

@@ -1,26 +1,28 @@
 #ifndef DRAW_H
 #define DRAW_H
 
-Arena* rc_arena = 0;
-Arena* rb_arena = 0;
+global Arena* rb_arena = 0;
+global Assets* r_assets = 0;
+global Texture* r_texture;
 
-#define DEFAULT_BATCH_SIZE MB(8)
+#define DEFAULT_BATCH_SIZE KB(200)
+//#define DEFAULT_BATCH_SIZE KB(100)
 typedef struct RenderBatch{
     RenderBatch* next;
     Vertex3* buffer;
     s32 count;
-    s32 at;
+    s32 cap;
     Texture* texture;
+    s32 id;
 } RenderBatch;
 
 typedef struct RenderBatchNode{
     RenderBatch* first;
     RenderBatch* last;
-    u32 batch_count;
+    s32 count;
 } RenderBatchNode;
 global RenderBatchNode render_batches = {0};
 
-global Texture* r_texture;
 static void set_texture(Texture* texture);
 static Texture* get_texture(void);
 static RenderBatch* get_render_batch(void);
@@ -57,7 +59,6 @@ static RGBA srgb_to_linear(RGBA value);
 
 static void init_render_commands(Arena* arena);
 
-static void draw_clear_color(RGBA color);
 static void draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color);
 static void draw_quad(v2 pos, v2 dim, RGBA color);
 static void draw_quad(Rect rect, RGBA color);

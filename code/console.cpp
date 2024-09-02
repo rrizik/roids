@@ -182,7 +182,7 @@ handle_console_events(Event event){
             }
             if(event.keycode == KeyCode_ENTER){
                 u8* line_u8 = (u8*)push_array(console.arena, u8, console.input_count + 1);
-                memory_copy(line_u8, console.input, (size_t)console.input_count);
+                memcpy(line_u8, console.input, (size_t)console.input_count);
 
                 String8 line_str8 = {line_u8, (u64)console.input_count};
                 line_str8 = str8_eat_spaces(line_str8);
@@ -225,7 +225,6 @@ console_update(void){
 
 static void
 console_draw(void){
-    begin_timed_function();
     if(console_is_visible()){
         Font* font = console.font;
 
