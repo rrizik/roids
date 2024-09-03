@@ -47,18 +47,22 @@
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
+#define WORLD_UNITS_WIDTH 1000
+#define WORLD_UNITS_HEIGHT 1000
+//#define SCREEN_WIDTH 1920
+//#define SCREEN_HEIGHT 1080
 s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 window_type);
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param);
-global Window window;
 static Window win32_window_create(const wchar* window_name, u32 width, u32 height);
 
-static String8 build_path;
-static String8 fonts_path;
-static String8 shaders_path;
-static String8 saves_path;
-static String8 sprites_path;
-static String8 sounds_path;
-static void init_paths(Arena* arena);
+
+static f32 get_scale(Window* window){
+    f32 val1 = window->width / WORLD_UNITS_WIDTH;
+    f32 val2 = window->height / WORLD_UNITS_HEIGHT;
+
+    f32 result = MIN(val1, val2);
+    return(result);
+}
 
 typedef struct Memory{
     void* base;
@@ -73,15 +77,24 @@ typedef struct Memory{
 } Memory;
 global Memory memory;
 static void init_memory(u64 permanent, u64 transient);
+static void show_cursor(bool show);
+static void init_paths(Arena* arena);
 
+global String8 build_path;
+global String8 fonts_path;
+global String8 shaders_path;
+global String8 saves_path;
+global String8 sprites_path;
+global String8 sounds_path;
 
-static u64 frame_count;
+global Window window;
+global u64 frame_count;
 global bool pause;
 global bool should_quit;
 global Arena* global_arena = os_make_arena(MB(100));
+global Assets assets;
+global v2 half_screen;
 
-
-static void show_cursor(bool show);
 
 
 #define MAX_LEVELS 3
@@ -126,11 +139,6 @@ typedef struct TransientMemory{
     Arena *asset_arena;
     Arena *ui_arena;
     Arena *batch_arena;
-
-    // todo: make this global, make more globals
-    // todo: make this global, make more globals
-    // todo: make this global, make more globals
-    Assets assets;
 } TransientMemory, TState;
 global TState* ts;
 

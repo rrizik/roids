@@ -10,14 +10,6 @@ world_from_screen_space(v2 point){
     return(result);
 }
 
-static v2
-screen_from_world_space(v2 point){
-    v2 result = {0};
-    result.x = (point.x + (window.width / 2.0f));
-    result.y = ((window.height / 2.0f) + point.y);
-    return(result);
-}
-
 static void
 init_levels(void){
     Level* level = 0;
@@ -523,7 +515,7 @@ static void update_game(void){
             ship->immune_t += (f32)clock.dt;
         }
         else{
-            ship->immune = false;
+            //ship->immune = false;
         }
 
         // ship behavior
@@ -542,7 +534,7 @@ static void update_game(void){
 
                         // play rail audio
                         u32 random_rail = random_range_u32(5) + 6; // todo: hard coded for now, 5 rails 6 offset
-                        wasapi_play(&ts->assets.waves[random_rail], 0.1f, false);
+                        wasapi_play(&assets.waves[random_rail], 0.1f, false);
                     }
                 }
                 else{

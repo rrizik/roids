@@ -17,7 +17,6 @@ typedef enum GameMode{
 
 
 static v2 world_from_screen_space(v2 point);
-static v2 screen_from_world_space(v2 point);
 
 //static Bitmap* get_bitmap(Assets* assets, BitmapAsset id);
 

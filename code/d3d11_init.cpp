@@ -55,18 +55,18 @@ d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_co
 };
 
 static void
-d3d_resize_window(u32 width, u32 height){
+d3d_resize_window(f32 width, f32 height){
     d3d_framebuffer_view->Release();
     d3d_framebuffer->Release();
-    d3d_swapchain->ResizeBuffers(0, width, height, DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, 0);
+    d3d_swapchain->ResizeBuffers(0, (u32)width, (u32)height, DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, 0);
 
     hr = d3d_swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&d3d_framebuffer);
     assert_hr(hr);
     hr = d3d_device->CreateRenderTargetView(d3d_framebuffer, 0, &d3d_framebuffer_view);
     assert_hr(hr);
 
-    d3d_viewport.Width = (f32)width;
-    d3d_viewport.Height = (f32)height;
+    d3d_viewport.Width = width;
+    d3d_viewport.Height = height;
 }
 
 static void

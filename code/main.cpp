@@ -1,7 +1,8 @@
 #include "main.hpp"
 
 WINDOWPLACEMENT window_info = { sizeof(WINDOWPLACEMENT) };
-static void os_resize_window(HWND hwnd){
+static void
+os_resize_window(HWND hwnd){
     s32 style = GetWindowLong(hwnd, GWL_STYLE);
 
     if(style & WS_OVERLAPPEDWINDOW){ // is windows mode?
@@ -27,7 +28,7 @@ static void os_resize_window(HWND hwnd){
 }
 
 static void
-change_resolution(HWND hwnd, u32 width, u32 height, bool is_fullscreen) {
+change_resolution(HWND hwnd, f32 width, f32 height, bool is_fullscreen) {
     s32 style = GetWindowLong(hwnd, GWL_STYLE);
 
     if (is_fullscreen) {
@@ -363,26 +364,27 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         ts->ui_arena = push_arena(&ts->arena, MB(100));
         ts->batch_arena = push_arena(&ts->arena, MB(100));
 
-        state->game_mode = GameMode_Menu;
+        state->game_mode = GameMode_Game;
 
         show_cursor(true);
-        load_assets(ts->asset_arena, &ts->assets);
+        load_assets(ts->asset_arena, &assets);
 
         init_camera();
-        init_console(global_arena, &window, &ts->assets);
-        init_ui(&state->arena, &window, &controller, &ts->assets);
-        init_render_commands(ts->batch_arena, &ts->assets);
+        init_console(global_arena, &window, &assets);
+        init_ui(&state->arena, &window, &controller, &assets);
+        init_render_commands(ts->batch_arena, &assets);
 
-        state->font = &ts->assets.fonts[FontAsset_Arial];
+        state->font = &assets.fonts[FontAsset_Arial];
 
         // setup free entities array in reverse order
         entities_clear();
 
-        //wasapi_play(&ts->assets.waves[WaveAsset_Track1], 0.1f, true);
-        //wasapi_play(&ts->assets.waves[WaveAsset_Track5], 0.0f, true);
-        //wasapi_play(&ts->assets.waves[WaveAsset_Track4], 0.0f, true);
+        //wasapi_play(&assets.waves[WaveAsset_Track1], 0.1f, true);
+        //wasapi_play(&assets.waves[WaveAsset_Track5], 0.0f, true);
+        //wasapi_play(&assets.waves[WaveAsset_Track4], 0.0f, true);
 
-        state->scale = 1;
+        half_screen = make_v2(window.width/2, window.height/2);
+        state->scale = get_scale(&window);
         state->ship = add_ship(TextureAsset_Ship, make_v2(0, 0), make_v2(50, 50));
         //state->ship = add_ship(TextureAsset_Ship, makmake_v2(controller->mouse.x,e_v2(window.width/2, window.height/2), make_v2(30, 30));
         state->ship_loaded = true;
@@ -398,12 +400,17 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         state->screen_right = window.width/2;
 
         memory.initialized = true;
-
     }
 
     should_quit = false;
     while(!should_quit){
         begin_timed_scope("while(!should_quit)");
+
+        v2 screen_pos1 = screen_from_world(state->ship->pos, half_screen, state->scale);
+        v2 screen_pos2 = screen_from_world_space(state->ship->pos, half_screen, state->scale);
+        print("new_scaled: (%f, %f) - new (%f, %f)\n", screen_pos1.x, screen_pos1.y, screen_pos1.x/state->scale, screen_pos1.y/state->scale);
+        print("old_scaled: (%f, %f) - old (%f, %f)\n", screen_pos2.x * state->scale, screen_pos2.y * state->scale, screen_pos2.x, screen_pos2.y);
+        print("------------------------------------\n");
 
         u64 now_ticks = clock.get_os_timer();
         f64 frame_time = clock.get_seconds_elapsed(now_ticks, last_ticks);
@@ -443,23 +450,23 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                         }
                     }
                     if(event.keycode == KeyCode_Q){
-                        os_resize_window(window.handle);
-                        fullscreen = !fullscreen;
-                        if(fullscreen){
-                            d3d_resize_window(1920, 1080);
-                            window.width = 1920.0f;
-                            window.height = 1080.0f;
-                        }
-                        else{
-                            d3d_resize_window(SCREEN_WIDTH, SCREEN_HEIGHT);
-                            window.width = SCREEN_WIDTH;
-                            window.height = SCREEN_HEIGHT;
-                        }
+                        //os_resize_window(window.handle);
+                        //fullscreen = !fullscreen;
+                        //if(fullscreen){
+                        //    d3d_resize_window(1920, 1080);
+                        //    window.width = 1920.0f;
+                        //    window.height = 1080.0f;
+                        //}
+                        //else{
+                        //    d3d_resize_window(SCREEN_WIDTH, SCREEN_HEIGHT);
+                        //    window.width = SCREEN_WIDTH;
+                        //    window.height = SCREEN_HEIGHT;
+                        //}
 
-                        state->screen_top = -window.height/2;
-                        state->screen_bottom = window.height/2;
-                        state->screen_left = -window.width/2;
-                        state->screen_right = window.width/2;
+                        //state->screen_top = -window.height/2;
+                        //state->screen_bottom = window.height/2;
+                        //state->screen_left = -window.width/2;
+                        //state->screen_right = window.width/2;
                     }
                 }
             }
@@ -474,6 +481,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         //draw_clear_color(BACKGROUND_COLOR);
         d3d_clear_color(BACKGROUND_COLOR);
+        console_update();
         if(state->game_mode == GameMode_Game){
 
             begin_timed_scope("GameMode_Game");
@@ -494,15 +502,18 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             for(s32 index = 0; index < array_count(state->entities); ++index){
                 Entity *e = state->entities + index;
 
-                v2 pos = screen_from_world_space(e->pos);
+                //v2 pos = screen_from_world(e->pos, half_screen, state->scale);
+                //v2 pos = screen_from_world_space(e->pos, half_screen);
+                v2 pos = screen_from_world_space(e->pos, half_screen, state->scale);
+                v2 dim = scaled_dim(e->dim, state->scale);
                 if(has_flags(e->flags, EntityFlag_Active)){
 
                     switch(e->type){
                         case EntityType_Quad:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p0 = make_v2(pos.x - dim.w/2, pos.y - dim.h/2);
+                            v2 p1 = make_v2(pos.x + dim.w/2, pos.y - dim.h/2);
+                            v2 p2 = make_v2(pos.x + dim.w/2, pos.y + dim.h/2);
+                            v2 p3 = make_v2(pos.x - dim.w/2, pos.y + dim.h/2);
 
                             //f32 deg = deg_from_dir(e->dir);
                             p0 = rotate_point_deg(p0, e->deg, pos);
@@ -510,14 +521,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             p2 = rotate_point_deg(p2, e->deg, pos);
                             p3 = rotate_point_deg(p3, e->deg, pos);
 
-                            //set_texture(&ts->assets.textures[TextureAsset_White]);
+                            //set_texture(&assets.textures[TextureAsset_White]);
                             draw_quad(p0, p1, p2, p3, e->color);
                         } break;
                         case EntityType_Asteroid:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p0 = make_v2(pos.x - dim.w/2, pos.y - dim.h/2);
+                            v2 p1 = make_v2(pos.x + dim.w/2, pos.y - dim.h/2);
+                            v2 p2 = make_v2(pos.x + dim.w/2, pos.y + dim.h/2);
+                            v2 p3 = make_v2(pos.x - dim.w/2, pos.y + dim.h/2);
 
                             p0 = rotate_point_deg(p0, e->deg, pos);
                             p1 = rotate_point_deg(p1, e->deg, pos);
@@ -533,10 +544,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             draw_texture(e->texture, p0, p1, p2, p3, e->color);
                         } break;
                         case EntityType_Bullet:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p0 = make_v2(pos.x - dim.w/2, pos.y - dim.h/2);
+                            v2 p1 = make_v2(pos.x + dim.w/2, pos.y - dim.h/2);
+                            v2 p2 = make_v2(pos.x + dim.w/2, pos.y + dim.h/2);
+                            v2 p3 = make_v2(pos.x - dim.w/2, pos.y + dim.h/2);
 
                             p0 = rotate_point_deg(p0, e->deg, pos);
                             p1 = rotate_point_deg(p1, e->deg, pos);
@@ -552,10 +563,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             draw_texture(e->texture, p0, p1, p2, p3, e->color);
                         } break;
                         case EntityType_Particle:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p0 = make_v2(pos.x - dim.w/2, pos.y - dim.h/2);
+                            v2 p1 = make_v2(pos.x + dim.w/2, pos.y - dim.h/2);
+                            v2 p2 = make_v2(pos.x + dim.w/2, pos.y + dim.h/2);
+                            v2 p3 = make_v2(pos.x - dim.w/2, pos.y + dim.h/2);
 
                             p0 = rotate_point_deg(p0, e->deg, pos);
                             p1 = rotate_point_deg(p1, e->deg, pos);
@@ -570,10 +581,10 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             draw_texture(e->texture, p0, p1, p2, p3, e->color);
                         } break;
                         case EntityType_Texture:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p0 = make_v2(pos.x - dim.w/2, pos.y - dim.h/2);
+                            v2 p1 = make_v2(pos.x + dim.w/2, pos.y - dim.h/2);
+                            v2 p2 = make_v2(pos.x + dim.w/2, pos.y + dim.h/2);
+                            v2 p3 = make_v2(pos.x - dim.w/2, pos.y + dim.h/2);
 
                             p0 = rotate_point_deg(p0, e->deg, pos);
                             p1 = rotate_point_deg(p1, e->deg, pos);
@@ -588,17 +599,17 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             draw_texture(e->texture, p0, p1, p2, p3, e->color);
                         } break;
                         case EntityType_Ship:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+                            v2 p0 = make_v2(pos.x - dim.w/2, pos.y - dim.h/2);
+                            v2 p1 = make_v2(pos.x + dim.w/2, pos.y - dim.h/2);
+                            v2 p2 = make_v2(pos.x + dim.w/2, pos.y + dim.h/2);
+                            v2 p3 = make_v2(pos.x - dim.w/2, pos.y + dim.h/2);
 
                             p0 = rotate_point_deg(p0, e->deg, pos);
                             p1 = rotate_point_deg(p1, e->deg, pos);
                             p2 = rotate_point_deg(p2, e->deg, pos);
                             p3 = rotate_point_deg(p3, e->deg, pos);
 
-                            //set_texture(&ts->assets.textures[TextureAsset_White]);
+                            //set_texture(&assets.textures[TextureAsset_White]);
                             draw_line(p0, p1, 5, GREEN);
                             draw_line(p1, p2, 5, GREEN);
                             draw_line(p2, p3, 5, GREEN);
@@ -614,14 +625,14 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
                             // todo: yuckiness for ship exhaust
                             if(state->ship->accelerating){
-                                p0.x += (55 * (-e->dir.x));
-                                p0.y += (55 * (-e->dir.y));
-                                p1.x += (55 * (-e->dir.x));
-                                p1.y += (55 * (-e->dir.y));
-                                p2.x += (55 * (-e->dir.x));
-                                p2.y += (55 * (-e->dir.y));
-                                p3.x += (55 * (-e->dir.x));
-                                p3.y += (55 * (-e->dir.y));
+                                p0.x += ((55 * state->scale) * (-e->dir.x));
+                                p0.y += ((55 * state->scale) * (-e->dir.y));
+                                p1.x += ((55 * state->scale) * (-e->dir.x));
+                                p1.y += ((55 * state->scale) * (-e->dir.y));
+                                p2.x += ((55 * state->scale) * (-e->dir.x));
+                                p2.y += ((55 * state->scale) * (-e->dir.y));
+                                p3.x += ((55 * state->scale) * (-e->dir.x));
+                                p3.y += ((55 * state->scale) * (-e->dir.y));
                                 u32 random_flame = random_range_u32(5) + 4;
                                 set_texture(&r_assets->textures[random_flame]);
                                 draw_texture(random_flame, p0, p1, p2, p3, e->color);
@@ -764,6 +775,61 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 ui_draw(ui_root());
                 ui_end();
             }
+
+            ui_begin(ts->ui_arena);
+
+            ui_push_pos_x(100);
+            ui_push_pos_y(300);
+            ui_push_size_w(ui_size_children(0));
+            ui_push_size_h(ui_size_children(0));
+
+            ui_push_border_thickness(10);
+            ui_push_background_color(ORANGE);
+            UI_Box* box1 = ui_box(str8_literal("box1##4"),
+                    UI_BoxFlag_DrawBackground|UI_BoxFlag_Draggable|UI_BoxFlag_Clickable);
+            ui_push_parent(box1);
+            ui_pop_pos_x();
+            ui_pop_pos_y();
+
+            ui_push_size_w(ui_size_pixel(100, 0));
+            ui_push_size_h(ui_size_pixel(50, 0));
+            ui_push_background_color(BLUE);
+            if(ui_button(str8_literal("1920x1080")).pressed_left){
+                if(window.width != 1920){
+                    window.width = 1920.0f;
+                    window.height = 1080.0f;
+                    os_resize_window(window.handle);
+                    d3d_resize_window(window.width, window.height);
+                    state->scale = get_scale(&window);
+                    half_screen = make_v2(window.width/2, window.height/2);
+                }
+            }
+            ui_spacer(10);
+            if(ui_button(str8_literal("1280x720")).pressed_left){
+                if(window.width != 1280){
+                    window.width = 1280.0f;
+                    window.height = 720.0f;
+                    os_resize_window(window.handle);
+                    d3d_resize_window(window.width, window.height);
+                    state->scale = get_scale(&window);
+                    half_screen = make_v2(window.width/2, window.height/2);
+                }
+            }
+            ui_spacer(10);
+            if(ui_button(str8_literal("plus scale")).pressed_left){
+                state->scale += 0.1f;
+            }
+            ui_spacer(10);
+            if(ui_button(str8_literal("minus scale")).pressed_left){
+                state->scale -= 0.1f;
+                if(state->scale < 0.0f){
+                    state->scale = 0.0f;
+                }
+            }
+
+            ui_layout();
+            ui_draw(ui_root());
+            ui_end();
         }
 
         if(state->game_mode == GameMode_Menu){
@@ -800,26 +866,21 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         String8 fps = str8_formatted(ts->frame_arena, "FPS: %.2f", FPS);
         draw_text(state->font, fps, make_v2(window.width - text_padding - font_string_width(state->font, fps), window.height - text_padding), ORANGE);
 
-        console_update();
-
-        // draw everything
-        //set_texture(&ts->assets.textures[TextureAsset_White]);
-        console_draw();
-        clear_controller_pressed();
-        //draw_commands();
-
         wasapi_play_cursors();
-        print("batch_arena_size: %i, batch_arena_at: %i\n",  ts->batch_arena->size, ts->batch_arena->at);
-        for(RenderBatch* batch = render_batches.first; batch != 0; batch = batch->next){
-            print("id: %i, total batches: %i, batch_count: %i, batch_cap: %i\n",
-                    batch->id, render_batches.count, batch->count, batch->cap);
-        }
-        print("last_id: %i - total: %i\n", render_batches.last->id, render_batches.count);
-        print("-----------------------------\n");
 
+        console_draw();
+        // draw everything
         draw_render_batches();
         d3d_present();
 
+        clear_controller_pressed();
+        //print("batch_arena_size: %i, batch_arena_at: %i\n",  ts->batch_arena->size, ts->batch_arena->at);
+        //for(RenderBatch* batch = render_batches.first; batch != 0; batch = batch->next){
+        //    print("id: %i, total batches: %i, batch_count: %i, batch_cap: %i\n",
+        //            batch->id, render_batches.count, batch->count, batch->cap);
+        //}
+        //print("last_id: %i - total: %i\n", render_batches.last->id, render_batches.count);
+        //print("-----------------------------\n");
         render_batches_reset();
         arena_free(ts->batch_arena);
         arena_free(ts->frame_arena);

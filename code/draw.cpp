@@ -72,7 +72,7 @@ static void
 draw_quad(v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
 
     set_texture(&r_assets->textures[TextureAsset_White]);
-    RenderBatch *batch = get_render_batch();
+    RenderBatch *batch = get_render_batch(6);
 
     RGBA linear_color = srgb_to_linear(color); // gamma correction
     batch->buffer[batch->count++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
@@ -87,7 +87,7 @@ static void
 draw_quad(v2 pos, v2 dim, RGBA color){
 
     set_texture(&r_assets->textures[TextureAsset_White]);
-    RenderBatch *batch = get_render_batch();
+    RenderBatch *batch = get_render_batch(6);
 
     v2 p0 = pos;
     v2 p1 = make_v2(pos.x + dim.w, pos.y);
@@ -107,7 +107,7 @@ static void
 draw_quad(Rect rect, RGBA color){
 
     set_texture(&r_assets->textures[TextureAsset_White]);
-    RenderBatch *batch = get_render_batch();
+    RenderBatch *batch = get_render_batch(6);
 
     v2 p0 = make_v2(rect.x0, rect.y0);
     v2 p1 = make_v2(rect.x1, rect.y0);
@@ -127,7 +127,7 @@ static void
 draw_quad(Quad quad, RGBA color){
 
     set_texture(&r_assets->textures[TextureAsset_White]);
-    RenderBatch *batch = get_render_batch();
+    RenderBatch *batch = get_render_batch(6);
 
     RGBA linear_color = srgb_to_linear(color); // gamma correction
     batch->buffer[batch->count++] = { quad.p0, linear_color, make_v2(0.0f, 0.0f) };
@@ -142,7 +142,7 @@ static void
 draw_line(v2 p0, v2 p1, f32 width, RGBA color){
 
     set_texture(&r_assets->textures[TextureAsset_White]);
-    RenderBatch *batch = get_render_batch();
+    RenderBatch *batch = get_render_batch(6);
 
     v2 dir = direction_v2(p0, p1);
     v2 perp = perpendicular(dir);
@@ -161,7 +161,7 @@ draw_line(v2 p0, v2 p1, f32 width, RGBA color){
 static void
 draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
 
-    RenderBatch *batch = get_render_batch();
+    RenderBatch *batch = get_render_batch(6);
 
     RGBA linear_color = srgb_to_linear(color); // gamma correction
     batch->buffer[batch->count++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
@@ -176,7 +176,8 @@ static void
 draw_text(Font* font, String8 text, v2 pos, RGBA color){
 
     set_texture(&font->texture);
-    RenderBatch* batch = get_render_batch();
+    u64 count = text.size * 6;
+    RenderBatch* batch = get_render_batch(count);
     RGBA linear_color = srgb_to_linear(color);
 
     f32 start_x = pos.x;
@@ -215,12 +216,11 @@ draw_text(Font* font, String8 text, v2 pos, RGBA color){
 }
 
 static RenderBatch*
-get_render_batch(void){
+get_render_batch(u64 vertex_count){
     Texture* texture = get_texture();
 
     RenderBatch *batch = render_batches.last;
-
-    if(batch == 0 || batch->count >= batch->cap || batch->texture != texture){
+    if(batch == 0 || batch->count + vertex_count >= batch->cap || batch->texture != texture){
         batch = push_array_zero(rb_arena, RenderBatch, 1);
         batch->buffer = push_array_zero(rb_arena, Vertex3, DEFAULT_BATCH_SIZE / sizeof(Vertex3));
         batch->cap = DEFAULT_BATCH_SIZE / sizeof(Vertex3);

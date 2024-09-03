@@ -25,7 +25,7 @@ global RenderBatchNode render_batches = {0};
 
 static void set_texture(Texture* texture);
 static Texture* get_texture(void);
-static RenderBatch* get_render_batch(void);
+static RenderBatch* get_render_batch(u64 vertex_count);
 
 typedef enum RenderCommandType{
     RenderCommandType_ClearColor,
@@ -76,5 +76,30 @@ static void draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHI
 
 static void draw_render_batches(void);
 static void render_batches_reset(void);
+
+static v2 screen_from_world(v2 world_pos, v2 origin, float scale){
+    v2 result = {0};
+    result.x = (world_pos.x - origin.x) * scale;
+    result.y = (world_pos.y - origin.y) * scale;
+    //result.x = (origin.x - world_pos.x) * scale;
+    //result.y = (origin.y - world_pos.y) * scale;
+    return(result);
+}
+
+static v2
+screen_from_world_space(v2 world_pos, v2 origin, f32 scale){
+    v2 result = {0};
+    result.x = (world_pos.x + origin.x) * scale;
+    result.y = (origin.y + world_pos.y) * scale;
+    return(result);
+}
+
+static v2
+scaled_dim(v2 size, f32 scale){
+    v2 result = {0};
+    result.x = size.x * scale;
+    result.y = size.y * scale;
+    return(result);
+}
 
 #endif

@@ -119,5 +119,6 @@ static void d3d_init_texture_resource(ID3D11ShaderResourceView** shader_resource
 static void d3d_clear_color(RGBA color);
 static void d3d_present(void);
 static void d3d_release(void);
+static void d3d_resize_window(f32 width, f32 height);
 
 #endif
