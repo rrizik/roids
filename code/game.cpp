@@ -121,6 +121,7 @@ add_ship(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
     if(e){
         e->color = color;
         e->pos = pos;
+        e->epos = make_v2(e->pos.x + (50 * -e->dir.x), e->pos.y + (50 * -e->dir.y));
         e->dim = dim;
         e->deg = 0;
         e->dir = dir_from_deg(e->deg);

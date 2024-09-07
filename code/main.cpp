@@ -579,7 +579,24 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             draw_texture(e->texture, p0, p1, p2, p3, e->color);
                         } break;
                         case EntityType_Ship:{
-                            v2 exhaust_pos = make_v2(e->pos.x - (e->dir.x * 55), e->pos.y - (e->dir.y * 55));
+                            if(state->ship->accelerating){
+                                v2 exhaust_pos = make_v2(e->pos.x - (e->dir.x * 120), e->pos.y - (e->dir.y * 120));
+                                v2 epos = screen_from_world(exhaust_pos, &camera, &window);
+
+                                v2 ep0 = make_v2(epos.x - e->dim.w/2, epos.y - e->dim.h/2);
+                                v2 ep1 = make_v2(epos.x + e->dim.w/2, epos.y - e->dim.h/2);
+                                v2 ep2 = make_v2(epos.x + e->dim.w/2, epos.y + e->dim.h/2);
+                                v2 ep3 = make_v2(epos.x - e->dim.w/2, epos.y + e->dim.h/2);
+
+                                ep0 = rotate_point_deg(ep0, e->deg, epos);
+                                ep1 = rotate_point_deg(ep1, e->deg, epos);
+                                ep2 = rotate_point_deg(ep2, e->deg, epos);
+                                ep3 = rotate_point_deg(ep3, e->deg, epos);
+
+                                u32 random_flame = random_range_u32(5) + 4;
+                                set_texture(&r_assets->textures[random_flame]);
+                                draw_texture(random_flame, ep0, ep1, ep2, ep3, e->color);
+                            }
 
                             v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
                             v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
@@ -603,21 +620,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                             }
                             else{
                                 draw_texture(e->texture, p0, p1, p2, p3, e->color);
-                            }
-
-                            // todo: yuckiness for ship exhaust
-                            if(state->ship->accelerating){
-                                p0.x += ((55) * (-e->dir.x));
-                                p0.y += ((55) * (-e->dir.y));
-                                p1.x += ((55) * (-e->dir.x));
-                                p1.y += ((55) * (-e->dir.y));
-                                p2.x += ((55) * (-e->dir.x));
-                                p2.y += ((55) * (-e->dir.y));
-                                p3.x += ((55) * (-e->dir.x));
-                                p3.y += ((55) * (-e->dir.y));
-                                u32 random_flame = random_range_u32(5) + 4;
-                                set_texture(&r_assets->textures[random_flame]);
-                                draw_texture(random_flame, p0, p1, p2, p3, e->color);
                             }
 
                         } break;

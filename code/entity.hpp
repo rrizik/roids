@@ -59,6 +59,7 @@ typedef struct Entity{
         };
         v2 pos;
     };
+    v2 epos;
     v2 dim;
     v2 dir;
     v2 accel_dir;
