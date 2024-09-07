@@ -56,15 +56,20 @@ d3d_load_shader(String8 shader_path, D3D11_INPUT_ELEMENT_DESC* il, u32 layout_co
 
 static void
 d3d_resize_window(f32 width, f32 height){
+    // first you have to release the resources
     d3d_framebuffer_view->Release();
     d3d_framebuffer->Release();
+
+    // resize swapchain buffer
     d3d_swapchain->ResizeBuffers(0, (u32)width, (u32)height, DXGI_FORMAT_B8G8R8A8_UNORM_SRGB, 0);
 
+    // update render target view with new buffer size
     hr = d3d_swapchain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&d3d_framebuffer);
     assert_hr(hr);
     hr = d3d_device->CreateRenderTargetView(d3d_framebuffer, 0, &d3d_framebuffer_view);
     assert_hr(hr);
 
+    // update viewport
     d3d_viewport.Width = width;
     d3d_viewport.Height = height;
 }
@@ -315,6 +320,43 @@ assert_hr(hr);
 static void
 d3d_clear_color(RGBA color){
     d3d_context->ClearRenderTargetView(d3d_framebuffer_view, color.e);
+}
+
+static void
+d3d_draw(Vertex3* buffer, s32 count, Texture* texture){
+    {
+        D3D11_MAPPED_SUBRESOURCE resource;
+        hr = d3d_context->Map(d3d_vertex_buffer_8mb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource);
+        assert_hr(hr);
+
+        memcpy(resource.pData, buffer, sizeof(Vertex3) * count);
+        d3d_context->Unmap(d3d_vertex_buffer_8mb, 0);
+
+        ID3D11Buffer* buffers[] = {d3d_vertex_buffer_8mb};
+        u32 strides[] = {sizeof(Vertex3)};
+        u32 offset[] = {0};
+
+        d3d_context->IASetVertexBuffers(0, 1, buffers, strides, offset);
+    }
+
+    //-------------------------------------------------------------------
+
+    d3d_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    d3d_context->PSSetSamplers(0, 1, &d3d_sampler_state);
+    d3d_context->PSSetShaderResources(0, 1, &texture->view);
+
+    d3d_context->OMSetRenderTargets(1, &d3d_framebuffer_view, 0);
+    d3d_context->OMSetBlendState(d3d_blend_state, 0, 0xFFFFFFFF);
+    d3d_context->RSSetState(d3d_rasterizer_state);
+
+    d3d_context->VSSetConstantBuffers(0, 1, &d3d_constant_buffer);
+
+    d3d_context->RSSetViewports(1, &d3d_viewport);
+    d3d_context->IASetInputLayout(d3d_2d_textured_il);
+    d3d_context->VSSetShader(d3d_2d_textured_vs, 0, 0);
+    d3d_context->PSSetShader(d3d_2d_textured_ps, 0, 0);
+
+    d3d_context->Draw((u32)count, 0);
 }
 
 static void

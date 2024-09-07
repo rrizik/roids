@@ -379,9 +379,6 @@ ui_traverse_rects(UI_Box* box){
 
     // cache rect
     if(!str8_compare(box->string, str8_literal(""))){
-        if(str8_compare(box->string, str8_literal("box1"))){
-            u32 a = 1;
-        }
         BoxCache cache = cache_from_box(box);
         table_insert(&ui_state->table, box->string, cache);
     }

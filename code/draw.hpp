@@ -1,6 +1,23 @@
 #ifndef DRAW_H
 #define DRAW_H
 
+static RGBA CLEAR =   {1.0f, 1.0f, 1.0f,  0.0f};
+static RGBA RED =     {1.0f, 0.0f, 0.0f,  1.0f};
+static RGBA GREEN =   {0.0f, 1.0f, 0.0f,  1.0f};
+static RGBA BLUE =    {0.0f, 0.0f, 1.0f,  1.0f};
+static RGBA MAGENTA = {1.0f, 0.0f, 1.0f,  1.0f};
+static RGBA TEAL =    {0.0f, 1.0f, 1.0f,  1.0f};
+static RGBA PINK =    {0.92f, 0.62f, 0.96f, 1.0f};
+static RGBA YELLOW =  {0.9f, 0.9f, 0.0f,  1.0f};
+static RGBA ORANGE =  {1.0f, 0.5f, 0.15f,  1.0f};
+static RGBA ORANGE_HALF =  {1.0f, 0.5f, 0.15f,  0.1f};
+static RGBA DARK_GRAY =  {0.5f, 0.5f, 0.5f,  1.0f};
+static RGBA LIGHT_GRAY = {0.8f, 0.8f, 0.8f,  1.0f};
+static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
+static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
+static RGBA BACKGROUND_COLOR =   {1.0f/255.0f, 1.0f/255.0f, 1.0f/255.0f};
+static RGBA ARMY_GREEN =   {0.25f, 0.25f, 0.23f,  1.0f};
+
 global Arena* rb_arena = 0;
 global Assets* r_assets = 0;
 global Texture* r_texture;
@@ -10,10 +27,11 @@ global Texture* r_texture;
 typedef struct RenderBatch{
     RenderBatch* next;
     Vertex3* buffer;
+    s32 id;
+
     s32 count;
     s32 cap;
     Texture* texture;
-    s32 id;
 } RenderBatch;
 
 typedef struct RenderBatchNode{
@@ -53,6 +71,7 @@ typedef struct RenderCommand{
     String8 text;
 } RenderCommand;
 
+static v2 screen_from_world(v2 world_pos, Camera2D* camera, Window* window);
 static RGBA srgb_to_linear_approx(RGBA value);
 static RGBA linear_to_srgb_approx(RGBA value);
 static RGBA srgb_to_linear(RGBA value);
@@ -77,29 +96,6 @@ static void draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHI
 static void draw_render_batches(void);
 static void render_batches_reset(void);
 
-static v2 screen_from_world(v2 world_pos, v2 origin, float scale){
-    v2 result = {0};
-    result.x = (world_pos.x - origin.x) * scale;
-    result.y = (world_pos.y - origin.y) * scale;
-    //result.x = (origin.x - world_pos.x) * scale;
-    //result.y = (origin.y - world_pos.y) * scale;
-    return(result);
-}
-
-static v2
-screen_from_world_space(v2 world_pos, v2 origin, f32 scale){
-    v2 result = {0};
-    result.x = (world_pos.x + origin.x) * scale;
-    result.y = (origin.y + world_pos.y) * scale;
-    return(result);
-}
-
-static v2
-scaled_dim(v2 size, f32 scale){
-    v2 result = {0};
-    result.x = size.x * scale;
-    result.y = size.y * scale;
-    return(result);
-}
 
 #endif
+

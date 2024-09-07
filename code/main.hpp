@@ -55,15 +55,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param, s64 l_param);
 static Window win32_window_create(const wchar* window_name, u32 width, u32 height);
 
-
-static f32 get_scale(Window* window){
-    f32 val1 = window->width / WORLD_UNITS_WIDTH;
-    f32 val2 = window->height / WORLD_UNITS_HEIGHT;
-
-    f32 result = MIN(val1, val2);
-    return(result);
-}
-
 typedef struct Memory{
     void* base;
     u64 size;
@@ -93,8 +84,6 @@ global bool pause;
 global bool should_quit;
 global Arena* global_arena = os_make_arena(MB(100));
 global Assets assets;
-global v2 half_screen;
-
 
 
 #define MAX_LEVELS 3
@@ -122,14 +111,8 @@ typedef struct State{
     Level* current_level;
     Font* font;
 
-    f32 scale;
-
     f64 spawn_t;
 
-    f32 screen_top;
-    f32 screen_bottom;
-    f32 screen_left;
-    f32 screen_right;
 } State, PermanentMemory;
 global State* state;
 
@@ -138,16 +121,17 @@ typedef struct TransientMemory{
     Arena *frame_arena;
     Arena *asset_arena;
     Arena *ui_arena;
+    Arena *hash_arena;
     Arena *batch_arena;
 } TransientMemory, TState;
 global TState* ts;
 
 // todo: once I fix rendering pipeline, this can move up
-#include "game.cpp"
 
 //todo: get rid of this
 global f32 text_padding = 20;
 global bool fullscreen = false;
 global bool toggle = false;
 
+#include "game.cpp"
 #endif

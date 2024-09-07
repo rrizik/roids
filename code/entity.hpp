@@ -52,16 +52,21 @@ typedef struct Entity{
     u32 index;
     u32 generation;
 
-    v2 pos;
+    union{
+        struct{
+            f32 x;
+            f32 y;
+        };
+        v2 pos;
+    };
     v2 dim;
     v2 dir;
     v2 accel_dir;
     f32 deg;
-    v2 scale;
     RGBA color;
 
     f32 speed;
-    f32 rot_speed;
+    f32 rotation_speed;
     f32 shoot_t;
     f32 velocity;
 
