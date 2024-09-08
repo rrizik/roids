@@ -2,10 +2,35 @@
 #define DRAW_C
 
 static v2
-screen_from_world(v2 world_pos, Camera2D* camera, Window* window){
+pos_screen_from_world(v2 pos, Camera2D* camera, Window* window){
     v2 result = {0};
-    result.x =  ((world_pos.x - camera->x) / (camera->size * window->aspect_ratio) * 0.5f + 0.5f) * window->width;
-    result.y = (-(world_pos.y - camera->y) /  camera->size                         * 0.5f + 0.5f) * window->height;
+    result.x =  ((pos.x - camera->x) / (camera->size * window->aspect_ratio) * 0.5f + 0.5f) * window->width;
+    result.y = (-(pos.y - camera->y) /  camera->size                         * 0.5f + 0.5f) * window->height;
+    return(result);
+}
+
+static Rect
+rect_screen_from_world(Rect rect, Camera2D* camera, Window* window){
+    Rect result = {0};
+    result.min = pos_screen_from_world(rect.min, camera, window);
+    result.max = pos_screen_from_world(rect.max, camera, window);
+    return(result);
+}
+
+static Quad
+quad_screen_from_world(Quad quad, Camera2D* camera, Window* window){
+    Quad result = {0};
+    result.p0 = pos_screen_from_world(quad.p0, camera, window);
+    result.p1 = pos_screen_from_world(quad.p1, camera, window);
+    result.p2 = pos_screen_from_world(quad.p2, camera, window);
+    result.p3 = pos_screen_from_world(quad.p3, camera, window);
+    return(result);
+}
+
+static Entity
+entity_screen_space(Entity* e, Camera2D* camera, Window* window){
+    Entity result = {0};
+    result.pos = pos_screen_from_world(e->pos, camera, window);
     return(result);
 }
 
@@ -147,6 +172,14 @@ draw_quad(Quad quad, RGBA color){
 }
 
 static void
+draw_bounding_box(Quad quad, f32 width, RGBA color){
+    draw_line(quad.p0, quad.p1, width, color);
+    draw_line(quad.p1, quad.p2, width, color);
+    draw_line(quad.p2, quad.p3, width, color);
+    draw_line(quad.p3, quad.p0, width, color);
+}
+
+static void
 draw_line(v2 p0, v2 p1, f32 width, RGBA color){
 
     set_texture(&r_assets->textures[TextureAsset_White]);
@@ -178,6 +211,20 @@ draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color){
     batch->buffer[batch->count++] = { p0, linear_color, make_v2(0.0f, 0.0f) };
     batch->buffer[batch->count++] = { p2, linear_color, make_v2(1.0f, 1.0f) };
     batch->buffer[batch->count++] = { p3, linear_color, make_v2(0.0f, 1.0f) };
+}
+
+static void
+draw_texture(u32 texture, Quad quad, RGBA color){
+
+    RenderBatch *batch = get_render_batch(6);
+
+    RGBA linear_color = srgb_to_linear(color); // gamma correction
+    batch->buffer[batch->count++] = { quad.p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->count++] = { quad.p1, linear_color, make_v2(1.0f, 0.0f) };
+    batch->buffer[batch->count++] = { quad.p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->count++] = { quad.p0, linear_color, make_v2(0.0f, 0.0f) };
+    batch->buffer[batch->count++] = { quad.p2, linear_color, make_v2(1.0f, 1.0f) };
+    batch->buffer[batch->count++] = { quad.p3, linear_color, make_v2(0.0f, 1.0f) };
 }
 
 static void

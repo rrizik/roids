@@ -12,7 +12,6 @@
 #define PROFILER 1
 #include "profiler.h"
 
-#include <string.h>
 #include "input.hpp"
 #include "clock.hpp"
 #include "camera.hpp"
@@ -135,3 +134,93 @@ global bool toggle = false;
 
 #include "game.cpp"
 #endif
+        //ui_begin(ts->ui_arena);
+
+        //ui_push_background_color(ORANGE);
+        //ui_push_pos_x(50);
+        //ui_push_pos_y(50);
+        //ui_push_size_w(ui_size_children(0));
+        //ui_push_size_h(ui_size_children(0));
+        //ui_push_border_thickness(10);
+
+        //UI_Box* box1 = ui_box(str8_literal("box1"), UI_BoxFlag_DrawBackground|UI_BoxFlag_Draggable|UI_BoxFlag_Clickable);
+        //ui_push_parent(box1);
+        //ui_pop_border_thickness();
+        //ui_pop_pos_x();
+        //ui_pop_pos_y();
+
+        //ui_push_size_w(ui_size_pixel(100, 0));
+        //ui_push_size_h(ui_size_pixel(50, 0));
+        //ui_push_background_color(BLUE);
+        //ui_label(str8_literal("MY LAHBEL"));
+        //if(ui_button(str8_literal("button 1")).pressed_left){
+        //    print("button 1: PRESSED\n");
+        //    wasapi_play(WaveAsset_Rail1, 0.1f, false);
+        //}
+        //ui_spacer(10);
+
+        //ui_push_size_w(ui_size_pixel(50, 0));
+        //ui_push_size_h(ui_size_pixel(50, 0));
+        //ui_push_background_color(GREEN);
+        //if(ui_button(str8_literal("button 2")).pressed_left){
+        //    print("button 2: PRESSED\n");
+        //}
+        //ui_pop_background_color();
+        //ui_pop_background_color();
+
+        //ui_spacer(50);
+        //ui_push_size_w(ui_size_children(0));
+        //ui_push_size_h(ui_size_children(0));
+        //ui_push_layout_axis(Axis_X);
+        //ui_push_background_color(MAGENTA);
+        //UI_Box* box2 = ui_box(str8_literal("box2"));
+        //ui_push_parent(box2);
+        //ui_pop_background_color();
+
+        //ui_pop_size_w();
+        //ui_pop_size_h();
+        //ui_pop_size_w();
+        //ui_pop_size_h();
+        //ui_push_size_w(ui_size_pixel(100, 1));
+        //ui_push_size_h(ui_size_pixel(50, 1));
+        //ui_push_background_color(TEAL);
+        //if(ui_button(str8_literal("button 3")).pressed_left){
+        //    print("button 3: PRESSED\n");
+        //}
+        //ui_spacer(50);
+        //ui_push_background_color(RED);
+        //if(ui_button(str8_literal("button 4")).pressed_left){
+        //    print("button 4: PRESSED\n");
+        //}
+        //ui_spacer(50);
+        //ui_pop_background_color();
+        //if(ui_button(str8_literal("button 5")).pressed_left){
+        //    print("button 5: PRESSED\n");
+        //}
+        //ui_pop_parent();
+
+        //ui_spacer(50);
+        //ui_push_size_w(ui_size_children(0));
+        //ui_push_size_h(ui_size_children(0));
+        //ui_push_layout_axis(Axis_Y);
+        //ui_push_background_color(MAGENTA);
+        //UI_Box* box3 = ui_box(str8_literal("box3"));
+        //ui_push_parent(box3);
+        //ui_pop_background_color();
+
+        //ui_push_size_w(ui_size_pixel(100, 0));
+        //ui_push_size_h(ui_size_pixel(100, 0));
+        //ui_push_background_color(YELLOW);
+        //if(ui_button(str8_literal("button 6")).pressed_left){
+        //    print("button 6: PRESSED\n");
+        //}
+        //ui_spacer(50);
+        //ui_push_background_color(DARK_GRAY);
+        //ui_push_size_w(ui_size_text(0));
+        //ui_push_size_h(ui_size_text(0));
+        //ui_push_text_padding(50);
+        //if(ui_button(str8_literal("AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz")).pressed_left){
+        //    print("button 7: PRESSED\n");
+        //}
+        //ui_pop_text_padding();
+        //ui_pop_parent();

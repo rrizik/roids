@@ -384,7 +384,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         //init_camera(&camera);
         init_camera_2d(&camera, make_v2(0, 0), 1000);
-        init_console(global_arena, &window, &assets);
+        init_console(global_arena, &camera, &window, &assets);
         init_ui(ts->hash_arena, &window, &controller, &assets);
         init_render_commands(ts->batch_arena, &assets);
 
@@ -397,7 +397,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         //wasapi_play(&assets.waves[WaveAsset_Track5], 0.0f, true);
         //wasapi_play(&assets.waves[WaveAsset_Track4], 0.0f, true);
 
-        state->ship = add_ship(TextureAsset_Ship, make_v2(0, 0), make_v2(50, 50));
+        state->ship = add_ship(TextureAsset_Ship, make_v2(0, 0), make_v2(150, 150));
         state->ship_loaded = true;
         state->lives = 1;
 
@@ -485,142 +485,70 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             for(s32 index = 0; index < array_count(state->entities); ++index){
                 Entity *e = state->entities + index;
 
-                v2 pos = screen_from_world(e->pos, &camera, &window);
+                v2 pos = pos_screen_from_world(e->pos, &camera, &window);
+                Quad quad2 = quad_from_entity(e);
                 if(has_flags(e->flags, EntityFlag_Active)){
 
                     switch(e->type){
                         case EntityType_Quad:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+                            quad2 = rotate_quad(quad2, e->deg, e->pos);
+                            quad2 = quad_screen_from_world(quad2, &camera, &window);
 
-                            //f32 deg = deg_from_dir(e->dir);
-                            p0 = rotate_point_deg(p0, e->deg, pos);
-                            p1 = rotate_point_deg(p1, e->deg, pos);
-                            p2 = rotate_point_deg(p2, e->deg, pos);
-                            p3 = rotate_point_deg(p3, e->deg, pos);
-
-                            //set_texture(&assets.textures[TextureAsset_White]);
-                            draw_quad(p0, p1, p2, p3, e->color);
+                            draw_quad(quad2, e->color);
                         } break;
                         case EntityType_Asteroid:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
-
-                            p0 = rotate_point_deg(p0, e->deg, pos);
-                            p1 = rotate_point_deg(p1, e->deg, pos);
-                            p2 = rotate_point_deg(p2, e->deg, pos);
-                            p3 = rotate_point_deg(p3, e->deg, pos);
-
-                            //push_line(p0, p1, 2, GREEN);
-                            //push_line(p1, p2, 2, GREEN);
-                            //push_line(p2, p3, 2, GREEN);
-                            //push_line(p3, p0, 2, GREEN);
+                            quad2 = rotate_quad(quad2, e->deg, e->pos);
+                            quad2 = quad_screen_from_world(quad2, &camera, &window);
 
                             set_texture(&r_assets->textures[TextureAsset_Asteroid]);
-                            draw_texture(e->texture, p0, p1, p2, p3, e->color);
+                            draw_texture(e->texture, quad2, e->color);
+                            draw_bounding_box(quad2, 5, GREEN);
                         } break;
                         case EntityType_Bullet:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
-
-                            p0 = rotate_point_deg(p0, e->deg, pos);
-                            p1 = rotate_point_deg(p1, e->deg, pos);
-                            p2 = rotate_point_deg(p2, e->deg, pos);
-                            p3 = rotate_point_deg(p3, e->deg, pos);
-
-                            //push_line(p0, p1, 2, GREEN);
-                            //push_line(p1, p2, 2, GREEN);
-                            //push_line(p2, p3, 2, GREEN);
-                            //push_line(p3, p0, 2, GREEN);
+                            quad2 = rotate_quad(quad2, e->deg, e->pos);
+                            quad2 = quad_screen_from_world(quad2, &camera, &window);
 
                             set_texture(&r_assets->textures[TextureAsset_Bullet]);
-                            draw_texture(e->texture, p0, p1, p2, p3, e->color);
+                            draw_texture(e->texture, quad2, e->color);
                         } break;
                         case EntityType_Particle:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+                            quad2 = rotate_quad(quad2, e->deg, e->pos);
+                            quad2 = quad_screen_from_world(quad2, &camera, &window);
 
-                            p0 = rotate_point_deg(p0, e->deg, pos);
-                            p1 = rotate_point_deg(p1, e->deg, pos);
-                            p2 = rotate_point_deg(p2, e->deg, pos);
-                            p3 = rotate_point_deg(p3, e->deg, pos);
-
-                            //push_line(p0, p1, 2, GREEN);
-                            //push_line(p1, p2, 2, GREEN);
-                            //push_line(p2, p3, 2, GREEN);
-                            //push_line(p3, p0, 2, GREEN);
-
-                            draw_texture(e->texture, p0, p1, p2, p3, e->color);
+                            set_texture(&r_assets->textures[e->texture]);
+                            draw_texture(e->texture, quad2, e->color);
                         } break;
                         case EntityType_Texture:{
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
+                            quad2 = rotate_quad(quad2, e->deg, e->pos);
+                            quad2 = quad_screen_from_world(quad2, &camera, &window);
 
-                            p0 = rotate_point_deg(p0, e->deg, pos);
-                            p1 = rotate_point_deg(p1, e->deg, pos);
-                            p2 = rotate_point_deg(p2, e->deg, pos);
-                            p3 = rotate_point_deg(p3, e->deg, pos);
-
-                            //push_line(p0, p1, 2, GREEN);
-                            //push_line(p1, p2, 2, GREEN);
-                            //push_line(p2, p3, 2, GREEN);
-                            //push_line(p3, p0, 2, GREEN);
-
-                            draw_texture(e->texture, p0, p1, p2, p3, e->color);
+                            set_texture(&r_assets->textures[e->texture]);
+                            draw_texture(e->texture, quad2, e->color);
                         } break;
                         case EntityType_Ship:{
                             if(state->ship->accelerating){
-                                v2 exhaust_pos = make_v2(e->pos.x - (e->dir.x * 120), e->pos.y - (e->dir.y * 120));
-                                v2 epos = screen_from_world(exhaust_pos, &camera, &window);
+                                v2 exhaust_pos = make_v2(e->pos.x - (e->dir.x * 50), e->pos.y - (e->dir.y * 50));
 
-                                v2 ep0 = make_v2(epos.x - e->dim.w/2, epos.y - e->dim.h/2);
-                                v2 ep1 = make_v2(epos.x + e->dim.w/2, epos.y - e->dim.h/2);
-                                v2 ep2 = make_v2(epos.x + e->dim.w/2, epos.y + e->dim.h/2);
-                                v2 ep3 = make_v2(epos.x - e->dim.w/2, epos.y + e->dim.h/2);
-
-                                ep0 = rotate_point_deg(ep0, e->deg, epos);
-                                ep1 = rotate_point_deg(ep1, e->deg, epos);
-                                ep2 = rotate_point_deg(ep2, e->deg, epos);
-                                ep3 = rotate_point_deg(ep3, e->deg, epos);
+                                Quad e_quad = make_quad(exhaust_pos, e->dim);
+                                e_quad = rotate_quad(e_quad, e->deg, exhaust_pos);
+                                e_quad = quad_screen_from_world(e_quad, &camera, &window);
 
                                 u32 random_flame = random_range_u32(5) + 4;
                                 set_texture(&r_assets->textures[random_flame]);
-                                draw_texture(random_flame, ep0, ep1, ep2, ep3, e->color);
+                                draw_texture(random_flame, e_quad, e->color);
                             }
 
-                            v2 p0 = make_v2(pos.x - e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p1 = make_v2(pos.x + e->dim.w/2, pos.y - e->dim.h/2);
-                            v2 p2 = make_v2(pos.x + e->dim.w/2, pos.y + e->dim.h/2);
-                            v2 p3 = make_v2(pos.x - e->dim.w/2, pos.y + e->dim.h/2);
-
-                            p0 = rotate_point_deg(p0, e->deg, pos);
-                            p1 = rotate_point_deg(p1, e->deg, pos);
-                            p2 = rotate_point_deg(p2, e->deg, pos);
-                            p3 = rotate_point_deg(p3, e->deg, pos);
-
-                            //set_texture(&assets.textures[TextureAsset_White]);
-                            draw_line(p0, p1, 5, GREEN);
-                            draw_line(p1, p2, 5, GREEN);
-                            draw_line(p2, p3, 5, GREEN);
-                            draw_line(p3, p0, 5, GREEN);
+                            quad2 = rotate_quad(quad2, e->deg, e->pos);
+                            quad2 = quad_screen_from_world(quad2, &camera, &window);
 
                             set_texture(&r_assets->textures[e->texture]);
                             if(state->ship->immune){
-                                draw_texture(e->texture, p0, p1, p2, p3, ORANGE);
+                                draw_texture(e->texture, quad2, ORANGE);
                             }
                             else{
-                                draw_texture(e->texture, p0, p1, p2, p3, e->color);
+                                draw_texture(e->texture, quad2, e->color);
                             }
+                            draw_bounding_box(quad2, 5, GREEN);
 
                         } break;
                     }
@@ -839,24 +767,20 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         draw_text(state->font, fps, make_v2(window.width - text_padding - font_string_width(state->font, fps), window.height - text_padding), ORANGE);
 
         wasapi_play_cursors();
-
         console_draw();
-        //v2 pp = screen_from_world(state->ship->pos, &camera, &window);
-        //String8 stuff = str8_formatted(ts->frame_arena, "pos:(%f, %f), (%f, %f)", state->ship->x, state->ship->y, pp.x, pp.y);
-        //draw_text(state->font, stuff, make_v2(200, 200), ORANGE);
+        String8 stuff = str8_formatted(ts->frame_arena, "(%f, %f)", camera.pos.x, camera.pos.y);
+        draw_text(state->font, stuff, make_v2(200, 200), ORANGE);
 
         // draw everything
-        v2 p0 = screen_from_world(make_v2(camera.left_border, camera.top_border), &camera, &window);
-        v2 p1 = screen_from_world(make_v2(camera.right_border, camera.top_border), &camera, &window);
-        v2 p2 = screen_from_world(make_v2(camera.right_border, camera.bottom_border), &camera, &window);
-        v2 p3 = screen_from_world(make_v2(camera.left_border, camera.bottom_border), &camera, &window);
-        //p0.x += 100;
-        //p1.x += 100;
-        draw_line(p0, p1, 10, GREEN);
-        draw_line(p1, p2, 10, GREEN);
-        draw_line(p2, p3, 10, GREEN);
-        draw_line(p3, p0, 10, GREEN);
-        //draw_line(make_v2(100, 100), make_v2(200, 200), 300, GREEN);
+        //v2 p0 = pos_screen_from_world(make_v2(camera.left_border, camera.top_border), &camera, &window);
+        //v2 p1 = pos_screen_from_world(make_v2(camera.right_border, camera.top_border), &camera, &window);
+        //v2 p2 = pos_screen_from_world(make_v2(camera.right_border, camera.bottom_border), &camera, &window);
+        //v2 p3 = pos_screen_from_world(make_v2(camera.left_border, camera.bottom_border), &camera, &window);
+        //draw_line(p0, p1, 10, GREEN);
+        //draw_line(p1, p2, 10, GREEN);
+        //draw_line(p2, p3, 10, GREEN);
+        //draw_line(p3, p0, 10, GREEN);
+
 
         clear_controller_pressed();
         //print("batch_arena_size: %i, batch_arena_at: %i\n",  ts->batch_arena->size, ts->batch_arena->at);
@@ -895,93 +819,3 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
     return(0);
 }
 
-        //ui_begin(ts->ui_arena);
-
-        //ui_push_background_color(ORANGE);
-        //ui_push_pos_x(50);
-        //ui_push_pos_y(50);
-        //ui_push_size_w(ui_size_children(0));
-        //ui_push_size_h(ui_size_children(0));
-        //ui_push_border_thickness(10);
-
-        //UI_Box* box1 = ui_box(str8_literal("box1"), UI_BoxFlag_DrawBackground|UI_BoxFlag_Draggable|UI_BoxFlag_Clickable);
-        //ui_push_parent(box1);
-        //ui_pop_border_thickness();
-        //ui_pop_pos_x();
-        //ui_pop_pos_y();
-
-        //ui_push_size_w(ui_size_pixel(100, 0));
-        //ui_push_size_h(ui_size_pixel(50, 0));
-        //ui_push_background_color(BLUE);
-        //ui_label(str8_literal("MY LAHBEL"));
-        //if(ui_button(str8_literal("button 1")).pressed_left){
-        //    print("button 1: PRESSED\n");
-        //    wasapi_play(WaveAsset_Rail1, 0.1f, false);
-        //}
-        //ui_spacer(10);
-
-        //ui_push_size_w(ui_size_pixel(50, 0));
-        //ui_push_size_h(ui_size_pixel(50, 0));
-        //ui_push_background_color(GREEN);
-        //if(ui_button(str8_literal("button 2")).pressed_left){
-        //    print("button 2: PRESSED\n");
-        //}
-        //ui_pop_background_color();
-        //ui_pop_background_color();
-
-        //ui_spacer(50);
-        //ui_push_size_w(ui_size_children(0));
-        //ui_push_size_h(ui_size_children(0));
-        //ui_push_layout_axis(Axis_X);
-        //ui_push_background_color(MAGENTA);
-        //UI_Box* box2 = ui_box(str8_literal("box2"));
-        //ui_push_parent(box2);
-        //ui_pop_background_color();
-
-        //ui_pop_size_w();
-        //ui_pop_size_h();
-        //ui_pop_size_w();
-        //ui_pop_size_h();
-        //ui_push_size_w(ui_size_pixel(100, 1));
-        //ui_push_size_h(ui_size_pixel(50, 1));
-        //ui_push_background_color(TEAL);
-        //if(ui_button(str8_literal("button 3")).pressed_left){
-        //    print("button 3: PRESSED\n");
-        //}
-        //ui_spacer(50);
-        //ui_push_background_color(RED);
-        //if(ui_button(str8_literal("button 4")).pressed_left){
-        //    print("button 4: PRESSED\n");
-        //}
-        //ui_spacer(50);
-        //ui_pop_background_color();
-        //if(ui_button(str8_literal("button 5")).pressed_left){
-        //    print("button 5: PRESSED\n");
-        //}
-        //ui_pop_parent();
-
-        //ui_spacer(50);
-        //ui_push_size_w(ui_size_children(0));
-        //ui_push_size_h(ui_size_children(0));
-        //ui_push_layout_axis(Axis_Y);
-        //ui_push_background_color(MAGENTA);
-        //UI_Box* box3 = ui_box(str8_literal("box3"));
-        //ui_push_parent(box3);
-        //ui_pop_background_color();
-
-        //ui_push_size_w(ui_size_pixel(100, 0));
-        //ui_push_size_h(ui_size_pixel(100, 0));
-        //ui_push_background_color(YELLOW);
-        //if(ui_button(str8_literal("button 6")).pressed_left){
-        //    print("button 6: PRESSED\n");
-        //}
-        //ui_spacer(50);
-        //ui_push_background_color(DARK_GRAY);
-        //ui_push_size_w(ui_size_text(0));
-        //ui_push_size_h(ui_size_text(0));
-        //ui_push_text_padding(50);
-        //if(ui_button(str8_literal("AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz")).pressed_left){
-        //    print("button 7: PRESSED\n");
-        //}
-        //ui_pop_text_padding();
-        //ui_pop_parent();

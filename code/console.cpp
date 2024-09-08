@@ -2,10 +2,11 @@
 #define CONSOLE_C
 
 static void
-init_console(Arena* arena, Window* window, Assets* assets){ //note: everything is positioned relative to the output_rect
+init_console(Arena* arena, Camera2D* camera, Window* window, Assets* assets){ //note: everything is positioned relative to the output_rect
     console.state = CLOSED;
     console.font = &assets->fonts[FontAsset_Consolas];
     console.window = window;
+    console.camera = camera;
     console.arena = arena;
 
     // some size constraints

@@ -30,6 +30,16 @@ rect_from_entity(Entity* e){
     return(result);
 }
 
+static Quad
+quad_from_entity(Entity* e){
+    Quad result = {0};
+    result.p0 = make_v2(e->pos.x - e->dim.w/2, e->pos.y - e->dim.h/2);
+    result.p1 = make_v2(e->pos.x + e->dim.w/2, e->pos.y - e->dim.h/2);
+    result.p2 = make_v2(e->pos.x + e->dim.w/2, e->pos.y + e->dim.h/2);
+    result.p3 = make_v2(e->pos.x - e->dim.w/2, e->pos.y + e->dim.h/2);
+    return(result);
+}
+
 
 
 

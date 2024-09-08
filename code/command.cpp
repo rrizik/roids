@@ -10,6 +10,7 @@ init_console_commands(void){
     add_command(str8_literal("exit"), 0, 0, command_exit);
     add_command(str8_literal("quit"), 0, 0, command_exit);
     add_command(str8_literal("help"), 0, 0, command_help);
+    add_command(str8_literal("goto"), 2, 2, command_go_to);
 }
 
 static void
@@ -36,6 +37,17 @@ command_exit(String8* args){
     Event event = {0};
     event.type = QUIT;
     events_add(&events, event);
+}
+
+static void
+command_go_to(String8* args){
+    s32 x = atoi((char const*)(args->str));
+    s32 y = atoi((char const*)(args + 1)->str);
+    console.camera->pos.x = (f32)x;
+    console.camera->pos.y = (f32)y;
+
+    String8 str = str8_formatted(console.arena, "move camera to position (%i, %i)", x, y);
+    console.output_history[console.output_history_count++] = str;
 }
 
 static void

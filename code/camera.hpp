@@ -14,7 +14,6 @@ typedef struct Camera{
     f32 move_speed;
     f32 rotation_speed;
 } Camera;
-//static Camera camera;
 
 static void init_camera(Camera* camera);
 static void update_camera(Camera* camera, f32 dx, f32 dy, f32 dt);

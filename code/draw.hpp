@@ -12,6 +12,7 @@ static RGBA YELLOW =  {0.9f, 0.9f, 0.0f,  1.0f};
 static RGBA ORANGE =  {1.0f, 0.5f, 0.15f,  1.0f};
 static RGBA ORANGE_HALF =  {1.0f, 0.5f, 0.15f,  0.1f};
 static RGBA DARK_GRAY =  {0.5f, 0.5f, 0.5f,  1.0f};
+static RGBA DARK_GRAY_LIGHT =  {0.5f, 0.5f, 0.5f,  0.1f};
 static RGBA LIGHT_GRAY = {0.8f, 0.8f, 0.8f,  1.0f};
 static RGBA WHITE =   {1.0f, 1.0f, 1.0f,  1.0f};
 static RGBA BLACK =   {0.0f, 0.0f, 0.0f,  1.0f};
@@ -71,7 +72,10 @@ typedef struct RenderCommand{
     String8 text;
 } RenderCommand;
 
-static v2 screen_from_world(v2 world_pos, Camera2D* camera, Window* window);
+static v2 pos_screen_from_world(v2 world_pos, Camera2D* camera, Window* window);
+static Rect pos_screen_from_world(Rect rect, Camera2D* camera, Window* window);
+static Quad pos_screen_from_world(Quad rect, Camera2D* camera, Window* window);
+
 static RGBA srgb_to_linear_approx(RGBA value);
 static RGBA linear_to_srgb_approx(RGBA value);
 static RGBA srgb_to_linear(RGBA value);
@@ -89,9 +93,11 @@ static void draw_quad(v2 pos, v2 dim, v2 uv0, v2 uv1, v2 uv2, v2 uv3, RGBA color
 static void draw_quad(Quad quad, v2 uv0, v2 uv1, v2 uv2, v2 uv3, RGBA color);
 static void draw_quad(Rect rect, v2 uv0, v2 uv1, v2 uv2, v2 uv3, RGBA color);
 
+static void draw_bounding_box(Quad quad, f32 width, RGBA color);
 static void draw_line(v2 p0, v2 p1, f32 width, RGBA color);
 static void draw_text(Font* font, String8 text, v2 pos, RGBA color);
 static void draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE);
+static void draw_texture(u32 texture, Quad quad, RGBA color=WHITE);
 
 static void draw_render_batches(void);
 static void render_batches_reset(void);

@@ -59,7 +59,6 @@ typedef struct Entity{
         };
         v2 pos;
     };
-    v2 epos;
     v2 dim;
     v2 dir;
     v2 accel_dir;
@@ -99,6 +98,7 @@ static EntityHandle zero_entity_handle(void);
 //static Entity* entity_from_handle(PermanentMemory* pm, EntityHandle handle);
 //static EntityHandle handle_from_entity(PermanentMemory* pm, Entity *e);
 static Rect rect_from_entity(Entity* e);
+static Quad bounding_box_from_entity(Entity* e);
 
 
 #endif

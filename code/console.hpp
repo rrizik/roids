@@ -17,6 +17,7 @@ typedef struct Console{
     ConsoleState state;
     Font* font;
     Window* window;
+    Camera2D* camera;
     Arena* arena;
 
     f32 text_left_pad;

@@ -15,7 +15,7 @@ init_levels(void){
     Level* level = 0;
 
     level = state->levels + 0;
-    level->asteroid_count_max = 15;
+    level->asteroid_count_max = 3;
     level->asteroid_spawned = 0;
     level->asteroid_destroyed = 0;
 
@@ -121,9 +121,8 @@ add_ship(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
     if(e){
         e->color = color;
         e->pos = pos;
-        e->epos = make_v2(e->pos.x + (50 * -e->dir.x), e->pos.y + (50 * -e->dir.y));
         e->dim = dim;
-        e->deg = 0;
+        e->deg = 90;
         e->dir = dir_from_deg(e->deg);
         e->accel_dir = make_v2(0, 0);
         e->speed = 200;
@@ -163,7 +162,7 @@ add_bullet(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
         e->dir = dir_from_deg(deg);
         e->speed = 1000;
         e->velocity = 1;
-        e->damage = 50;
+        e->damage = 100;
         e->texture = texture;
         e->collision_type = CollisionType_SplinterOnDeath;
         e->death_type = DeathType_Particle;
@@ -470,7 +469,7 @@ static void
 reset_ship(void){
     state->ship->dir = make_v2(0, -1);
     state->ship->pos = make_v2(0, 0);
-    state->ship->deg = -90;
+    state->ship->deg = 90;
     state->ship->dir = dir_from_deg(state->ship->deg);
     state->ship->accel_dir = make_v2(0, 0);
     state->ship->velocity = 0;
@@ -543,7 +542,7 @@ static void update_game(void){
                     if(ship->shoot_t >= 0.1f){
                         ship->shoot_t = 0.0;
                         v2 pos = make_v2(ship->pos.x + (50 * ship->dir.x), ship->pos.y + (50 * ship->dir.y));
-                        Entity* child_e = add_bullet(TextureAsset_Bullet, pos, make_v2(40, 8), ship->deg);
+                        Entity* child_e = add_bullet(TextureAsset_Bullet, pos, make_v2(80, 16), ship->deg);
                         child_e->origin = ship;
 
                         // play rail audio
@@ -602,7 +601,7 @@ static void update_game(void){
             state->spawn_t = 0.0;
 
             v2 dim;
-            dim.x = random_range_f32(150) + 50;
+            dim.x = random_range_f32(550) + 200;
             dim.y = dim.x;
             u32 side = random_range_u32(3);
 
@@ -634,8 +633,8 @@ static void update_game(void){
                 deg = random_range_f32(180);
             }
             if(state->current_level->asteroid_spawned < state->current_level->asteroid_count_max){
-                //Entity* asteroid = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
-                //state->current_level->asteroid_spawned++;
+                Entity* asteroid = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
+                state->current_level->asteroid_spawned++;
             }
         }
 
@@ -687,12 +686,12 @@ static void update_game(void){
             if(e->health <= 0){
                 switch(e->death_type){
                     case DeathType_Crumble:{
-                        if(e->dim.w > 100){
-                            e->dim.w -= 50;
-                            e->dim.h -= 50;
+                        if(e->dim.w > 200){
+                            e->dim.w -= 100;
+                            e->dim.h -= 100;
                             for(s32 splint_i=0; splint_i < 3; ++splint_i){
                                 e->deg = random_range_f32(360);
-                                //add_asteroid(TextureAsset_Asteroid, e->pos, e->dim, e->deg);
+                                add_asteroid(TextureAsset_Asteroid, e->pos, e->dim, e->deg);
                                 state->current_level->asteroid_spawned++;
                                 state->current_level->asteroid_count_max++;
                             }
@@ -706,7 +705,7 @@ static void update_game(void){
                         s32 p_count = (s32)random_range_u32(5) + 5;
                         for(s32 p_idx = 0; p_idx < p_count; p_idx++){
                             f32 deg = random_range_f32(360);
-                            v2 dim = make_v2(10, 2);
+                            v2 dim = make_v2(20, 4);
                             Entity* e_p = add_bullet_particle(TextureAsset_Bullet, e->pos, dim, deg);
                             e_p->parent = state->ship;
                             e_p->particle_t = 0.175f;
