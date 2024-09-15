@@ -31,7 +31,10 @@ init_console(Arena* arena, Camera2D* camera, Window* window, Assets* assets){ //
     console.output_history_count = 0;
     console.input_history_count = 0;
     console.input_history_index = 0;
-    console.input_count = 0;
+
+    console.input.count = 0;
+    console.input.str = push_array(console.arena, u8, INPUT_COUNT_MAX);
+    //console.input_count = 0;
     console.cursor_index = 0;
 
     init_console_commands();
@@ -50,27 +53,27 @@ console_is_visible(void){
 static u8
 console_char_at_cursor(void){
     u8 result = 0;
-    if(console.input_count == console.cursor_index){
+    if(console.input.count == console.cursor_index){
         result = 'a';
     }
     else{
-        result = console.input[console.cursor_index];
+        result = console.input.data[console.cursor_index];
     }
     return(result);
 }
 
 static void
 input_add_char(u8 c){
-    if(console.input_count < INPUT_COUNT_MAX){
-        if(console.cursor_index < console.input_count){
-            for(s32 i=console.input_count; i > console.cursor_index; --i){
-                console.input[i] = console.input[i - 1];
+    if(console.input.count < INPUT_COUNT_MAX){
+        if(console.cursor_index < console.input.count){
+            for(s32 i=(s32)console.input.count; i > console.cursor_index; --i){
+                console.input.data[i] = console.input.data[i - 1];
             }
-            console.input_count++;
-            console.input[console.cursor_index] = c;
+            console.input.count++;
+            console.input.data[console.cursor_index] = c;
         }
         else{
-            console.input[console.input_count++] = c;
+            console.input.data[console.input.count++] = c;
         }
     }
 }
@@ -78,15 +81,15 @@ input_add_char(u8 c){
 static void
 input_remove_char(void){
     u8 c = 0;
-    if(console.input_count > 0 && console.cursor_index > 0){
-        if(console.cursor_index < console.input_count){
-            for(s32 i=console.cursor_index; i < console.input_count; ++i){
-                console.input[i - 1] = console.input[i];
+    if(console.input.count > 0 && console.cursor_index > 0){
+        if(console.cursor_index < console.input.count){
+            for(s32 i=console.cursor_index; i < console.input.count; ++i){
+                console.input.data[i - 1] = console.input.data[i];
             }
-            --console.input_count;
+            --console.input.count;
         }
         else{
-            --console.input_count;
+            --console.input.count;
         }
     }
 }
@@ -126,21 +129,21 @@ handle_console_events(Event event){
                 console.cursor_index = 0;
             }
             if(event.keycode == KeyCode_END){
-                for(s32 i=console.cursor_index; i < console.input_count; ++i){
-                    u8 c = console.input[i];
+                for(s32 i=console.cursor_index; i < console.input.count; ++i){
+                    u8 c = console.input.data[i];
                     console.cursor_index++;
                 }
             }
             if(event.keycode == KeyCode_RIGHT){
-                if(console.cursor_index < console.input_count){
-                    u8 c = console.input[console.cursor_index];
+                if(console.cursor_index < console.input.count){
+                    u8 c = console.input.data[console.cursor_index];
                     console.cursor_index++;
                 }
             }
             if(event.keycode == KeyCode_LEFT){
                 if(console.cursor_index > 0){
                     console.cursor_index--;
-                    u8 c = console.input[console.cursor_index];
+                    u8 c = console.input.data[console.cursor_index];
                 }
             }
             if(event.keycode == KeyCode_BACKSPACE){
@@ -155,7 +158,7 @@ handle_console_events(Event event){
                 if(console.input_history_index < console.input_history_count){
                     // clear input
                     console.cursor_index = 0;
-                    console.input_count = 0;
+                    console.input.count = 0;
                     console.input_history_index++;
                     String8 command = console.input_history[console.input_history_count - console.input_history_index];
                     for(u32 i=0; i < command.size; ++i){
@@ -163,14 +166,14 @@ handle_console_events(Event event){
                         input_add_char(c);
                         console.cursor_index++;
                     }
-                    console.input_count = (s32)command.size;
+                    console.input.count = command.size;
                 }
             }
             if(event.keycode == KeyCode_DOWN){
                 if(console.input_history_index > 0){
                     // clear input
                     console.cursor_index = 0;
-                    console.input_count = 0;
+                    console.input.count = 0;
                     console.input_history_index--;
                     String8 command = console.input_history[console.input_history_count - console.input_history_index];
                     for(u32 i=0; i < command.size; ++i){
@@ -178,25 +181,24 @@ handle_console_events(Event event){
                         input_add_char(c);
                         console.cursor_index++;
                     }
-                    console.input_count = (s32)command.size;
+                    console.input.count = command.size;
                 }
             }
             if(event.keycode == KeyCode_ENTER){
-                u8* line_u8 = (u8*)push_array(console.arena, u8, console.input_count + 1);
-                memcpy(line_u8, console.input, (size_t)console.input_count);
 
-                String8 line_str8 = {line_u8, (u64)console.input_count};
-                line_str8 = str8_eat_spaces(line_str8);
+                String8 remaining = console.input;
+				s64 index = byte_index_from_left(remaining, ' ');
+                String8 command = str8_split_left(remaining, (u64)index);
+                str8_trim_left(&remaining, (u64)index);
 
-                u64 args_count = command_parse_args(line_str8);
-                if(!args_count){ return(false); }
+                s32 args_count = command_parse_args(remaining);
 
-                console.input_history[console.input_history_count++] = line_str8;
-                run_command(line_str8);
+                console.input_history[console.input_history_count++] = console.input;
+                run_command(command);
 
                 // clear_input
                 console.cursor_index = 0;
-                console.input_count = 0;
+                console.input.count = 0;
                 console.input_history_index = 0;
 
                 return(true);
@@ -241,27 +243,27 @@ console_draw(void){
         v2 input_p2 = make_v2((f32)console.window->width, output_p2.y + (f32)font->vertical_offset);
         v2 input_p3 = make_v2(0                , output_p2.y + (f32)font->vertical_offset);
 
-        String8 str = str8(console.input, (u64)console.cursor_index);
+        String8 str = str8(console.input.data, (u64)console.cursor_index);
 
         v2 cursor_p0 = make_v2(console.text_left_pad + font_char_width(font, '>') + font_string_width(font, str), input_p0.y);
         v2 cursor_p1 = make_v2(cursor_p0.x + font_char_width(font, console_char_at_cursor()), input_p0.y);
         v2 cursor_p2 = make_v2(cursor_p0.x + font_char_width(font, console_char_at_cursor()), input_p2.y);
         v2 cursor_p3 = make_v2(console.text_left_pad + font_char_width(font, '>') + font_string_width(font, str), input_p2.y);
 
-        // draw regions
+        // draw regions quads
         draw_quad(output_p0, output_p1, output_p2, output_p3, console.output_background_color);
         draw_quad(input_p0, input_p1, input_p2, input_p3, console.input_background_color);
         draw_quad(cursor_p0, cursor_p1, cursor_p2, cursor_p3, console.cursor_color);
 
-        // draw input
+        // draw text input
         f32 input_pos_y = input_p2.y + ((f32)font->descent * font->scale);
         draw_text(console.font, str8_literal(">"), make_v2(console.text_left_pad, input_pos_y), console.input_color);
-        if(console.input_count > 0){
-            String8 input_str = str8(console.input, (u64)console.input_count);
+        if(console.input.count > 0){
+            String8 input_str = str8(console.input.data, (u64)console.input.count);
             draw_text(console.font, input_str, make_v2(console.text_left_pad + font_char_width(font, '>'), input_pos_y), console.input_color);
         }
 
-        // draw history (in reverse order and only if its on screen)
+        // draw text history (in reverse order and only if its on screen)
         if(console.output_history_count > 0){
             f32 output_pos_y = output_p2.y + ((f32)font->descent * font->scale);
             for(s32 i=console.output_history_count-1; i >= 0; --i){

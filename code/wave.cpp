@@ -9,10 +9,9 @@ wave_file_read(Arena* arena, String8 dir, String8 filename){
     ScratchArena scratch = begin_scratch();
     String8 full_path = str8_concatenate(scratch.arena, dir, filename);
     File file = os_file_open(full_path, GENERIC_READ, OPEN_EXISTING);
-    end_scratch(scratch);
     assert_h(file.handle);
 
-    String8 data = os_file_read(arena, file);
+    String8 data = os_file_read(scratch.arena, file);
     WaveHeader* header = (WaveHeader*)data.str;
 
     // todo: change this to maybe be str8 so that you can use str8 functions
@@ -49,6 +48,7 @@ wave_file_read(Arena* arena, String8 dir, String8 filename){
         }
         chunk_inc += c->chunk_size + sizeof(ChunkInfo);
     }
+    end_scratch(scratch);
     os_file_close(file);
 
     return(result);

@@ -34,6 +34,7 @@ typedef struct RenderBatch{
     s32 cap;
     Texture* texture;
 } RenderBatch;
+s32 bcount = 0;
 
 typedef struct RenderBatchNode{
     RenderBatch* first;
@@ -94,6 +95,7 @@ static void draw_quad(Quad quad, v2 uv0, v2 uv1, v2 uv2, v2 uv3, RGBA color);
 static void draw_quad(Rect rect, v2 uv0, v2 uv1, v2 uv2, v2 uv3, RGBA color);
 
 static void draw_bounding_box(Quad quad, f32 width, RGBA color);
+static void draw_bounding_box(Rect rect, f32 width, RGBA color);
 static void draw_line(v2 p0, v2 p1, f32 width, RGBA color);
 static void draw_text(Font* font, String8 text, v2 pos, RGBA color);
 static void draw_texture(u32 texture, v2 p0, v2 p1, v2 p2, v2 p3, RGBA color=WHITE);

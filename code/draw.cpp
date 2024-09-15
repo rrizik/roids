@@ -180,6 +180,14 @@ draw_bounding_box(Quad quad, f32 width, RGBA color){
 }
 
 static void
+draw_bounding_box(Rect rect, f32 width, RGBA color){
+    draw_line(make_v2(rect.x0, rect.y0), make_v2(rect.x1, rect.y0), width, color);
+    draw_line(make_v2(rect.x1, rect.y0), make_v2(rect.x1, rect.y1), width, color);
+    draw_line(make_v2(rect.x1, rect.y1), make_v2(rect.x0, rect.y1), width, color);
+    draw_line(make_v2(rect.x0, rect.y1), make_v2(rect.x0, rect.y0), width, color);
+}
+
+static void
 draw_line(v2 p0, v2 p1, f32 width, RGBA color){
 
     set_texture(&r_assets->textures[TextureAsset_White]);
@@ -290,7 +298,10 @@ get_render_batch(u64 vertex_count){
             render_batches.last->next = batch;
             render_batches.last = batch;
         }
-        render_batches.count++;
+        ++render_batches.count;
+        if(render_batches.count > 13){
+            s32 a = 111;
+        }
     }
     return(batch);
 }

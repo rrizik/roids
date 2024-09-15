@@ -8,12 +8,24 @@ typedef struct Level{
 } Level;
 
 
-typedef enum GameMode{
-    GameMode_FirstPerson,
-    GameMode_Editor,
-    GameMode_Game,
-    GameMode_Menu,
+typedef enum SceneState{
+    SceneState_None,
+    SceneState_Menu,
+    SceneState_Game,
+} SceneState;
+
+typedef enum GameState{
+    GameState_None,
+    GameState_Running,
+    GameState_Paused,
+    GameState_Finished,
 } GameMode;
+
+typedef enum GameResult{
+    GameResult_None,
+    GameResult_Won,
+    GameResult_Lost,
+} GameResult;
 
 
 static v2 world_from_screen_space(v2 point);
@@ -41,13 +53,13 @@ static bool handle_camera_events(Event event);
 static bool handle_controller_events(Event event);
 static bool handle_game_events(Event event);
 
-static void reset_game(void);
-static void reset_ship(void);
 
 static void update_game(void);
 static void init_levels(void);
+static void ship_reset(void);
 static bool game_won(void);
-static bool game_over(void);
+static bool game_lost(void);
+static void game_reset(void);
 
 #endif
 

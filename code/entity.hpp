@@ -65,6 +65,8 @@ typedef struct Entity{
     f32 deg;
     RGBA color;
 
+    f32 collision_padding;
+
     f32 speed;
     f32 rotation_speed;
     f32 shoot_t;
@@ -98,6 +100,7 @@ static EntityHandle zero_entity_handle(void);
 //static Entity* entity_from_handle(PermanentMemory* pm, EntityHandle handle);
 //static EntityHandle handle_from_entity(PermanentMemory* pm, Entity *e);
 static Rect rect_from_entity(Entity* e);
+static Rect collision_box_from_entity(Entity* e);
 static Quad bounding_box_from_entity(Entity* e);
 
 

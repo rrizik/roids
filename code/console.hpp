@@ -49,8 +49,9 @@ typedef struct Console{
     s32 input_history_index;
 
 #define INPUT_COUNT_MAX KB(1)
-    u8 input[INPUT_COUNT_MAX];
-    s32 input_count;
+    String8 input;
+    //u8 input[INPUT_COUNT_MAX];
+    //s32 input_count;
     s32 cursor_index;
 } Console;
 global Console console;

@@ -15,7 +15,7 @@ init_levels(void){
     Level* level = 0;
 
     level = state->levels + 0;
-    level->asteroid_count_max = 3;
+    level->asteroid_count_max = 30;
     level->asteroid_spawned = 0;
     level->asteroid_destroyed = 0;
 
@@ -125,7 +125,7 @@ add_ship(u32 texture, v2 pos, v2 dim, RGBA color, u32 flags){
         e->deg = 90;
         e->dir = dir_from_deg(e->deg);
         e->accel_dir = make_v2(0, 0);
-        e->speed = 200;
+        e->speed = 400;
         e->rotation_speed = 200;
         e->velocity = 0;
         e->shoot_t = 1;
@@ -219,8 +219,9 @@ add_asteroid(u32 texture, v2 pos, v2 dim, f32 deg, RGBA color, u32 flags){
         e->dim = dim;
         e->deg = deg;
         e->dir = dir_from_deg(deg);
-        e->speed = 300;
-        e->rotation_speed = (f32)random_range_u32(150) + 50;
+        e->collision_padding = 30;
+        e->rotation_speed = (f32)random_range_u32(300);
+        e->speed = e->rotation_speed + 100;
         e->velocity = 1;
         e->health = (s32)dim.w;
         e->texture = texture;
@@ -322,37 +323,47 @@ handle_global_events(Event event){
         should_quit = true;
         return(true);
     }
-    // todo: why is this here
-    if(event.type == MOUSE){
-        v2 direction = direction_v2(window.dim, controller.mouse.pos);
-
-        f32 rad = rad_from_dir(direction);
-        f32 deg = deg_from_dir(direction);
-    }
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == KeyCode_TILDE && !event.repeat){
                 if(event.shift_pressed){
                     if(console.state == OPEN_BIG){
                         console_set_state(CLOSED);
+                        //state->game_state = GameState_Paused;
                     }
                     else{
                         console_set_state(OPEN_BIG);
+                        //state->game_state = GameState_Paused;
                     }
                 }
                 else{
                     if(console.state == OPEN || console.state == OPEN_BIG){
                         console_set_state(CLOSED);
+                        //state->game_state = GameState_Paused;
                     }
                     else{
                         console_set_state(OPEN);
+                        //state->game_mode = GameMode_Debug;
                     }
 
                 }
                 return(true);
             }
-        }
-        else{
+            if(!(console.state == OPEN || console.state == OPEN_BIG)){
+                if(event.keycode == KeyCode_TWO){
+                    //if(state->game_mode != GameMode_Editor){
+                    //    //state->game_mode = GameMode_Editor;
+                    //    show_cursor(true);
+                    //}
+                }
+                if(event.keycode == KeyCode_THREE){
+                    //if(state->game_mode != GameMode_Game){
+                    //    //state->game_mode = GameMode_Game;
+                    //    show_cursor(false);
+                    //    camera_2d_reset(&camera);
+                    //}
+                }
+            }
         }
     }
     return(false);
@@ -369,29 +380,29 @@ handle_camera_events(Event event){
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == KeyCode_ONE){
-                if(state->game_mode != GameMode_FirstPerson){
-                    state->game_mode = GameMode_FirstPerson;
+                //if(state->game_mode != GameMode_FirstPerson){
+                //    state->game_mode = GameMode_FirstPerson;
 
-                    controller.mouse.dx = 0;
-                    controller.mouse.dy = 0;
+                //    controller.mouse.dx = 0;
+                //    controller.mouse.dy = 0;
 
-                    POINT center = {((s32)window.width/2), ((s32)window.height/2)};
-                    ClientToScreen(window.handle, &center);
-                    show_cursor(false);
-                }
+                //    POINT center = {((s32)window.width/2), ((s32)window.height/2)};
+                //    ClientToScreen(window.handle, &center);
+                //    show_cursor(false);
+                //}
             }
             if(event.keycode == KeyCode_TWO){
-                if(state->game_mode != GameMode_Editor){
-                    state->game_mode = GameMode_Editor;
-                    show_cursor(true);
-                }
+                //if(state->game_mode != GameMode_Editor){
+                //    state->game_mode = GameMode_Editor;
+                //    show_cursor(true);
+                //}
             }
             if(event.keycode == KeyCode_THREE){
-                if(state->game_mode != GameMode_Game){
-                    state->game_mode = GameMode_Game;
-                    //init_camera(&camera);
-                    show_cursor(false);
-                }
+                //if(state->game_mode != GameMode_Game){
+                //    state->game_mode = GameMode_Game;
+                //    //init_camera(&camera);
+                //    show_cursor(false);
+                //}
             }
         }
     }
@@ -429,15 +440,16 @@ handle_game_events(Event event){
     if(event.type == KEYBOARD){
         if(event.key_pressed){
             if(event.keycode == KeyCode_ESCAPE){
-                if(state->game_mode == GameMode_Game){
-                    if(!game_won() && state->lives){
-                        should_quit = true;
-                        pause = !pause;
+                if(state->scene_state == SceneState_Game){
+                    if(state->game_state == GameState_Running){
+                        state->game_state = GameState_Paused;
                         return(true);
                     }
-                }
-                else{
-                    should_quit = true;
+                    if(state->game_state == GameState_Paused){
+                        state->game_state = GameState_Running;
+                        return(true);
+                    }
+                    return(false);
                 }
             }
         }
@@ -446,7 +458,8 @@ handle_game_events(Event event){
 }
 
 static void
-reset_game(void){
+game_reset(void){
+    state->game_state = GameState_Running;
     state->lives = MAX_LIVES;
     state->score = 0;
     state->level_index = 0;
@@ -460,13 +473,19 @@ reset_game(void){
         if(e->type == EntityType_Asteroid){
            remove_entity(e);
         }
+        if(e->type == EntityType_Bullet){
+           remove_entity(e);
+        }
+        if(e->type == EntityType_Particle){
+           remove_entity(e);
+        }
     }
 
-    reset_ship();
+    ship_reset();
 }
 
 static void
-reset_ship(void){
+ship_reset(void){
     state->ship->dir = make_v2(0, -1);
     state->ship->pos = make_v2(0, 0);
     state->ship->deg = 90;
@@ -497,8 +516,8 @@ game_won(void){
 }
 
 static bool
-game_over(void){
-    if(state->lives == 0){
+game_lost(void){
+    if(state->lives <= 0){
         return(true);
     }
     return(false);
@@ -507,31 +526,31 @@ game_over(void){
 static void update_game(void){
 
 
-    if(state->game_mode == GameMode_Game && !game_won()){
-        Level* level   = state->current_level;
-        Entity* ship   = state->ship;
-        Rect ship_rect = rect_from_entity(ship);
+    Level* level   = state->current_level;
+    Entity* ship   = state->ship;
+    Rect ship_rect = rect_from_entity(ship);
 
-        if(ship->immune_t < 2){
-            ship->immune_t += (f32)clock.dt;
-        }
-        else{
-            //ship->immune = false;
-        }
+    if(ship->immune_t < 2){
+        ship->immune_t += (f32)clock.dt;
+    }
+    else{
+        ship->immune = false;
+    }
 
-        //if(controller.button[KeyCode_W].held){
-        //    camera.y += (1000) * (f32)clock.dt;
-        //}
-        //if(controller.button[KeyCode_S].held){
-        //    camera.y -= (1000) * (f32)clock.dt;
-        //}
-        //if(controller.button[KeyCode_A].held){
-        //    camera.x -= (1000) * (f32)clock.dt;
-        //}
-        //if(controller.button[KeyCode_D].held){
-        //    camera.x += (1000) * (f32)clock.dt;
-        //}
-        // ship behavior
+    //if(controller.button[KeyCode_W].held){
+    //    camera.y += (1000) * (f32)clock.dt;
+    //}
+    //if(controller.button[KeyCode_S].held){
+    //    camera.y -= (1000) * (f32)clock.dt;
+    //}
+    //if(controller.button[KeyCode_A].held){
+    //    camera.x -= (1000) * (f32)clock.dt;
+    //}
+    //if(controller.button[KeyCode_D].held){
+    //    camera.x += (1000) * (f32)clock.dt;
+    //}
+    // ship behavior
+    if(state->game_state == GameState_Running){
         if(has_flags(ship->flags, EntityFlag_Active)){
             if(has_flags(ship->flags, EntityFlag_MoveWithCtrls)){
                 ship->pos.x += (ship->accel_dir.x * ship->velocity * ship->speed) * (f32)clock.dt;
@@ -585,260 +604,261 @@ static void update_game(void){
                 }
             }
         }
+    }
 
-        // advance level
-        if(level->asteroid_spawned == level->asteroid_count_max &&
-           level->asteroid_spawned == level->asteroid_destroyed){
-            state->level_index++;
-            if(state->level_index < MAX_LEVELS){
-                state->current_level = &state->levels[state->level_index];
-            }
+    // advance level
+    if(level->asteroid_spawned == level->asteroid_count_max &&
+       level->asteroid_spawned == level->asteroid_destroyed){
+        state->level_index++;
+        if(state->level_index < MAX_LEVELS){
+            state->current_level = &state->levels[state->level_index];
+        }
+    }
+
+    // spawn asteroids
+    state->spawn_t += clock.dt;
+    if(state->spawn_t >= 0.5f){
+        state->spawn_t = 0.0;
+
+        v2 dim;
+        dim.x = random_range_f32(250) + 200;
+        dim.y = dim.x;
+        u32 side = random_range_u32(3);
+
+        v2 pos = {0, 0};
+        f32 deg = 0;
+        if(side == 0){
+            pos.x = camera.left_border - 200;
+            pos.y = random_range_f32(camera.bottom_border - 1) - camera.bottom_border;
+
+            deg = random_range_f32(180) - 90.0f;
+        }
+        if(side == 1){
+            pos.x = camera.right_border + 200.0f;
+            pos.y = random_range_f32(camera.bottom_border - 1) - camera.bottom_border;
+
+            s32 sign = (s32)random_range_u32(1) - 1;
+            deg = (random_range_f32(180) + 90.0f) * (f32)sign;
+        }
+        if(side == 2){
+            pos.x = random_range_f32(camera.right_border - 1) - camera.right_border;
+            pos.y = camera.top_border + 200;
+
+            deg = random_range_f32(180) + 180;
+        }
+        if(side == 3){
+            pos.x = random_range_f32(camera.right_border - 1) - camera.right_border;
+            pos.y = camera.bottom_border - 200.0f;
+
+            deg = random_range_f32(180);
+        }
+        if(state->current_level->asteroid_spawned < state->current_level->asteroid_count_max){
+            Entity* asteroid = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
+            state->current_level->asteroid_spawned++;
+        }
+    }
+
+    // resolve entity motion
+    for(s32 i = 0; i < array_count(state->entities); ++i){
+        Entity *e = state->entities + i;
+        if(!has_flags(e->flags, EntityFlag_Active)){
+            continue;
         }
 
-        // spawn asteroids
-        state->spawn_t += clock.dt;
-        if(state->spawn_t >= 0.5f){
-            state->spawn_t = 0.0;
-
-            v2 dim;
-            dim.x = random_range_f32(550) + 200;
-            dim.y = dim.x;
-            u32 side = random_range_u32(3);
-
-            v2 pos = {0, 0};
-            f32 deg = 0;
-            if(side == 0){
-                pos.x = camera.left_border - 200;
-                pos.y = random_range_f32(camera.bottom_border - 1) - camera.bottom_border;
-
-                deg = random_range_f32(180) - 90.0f;
-            }
-            if(side == 1){
-                pos.x = camera.right_border + 200.0f;
-                pos.y = random_range_f32(camera.bottom_border - 1) - camera.bottom_border;
-
-                s32 sign = (s32)random_range_u32(1) - 1;
-                deg = (random_range_f32(180) + 90.0f) * (f32)sign;
-            }
-            if(side == 2){
-                pos.x = random_range_f32(camera.right_border - 1) - camera.right_border;
-                pos.y = camera.top_border + 200;
-
-                deg = random_range_f32(180) + 180;
-            }
-            if(side == 3){
-                pos.x = random_range_f32(camera.right_border - 1) - camera.right_border;
-                pos.y = camera.bottom_border - 200.0f;
-
-                deg = random_range_f32(180);
-            }
-            if(state->current_level->asteroid_spawned < state->current_level->asteroid_count_max){
-                Entity* asteroid = add_asteroid(TextureAsset_Asteroid, pos, dim, deg);
-                state->current_level->asteroid_spawned++;
-            }
+        if(has_flags(e->flags, EntityFlag_MoveWithPhys)){
+            e->pos.x += (e->dir.x * e->velocity * e->speed) * (f32)clock.dt;
+            e->pos.y += (e->dir.y * e->velocity * e->speed) * (f32)clock.dt;
         }
 
-        // resolve entity motion
-        for(s32 i = 0; i < array_count(state->entities); ++i){
-            Entity *e = state->entities + i;
-            if(!has_flags(e->flags, EntityFlag_Active)){
-                continue;
+        if(has_flags(e->flags, EntityFlag_Wrapping)){
+            if(e->pos.x - e->dim.w/2 > camera.right_border){
+                e->pos.x = camera.left_border - e->dim.w/2;
             }
-
-            if(has_flags(e->flags, EntityFlag_MoveWithPhys)){
-                e->pos.x += (e->dir.x * e->velocity * e->speed) * (f32)clock.dt;
-                e->pos.y += (e->dir.y * e->velocity * e->speed) * (f32)clock.dt;
+            if(e->pos.x + e->dim.w/2 < camera.left_border){
+                e->pos.x = camera.right_border + e->dim.w/2;
             }
-
-            if(has_flags(e->flags, EntityFlag_Wrapping)){
-                if(e->pos.x - e->dim.w/2 > camera.right_border){
-                    e->pos.x = camera.left_border - e->dim.w/2;
-                }
-                if(e->pos.x + e->dim.w/2 < camera.left_border){
-                    e->pos.x = camera.right_border + e->dim.w/2;
-                }
-                if(e->pos.y - e->dim.h/2 > camera.top_border){
-                    e->pos.y = camera.bottom_border - e->dim.h/2;
-                }
-                if(e->pos.y + e->dim.h/2 < camera.bottom_border){
-                    e->pos.y = camera.top_border + e->dim.h/2;
-                }
+            if(e->pos.y - e->dim.h/2 > camera.top_border){
+                e->pos.y = camera.bottom_border - e->dim.h/2;
             }
-            else{
-                if((e->pos.x + e->dim.w/2 < camera.left_border)   ||
-                   (e->pos.y + e->dim.h/2 < camera.bottom_border) ||
-                   (e->pos.x - e->dim.w/2 > camera.right_border)  ||
-                   (e->pos.y - e->dim.h/2 > camera.top_border)){
-                   remove_entity(e);
-                }
+            if(e->pos.y + e->dim.h/2 < camera.bottom_border){
+                e->pos.y = camera.top_border + e->dim.h/2;
             }
         }
-
-        // resolve death
-        for(s32 i = 0; i < array_count(state->entities); ++i){
-            Entity *e = state->entities + i;
-            if(!has_flags(e->flags, EntityFlag_Active)){
-                continue;
+        else{
+            if((e->pos.x + e->dim.w/2 < camera.left_border - 100)   ||
+               (e->pos.y + e->dim.h/2 < camera.bottom_border - 100) ||
+               (e->pos.x - e->dim.w/2 > camera.right_border + 100)  ||
+               (e->pos.y - e->dim.h/2 > camera.top_border + 100)){
+               remove_entity(e);
             }
+        }
+    }
 
-            //if(e->dead){
-            //}
-            if(e->health <= 0){
-                switch(e->death_type){
-                    case DeathType_Crumble:{
-                        if(e->dim.w > 200){
-                            e->dim.w -= 100;
-                            e->dim.h -= 100;
-                            for(s32 splint_i=0; splint_i < 3; ++splint_i){
-                                e->deg = random_range_f32(360);
-                                add_asteroid(TextureAsset_Asteroid, e->pos, e->dim, e->deg);
-                                state->current_level->asteroid_spawned++;
-                                state->current_level->asteroid_count_max++;
-                            }
+    // resolve death
+    for(s32 i = 0; i < array_count(state->entities); ++i){
+        Entity *e = state->entities + i;
+        if(!has_flags(e->flags, EntityFlag_Active)){
+            continue;
+        }
+
+        //if(e->dead){
+        //}
+        if(e->health <= 0){
+            switch(e->death_type){
+                case DeathType_Crumble:{
+                    if(e->dim.w > 200){
+                        e->dim.w -= 100;
+                        e->dim.h -= 100;
+                        for(s32 splint_i=0; splint_i < 3; ++splint_i){
+                            e->deg = random_range_f32(360);
+                            add_asteroid(TextureAsset_Asteroid, e->pos, e->dim, e->deg);
+                            state->current_level->asteroid_spawned++;
+                            state->current_level->asteroid_count_max++;
                         }
+                    }
 
-                        state->score += (u32)e->dim.w;
-                        state->current_level->asteroid_destroyed++;
+                    state->score += (u32)e->dim.w;
+                    state->current_level->asteroid_destroyed++;
+                    remove_entity(e);
+                } break;
+                case DeathType_Particle:{
+                    s32 p_count = (s32)random_range_u32(5) + 5;
+                    for(s32 p_idx = 0; p_idx < p_count; p_idx++){
+                        f32 deg = random_range_f32(360);
+                        v2 dim = make_v2(20, 4);
+                        Entity* e_p = add_bullet_particle(TextureAsset_Bullet, e->pos, dim, deg);
+                        e_p->parent = state->ship;
+                        e_p->particle_t = 0.175f;
+                    }
+                    remove_entity(e);
+                } break;
+                case DeathType_Animate:{
+                } break;
+            }
+        }
+    }
+
+    // resolve particles
+    for(s32 i = 0; i < array_count(state->entities); ++i){
+        Entity *e = state->entities + i;
+        if(!has_flags(e->flags, EntityFlag_Active)){
+            continue;
+        }
+
+        if(has_flags(e->flags, EntityFlag_Particle)){
+            switch(e->particle_type){
+                case ParticleType_Bullet:{
+                    if(e->dim.w > 0){
+                        e->dim.w -= (f32)clock.dt * 40;
+                    }
+                    else{
                         remove_entity(e);
-                    } break;
-                    case DeathType_Particle:{
-                        s32 p_count = (s32)random_range_u32(5) + 5;
-                        for(s32 p_idx = 0; p_idx < p_count; p_idx++){
-                            f32 deg = random_range_f32(360);
-                            v2 dim = make_v2(20, 4);
-                            Entity* e_p = add_bullet_particle(TextureAsset_Bullet, e->pos, dim, deg);
-                            e_p->parent = state->ship;
-                            e_p->particle_t = 0.175f;
-                        }
-                        remove_entity(e);
-                    } break;
-                    case DeathType_Animate:{
-                    } break;
-                }
-            }
-        }
-
-        // resolve particles
-        for(s32 i = 0; i < array_count(state->entities); ++i){
-            Entity *e = state->entities + i;
-            if(!has_flags(e->flags, EntityFlag_Active)){
-                continue;
-            }
-
-            if(has_flags(e->flags, EntityFlag_Particle)){
-                switch(e->particle_type){
-                    case ParticleType_Bullet:{
-                        if(e->dim.w > 0){
-                            e->dim.w -= (f32)clock.dt * 40;
-                        }
-                        else{
-                            remove_entity(e);
-                        }
                     }
                 }
             }
         }
-            //Rect e_rect = rect_from_entity(e);
-            //if(!has_flags(e, EntityFlag_CanCollide)){
-            //    for(s32 j = 0; j < array_count(state->entities); ++j){
-            //        Entity *e_inner = state->entities + j;
-            //        if(e == e_inner->parent){
-            //            continue;
-            //        }
+    }
+        //Rect e_rect = rect_from_entity(e);
+        //if(!has_flags(e, EntityFlag_CanCollide)){
+        //    for(s32 j = 0; j < array_count(state->entities); ++j){
+        //        Entity *e_inner = state->entities + j;
+        //        if(e == e_inner->parent){
+        //            continue;
+        //        }
 
-            //        Rect e_inner_rect = rect_from_entity(e_inner);
-            //        if(rect_collides_rect(e_inner_rect, e_rect)){
+        //        Rect e_inner_rect = rect_from_entity(e_inner);
+        //        if(rect_collides_rect(e_inner_rect, e_rect)){
 
-            //        }
-            //    }
-            //}
+        //        }
+        //    }
+        //}
 
-        // type loop
-        for(s32 i = 0; i < array_count(state->entities); ++i){
-            Entity *e = state->entities + i;
-            Rect e_rect = rect_from_entity(e);
+    // type loop
+    for(s32 i = 0; i < array_count(state->entities); ++i){
+        Entity *e = state->entities + i;
+        Rect e_rect = rect_from_entity(e);
 
-            switch(e->type){
-                case EntityType_Ship:{
+        switch(e->type){
+            case EntityType_Ship:{
 
-                    if(has_flags(state->ship->flags, EntityFlag_Active)){
-                        if(e->exploding){
-                            e->accelerating = false;
-                            e->texture = e->explosion_tex;
-                            e->explosion_t += (f32)clock.dt;
-                            if(e->explosion_t >= 0.030f){
-                                if(e->texture != TextureAsset_Explosion6){
-                                    e->explosion_tex++;
+                if(has_flags(state->ship->flags, EntityFlag_Active)){
+                    if(e->exploding){
+                        e->accelerating = false;
+                        e->texture = e->explosion_tex;
+                        e->explosion_t += (f32)clock.dt;
+                        if(e->explosion_t >= 0.030f){
+                            if(e->texture != TextureAsset_Explosion6){
+                                e->explosion_tex++;
+                            }
+                            else{
+                                if(state->lives){
+                                    ship_reset();
+                                } else{
+                                    clear_flags(&state->ship->flags, EntityFlag_Active);
                                 }
-                                else{
-                                    if(state->lives){
-                                        reset_ship();
-                                    } else{
-                                        clear_flags(&state->ship->flags, EntityFlag_Active);
+                            }
+                            e->explosion_t = 0.0f;
+                        }
+                    }
+                    else if(!e->immune){
+                        for(s32 idx = 0; idx < array_count(state->entities); ++idx){
+                            Entity *collide_e = state->entities + idx;
+                            if(collide_e->type == EntityType_Asteroid){
+                                Rect collide_e_rect = collision_box_from_entity(collide_e);
+                                if(rect_collides_rect(e_rect, collide_e_rect)){
+                                    state->lives -= 1;
+                                    if(state->lives == 0){
+                                        e->dead = true;
                                     }
-                                }
-                                e->explosion_t = 0.0f;
-                            }
-                        }
-                        else{
-
-#if 1
-                            if(!e->immune){
-                                for(s32 idx = 0; idx < array_count(state->entities); ++idx){
-                                    Entity *collide_e = state->entities + idx;
-                                    if(collide_e->type == EntityType_Asteroid){
-                                        Rect collide_e_rect = rect_from_entity(collide_e);
-                                        if(rect_collides_rect(e_rect, collide_e_rect)){
-                                            state->lives -= 1;
-                                            if(state->lives == 0){
-                                                e->dead = true;
-                                            }
-                                            e->health = 0;
-                                            e->exploding = true;
-                                            clear_flags(&e->flags, EntityFlag_MoveWithCtrls);
-                                            state->current_level->asteroid_destroyed++;
-                                            remove_entity(collide_e);
-                                            break;
-                                        }
+                                    else{
+                                        wasapi_play(&assets.waves[WaveAsset_ShipExplode], 0.1f, false);
                                     }
+                                    e->health = 0;
+                                    e->exploding = true;
+                                    clear_flags(&e->flags, EntityFlag_MoveWithCtrls);
+                                    state->current_level->asteroid_destroyed++;
+                                    remove_entity(collide_e);
+                                    break;
                                 }
                             }
-#endif
                         }
                     }
-                } break;
-                case EntityType_Bullet:{
-                    Rect rect_e = rect_from_entity(e);
-                    if(!has_flags(e->flags, EntityFlag_CanCollide)){
-                        break;
+                }
+            } break;
+            case EntityType_Bullet:{
+                Rect rect_e = rect_from_entity(e);
+                if(!has_flags(e->flags, EntityFlag_CanCollide)){
+                    break;
+                }
+                for(s32 idx = 0; idx < array_count(state->entities); ++idx){
+                    Entity *collide_e = state->entities + idx;
+
+                    if(collide_e == e->origin){
+                        continue;
                     }
-                    for(s32 idx = 0; idx < array_count(state->entities); ++idx){
-                        Entity *collide_e = state->entities + idx;
+                    if(collide_e->type == EntityType_Asteroid){
+                        Rect collide_e_rect = collision_box_from_entity(collide_e);
 
-                        if(collide_e == e->origin){
-                            continue;
-                        }
-                        if(collide_e->type == EntityType_Asteroid){
-                            Rect collide_e_rect = rect_from_entity(collide_e);
+                        if(rect_collides_rect(collide_e_rect, rect_e)){
 
-                            if(rect_collides_rect(collide_e_rect, rect_e)){
+                            u32 random_breaking = random_range_u32(3) + 13; // todo: hard coded for now
+                            wasapi_play(&assets.waves[random_breaking], 0.1f, false);
 
-                                collide_e->health -= e->damage;
-                                collide_e->color.r += 0.2f;
-                                collide_e->color.g -= 0.4f;
-                                collide_e->color.b -= 0.4f;
+                            collide_e->health -= e->damage;
+                            collide_e->color.r += 0.2f;
+                            collide_e->color.g -= 0.4f;
+                            collide_e->color.b -= 0.4f;
 
-                                e->health = 0;
-                                e->dead = true;
-                                break;
-                            }
+                            e->health = 0;
+                            e->dead = true;
+                            break;
                         }
                     }
-                } break;
-                case EntityType_Asteroid:{
-                    e->deg += e->rotation_speed * (f32)clock.dt;
-                } break;
-            }
+                }
+            } break;
+            case EntityType_Asteroid:{
+                e->deg += e->rotation_speed * (f32)clock.dt;
+            } break;
         }
     }
 }

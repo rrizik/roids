@@ -14,6 +14,7 @@
 
 #include "input.hpp"
 #include "clock.hpp"
+#include "window.hpp"
 #include "camera.hpp"
 #include "bitmap.hpp"
 #include "d3d11_init.hpp"
@@ -21,11 +22,11 @@
 #include "wave.hpp"
 #include "wasapi.hpp"
 #include "assets.hpp"
+#include "entity.hpp"
 #include "console.hpp"
 #include "command.hpp"
 #include "draw.hpp"
 #include "ui.hpp"
-#include "entity.hpp"
 #include "game.hpp"
 
 #include "input.cpp"
@@ -37,11 +38,11 @@
 #include "wave.cpp"
 #include "wasapi.cpp"
 #include "assets.cpp"
+#include "entity.cpp"
 #include "console.cpp"
 #include "command.cpp"
 #include "draw.cpp"
 #include "ui.cpp"
-#include "entity.cpp"
 
 
 #define SCREEN_WIDTH 1280
@@ -77,7 +78,6 @@ global String8 saves_path;
 global String8 sprites_path;
 global String8 sounds_path;
 
-global Window window;
 global u64 frame_count;
 global bool pause;
 global bool should_quit;
@@ -86,12 +86,16 @@ global Assets assets;
 
 
 #define MAX_LEVELS 3
-#define MAX_LIVES 1
+#define MAX_LIVES 3
 #define WIN_SCORE 3000
 #define ENTITIES_MAX 4096
 typedef struct State{
     Arena arena;
-    u32 game_mode; // GameMode
+    SceneState scene_state;
+    GameState game_state;
+    GameResult game_result;
+    bool editor;
+
 
     Entity entities[ENTITIES_MAX];
     u32 entities_count;
@@ -125,13 +129,203 @@ typedef struct TransientMemory{
 } TransientMemory, TState;
 global TState* ts;
 
-// todo: once I fix rendering pipeline, this can move up
 
-//todo: get rid of this
+// todo: get rid of this
 global f32 text_padding = 20;
-global bool fullscreen = false;
-global bool toggle = false;
 
+static void game_paused_ui(void){
+    ui_begin(ts->ui_arena);
+
+    ui_push_pos_x(window.width/2 - 50);
+    ui_push_pos_y(window.height/2 - 100);
+    ui_push_size_w(ui_size_children(0));
+    ui_push_size_h(ui_size_children(0));
+
+    UI_Box* box1 = ui_box(str8_literal("box1"));
+    ui_push_parent(box1);
+    ui_pop_pos_x();
+    ui_pop_pos_y();
+
+    ui_push_size_w(ui_size_pixel(100, 0));
+    ui_push_size_h(ui_size_pixel(50, 0));
+    ui_push_background_color(BLUE);
+    if(ui_button(str8_literal("Resume")).pressed_left){
+        state->game_state = GameState_Running;
+        ui_close();
+    }
+    ui_spacer(10);
+    if(ui_button(str8_literal("Exit")).pressed_left){
+        events_quit(&events);
+        ui_close();
+    }
+    ui_layout();
+    ui_draw(ui_root());
+    ui_end();
+}
+
+static void game_finished_ui(void){
+    ui_begin(ts->ui_arena);
+
+    ui_push_pos_x(window.width/2 - 50);
+    ui_push_pos_y(window.height/2 - 100);
+    ui_push_size_w(ui_size_children(0));
+    ui_push_size_h(ui_size_children(0));
+
+    UI_Box* box1 = ui_box(str8_literal("box1"));
+    ui_push_parent(box1);
+    ui_pop_pos_x();
+    ui_pop_pos_y();
+
+    ui_push_size_w(ui_size_pixel(100, 0));
+    ui_push_size_h(ui_size_pixel(50, 0));
+    ui_push_background_color(BLUE);
+    if(ui_button(str8_literal("Restart - (R)")).pressed_left){
+        game_reset();
+        ui_close();
+    }
+    ui_spacer(10);
+    if(ui_button(str8_literal("Exit")).pressed_left){
+        events_quit(&events);
+        ui_close();
+    }
+    ui_layout();
+    ui_draw(ui_root());
+    ui_end();
+}
+
+static void draw_level_info(void){
+    String8 score = str8_formatted(ts->frame_arena, "SCORE: %i", state->score);
+    draw_text(state->font, score, make_v2(text_padding, text_padding + ((f32)state->font->ascent * state->font->scale)), ORANGE);
+
+    String8 lives = str8_formatted(ts->frame_arena, "LIVES: %i", state->lives);
+    f32 width = font_string_width(state->font, lives);
+    draw_text(state->font, lives, make_v2(window.width - width - text_padding, ((f32)(state->font->ascent) * state->font->scale) + text_padding), ORANGE);
+
+    String8 level_str = str8_formatted(ts->frame_arena, "LEVEL: %i", state->level_index + 1);
+    draw_text(state->font, level_str, make_v2(text_padding, text_padding + ((f32)state->font->ascent * state->font->scale) + ((f32)state->font->vertical_offset)), ORANGE);
+}
+
+static void draw_entities(State* state){
+    for(s32 index = 0; index < array_count(state->entities); ++index){
+        Entity *e = state->entities + index;
+
+        v2 pos = pos_screen_from_world(e->pos, &camera, &window);
+        Quad quad = quad_from_entity(e);
+        if(has_flags(e->flags, EntityFlag_Active)){
+
+            switch(e->type){
+                case EntityType_Quad:{
+                    quad = rotate_quad(quad, e->deg, e->pos);
+                    quad = quad_screen_from_world(quad, &camera, &window);
+
+                    draw_quad(quad, e->color);
+                } break;
+            }
+        }
+    }
+    for(s32 index = 0; index < array_count(state->entities); ++index){
+        Entity *e = state->entities + index;
+
+        v2 pos = pos_screen_from_world(e->pos, &camera, &window);
+        Quad quad = quad_from_entity(e);
+        if(has_flags(e->flags, EntityFlag_Active)){
+
+            switch(e->type){
+                case EntityType_Texture:{
+                    quad = rotate_quad(quad, e->deg, e->pos);
+                    quad = quad_screen_from_world(quad, &camera, &window);
+
+                    set_texture(&r_assets->textures[e->texture]);
+                    draw_texture(e->texture, quad, e->color);
+                } break;
+            }
+        }
+    }
+    for(s32 index = 0; index < array_count(state->entities); ++index){
+        Entity *e = state->entities + index;
+
+        v2 pos = pos_screen_from_world(e->pos, &camera, &window);
+        Quad quad = quad_from_entity(e);
+        if(has_flags(e->flags, EntityFlag_Active)){
+
+            switch(e->type){
+                case EntityType_Asteroid:{
+                    quad = rotate_quad(quad, e->deg, e->pos);
+                    quad = quad_screen_from_world(quad, &camera, &window);
+
+                    set_texture(&r_assets->textures[TextureAsset_Asteroid]);
+                    draw_texture(e->texture, quad, e->color);
+                } break;
+            }
+        }
+    }
+    for(s32 index = 0; index < array_count(state->entities); ++index){
+        Entity *e = state->entities + index;
+
+        v2 pos = pos_screen_from_world(e->pos, &camera, &window);
+        Quad quad = quad_from_entity(e);
+        if(has_flags(e->flags, EntityFlag_Active)){
+
+            switch(e->type){
+                case EntityType_Bullet:{
+                    quad = rotate_quad(quad, e->deg, e->pos);
+                    quad = quad_screen_from_world(quad, &camera, &window);
+
+                    set_texture(&r_assets->textures[TextureAsset_Bullet]);
+                    draw_texture(e->texture, quad, e->color);
+                } break;
+            }
+        }
+    }
+    for(s32 index = 0; index < array_count(state->entities); ++index){
+        Entity *e = state->entities + index;
+
+        v2 pos = pos_screen_from_world(e->pos, &camera, &window);
+        Quad quad = quad_from_entity(e);
+        if(has_flags(e->flags, EntityFlag_Active)){
+
+            switch(e->type){
+                case EntityType_Particle:{
+                    quad = rotate_quad(quad, e->deg, e->pos);
+                    quad = quad_screen_from_world(quad, &camera, &window);
+
+                    set_texture(&r_assets->textures[e->texture]);
+                    draw_texture(e->texture, quad, e->color);
+                } break;
+            }
+        }
+    }
+
+    if(has_flags(state->ship->flags, EntityFlag_Active)){
+        Entity* e = state->ship;
+        v2 pos = pos_screen_from_world(e->pos, &camera, &window);
+        Quad quad = quad_from_entity(e);
+
+        if(e->accelerating){
+            v2 exhaust_pos = make_v2(e->pos.x - (e->dir.x * 50), e->pos.y - (e->dir.y * 50));
+
+            Quad e_quad = make_quad(exhaust_pos, e->dim);
+            e_quad = rotate_quad(e_quad, e->deg, exhaust_pos);
+            e_quad = quad_screen_from_world(e_quad, &camera, &window);
+
+            u32 random_flame = random_range_u32(5) + 4;
+            set_texture(&r_assets->textures[random_flame]);
+            draw_texture(random_flame, e_quad, e->color);
+        }
+
+        quad = rotate_quad(quad, e->deg, e->pos);
+        quad = quad_screen_from_world(quad, &camera, &window);
+
+        set_texture(&r_assets->textures[e->texture]);
+        if(e->immune){
+            draw_texture(e->texture, quad, ORANGE);
+        }
+        else{
+            draw_texture(e->texture, quad, e->color);
+        }
+    }
+}
+// todo: this guy
 #include "game.cpp"
 #endif
         //ui_begin(ts->ui_arena);

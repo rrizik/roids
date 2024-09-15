@@ -1,22 +1,58 @@
 #ifndef WASAPI_H
 #define WASAPI_H
 
-#pragma comment(lib, "ole32")
+#pragma comment(lib, "ole32.lib")
 #include <mmdeviceapi.h>
 #include <audioclient.h>
 
 typedef struct WaveCursor{
     u16* base;
     u32 sample_count; // size in samples, not bytes
+    bool active;
+    u32 index;
 
     u32 at;
     f32 volume;
     bool loop;
 } WaveCursor;
 
-#define WAVE_CURSORS_COUNT_MAX 1024
-global WaveCursor wave_cursors[WAVE_CURSORS_COUNT_MAX];
-global s32  wave_cursors_count = 0;
+#define WAVE_CURSORS_MAX 32
+global WaveCursor wave_cursors[WAVE_CURSORS_MAX];
+global s32  wave_cursors_count;
+u32 free_cursors[WAVE_CURSORS_MAX];
+u32 free_cursors_at;
+
+static void
+cursors_clear(void){
+    free_cursors_at = WAVE_CURSORS_MAX - 1;
+    for(u32 i = free_cursors_at; i <= free_cursors_at; --i){
+        WaveCursor* cursor = wave_cursors + i;
+        cursor->active = false;
+        free_cursors[i] = free_cursors_at - i;
+    }
+    wave_cursors_count = 0;
+}
+
+static void
+remove_cursor(WaveCursor* cursor){
+    free_cursors[++free_cursors_at] = cursor->index;
+    wave_cursors_count--;
+    *cursor = {0};
+}
+
+static WaveCursor*
+get_cursor(){
+    if(free_cursors_at < WAVE_CURSORS_MAX){
+        u32 free_cursor_index = free_cursors[free_cursors_at--];
+        WaveCursor* cursor = wave_cursors + free_cursor_index;
+        cursor->index = free_cursor_index;
+        wave_cursors_count++;
+        cursor->active = true;
+
+        return(cursor);
+    }
+    return(0);
+}
 
 static IMMDeviceEnumerator* device_enumerator;
 static IMMDevice*           audio_device;

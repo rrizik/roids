@@ -22,6 +22,13 @@ typedef enum WaveAsset{
     WaveAsset_Rail3,
     WaveAsset_Rail4,
     WaveAsset_Rail5,
+    WaveAsset_GameWon,
+    WaveAsset_GameLost,
+    WaveAsset_AsteroidBreak1,
+    WaveAsset_AsteroidBreak2,
+    WaveAsset_AsteroidBreak3,
+    WaveAsset_ShipExplode,
+    WaveAsset_Music,
 
     WaveAsset_Count,
 } WaveAsset;

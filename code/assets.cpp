@@ -55,8 +55,16 @@ load_assets(Arena* arena, Assets* assets){
     assets->waves[WaveAsset_Rail4]  = wave_file_read(arena, build_path, str8_literal("sounds/rail4.wav"));
     assets->waves[WaveAsset_Rail5]  = wave_file_read(arena, build_path, str8_literal("sounds/rail5.wav"));
 
-    assets->fonts[FontAsset_Arial]    = font_ttf_read(arena, build_path, str8_literal("fonts/arial.ttf"), 16); // not monospace
-    assets->fonts[FontAsset_Golos]    = font_ttf_read(arena, build_path, str8_literal("fonts/GolosText-Regular.ttf"), 16);
+    assets->waves[WaveAsset_GameWon] = wave_file_read(arena, build_path, str8_literal("sounds/game_won.wav"));
+    assets->waves[WaveAsset_GameLost] = wave_file_read(arena, build_path, str8_literal("sounds/game_lost.wav"));
+    assets->waves[WaveAsset_AsteroidBreak1] = wave_file_read(arena, build_path, str8_literal("sounds/asteroid_break1.wav"));
+    assets->waves[WaveAsset_AsteroidBreak2] = wave_file_read(arena, build_path, str8_literal("sounds/asteroid_break2.wav"));
+    assets->waves[WaveAsset_AsteroidBreak3] = wave_file_read(arena, build_path, str8_literal("sounds/asteroid_break3.wav"));
+    assets->waves[WaveAsset_ShipExplode] = wave_file_read(arena, build_path, str8_literal("sounds/ship_explode.wav"));
+    assets->waves[WaveAsset_Music] = wave_file_read(arena, build_path, str8_literal("sounds/music.wav"));
+
+    assets->fonts[FontAsset_Arial] = font_ttf_read(arena, build_path, str8_literal("fonts/arial.ttf"), 16); // not monospace
+    assets->fonts[FontAsset_Golos] = font_ttf_read(arena, build_path, str8_literal("fonts/GolosText-Regular.ttf"), 16);
     assets->fonts[FontAsset_Consolas] = font_ttf_read(arena, build_path, str8_literal("fonts/consola.ttf"), 16); // monospace
 
     end_scratch(scratch);

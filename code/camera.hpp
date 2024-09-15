@@ -27,7 +27,9 @@ typedef struct Camera2D{
         v2 pos;
     };
 
+    v2 default_pos;
     f32 size;
+    f32 default_size;
 
     f32 left_border;
     f32 right_border;
@@ -36,6 +38,7 @@ typedef struct Camera2D{
 } Camera2D;
 static Camera2D camera;
 
+static void camera_2d_reset(Camera2D* camera);
 static void init_camera_2d(Camera2D* camera, v2 pos, f32 size);
 
 #endif

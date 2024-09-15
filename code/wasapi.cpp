@@ -67,6 +67,7 @@ init_wasapi(u16 channels, u32 samples_per_sec, u16 bits_per_sample){
         assert_hr(hr);
     }
 
+    cursors_clear();
 }
 
 static void wasapi_start(void){
@@ -85,17 +86,19 @@ static void wasapi_stop(void){
 
 static bool
 wasapi_play(Wave* wave, f32 volume, bool loop){
-    if(wave_cursors_count < WAVE_CURSORS_COUNT_MAX){
-        WaveCursor cursor = {0};
-        cursor.base = wave->base;
-        cursor.sample_count = wave->sample_count;
-        cursor.at = 0;
-        cursor.volume = volume;
-        cursor.loop = loop;
-
-        wave_cursors[wave_cursors_count++] = cursor;
+    WaveCursor* cursor = get_cursor();
+    if(cursor){
+        cursor->base = wave->base;
+        cursor->sample_count = wave->sample_count;
+        cursor->at = 0;
+        cursor->volume = volume;
+        cursor->loop = loop;
         return(true);
     }
+    //if(wave_cursors_count < WAVE_CURSORS_MAX){
+
+        //wave_cursors[wave_cursors_count++] = cursor;
+    //}
     return(false);
 }
 
@@ -118,30 +121,38 @@ static void wasapi_play_cursors(void){
 
     memset(buffer, 0, available_samples * wave_format.nBlockAlign); // clear buffer from previously written data
     f32* buffer_f32 = (f32*)buffer;
-    for(s32 cursor_i=0; cursor_i < (s32)wave_cursors_count; ++cursor_i){
+    u32 count = 0;
+    for(s32 cursor_i=0; cursor_i < WAVE_CURSORS_MAX; ++cursor_i){
         WaveCursor* cursor = wave_cursors + cursor_i;
+        if(cursor->active){
+            count++;
 
-        u32 wave_remainder = cursor->sample_count - cursor->at;
-        u32 buffer_size = wave_remainder > available_samples ? available_samples : wave_remainder;
+            u32 wave_remainder = cursor->sample_count - cursor->at;
+            u32 buffer_size = wave_remainder > available_samples ? available_samples : wave_remainder;
 
-        if(cursor->at < cursor->sample_count){
-            for(s32 i=0; i < buffer_size; ++i){
-                s32 a = s16_max;
-                f32 sample = ((s16)(cursor->base[(cursor->at + i)])) * (1.0f / 32767.0f); // note: normalize to a range of -1.0f to 1.0f by multiplying by max s16
+            if(cursor->at < cursor->sample_count){
+                for(s32 i=0; i < buffer_size; ++i){
+                    f32 sample = ((s16)(cursor->base[(cursor->at + i)])) * (1.0f / 32767.0f); // note: normalize to a range of -1.0f to 1.0f by multiplying by 1/(max s16)
 
-                buffer_f32[(i * wave_format.nChannels) + 0] += sample * cursor->volume; // channel 1
-                buffer_f32[(i * wave_format.nChannels) + 1] += sample * cursor->volume; // channel 2
+                    buffer_f32[(i * wave_format.nChannels) + 0] += sample * cursor->volume; // channel 1
+                    buffer_f32[(i * wave_format.nChannels) + 1] += sample * cursor->volume; // channel 2
+                }
+
             }
 
-        }
-
-        cursor->at += buffer_size;
-        if(cursor->loop){
+            cursor->at += buffer_size;
             if(cursor->at >= cursor->sample_count){
-                cursor->at = 0;
+                if(cursor->loop){
+                    cursor->at = 0;
+                }
+                else{
+                    remove_cursor(cursor);
+                }
             }
+
         }
     }
+    print("count: %i\n", count);
 
     hr = render_client->ReleaseBuffer(available_samples, 0);
     if(FAILED(hr)){

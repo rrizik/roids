@@ -389,6 +389,7 @@ ui_traverse_rects(UI_Box* box){
     ui_traverse_rects(box->next);
 }
 
+// todo: ui_root() on first function call so that you don't have to pass it in.
 static void
 ui_draw(UI_Box* box){
     if(ui_closed()){

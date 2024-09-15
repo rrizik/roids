@@ -4,30 +4,42 @@
 static void
 init_console_commands(void){
     //add_command(str8_literal("saves"), 1, 1, command_save);
-    add_command(str8_literal("add"), 2, 2, command_add);
-    add_command(str8_literal("save"), 1, 1, command_save);
-    add_command(str8_literal("load"), 1, 1, command_load);
-    add_command(str8_literal("exit"), 0, 0, command_exit);
-    add_command(str8_literal("quit"), 0, 0, command_exit);
-    add_command(str8_literal("help"), 0, 0, command_help);
-    add_command(str8_literal("goto"), 2, 2, command_go_to);
+    add_command(str8_literal("add"),  str8_literal("add: mathematicall add"), 2, 2, command_add);
+    add_command(str8_literal("save"), str8_literal("save: save level"), 1, 1, command_save);
+    add_command(str8_literal("load"), str8_literal("load: load level"), 1, 1, command_load);
+    add_command(str8_literal("exit"), str8_literal("exit: quit/exit game"), 0, 0, command_exit);
+    add_command(str8_literal("quit"), str8_literal("quit: quit/exit game"), 0, 0, command_exit);
+    add_command(str8_literal("help"), str8_literal("help: lists all commands"), 0, 1, command_help);
+    add_command(str8_literal("goto"), str8_literal("goto: set camera position"), 2, 2, command_go_to);
 }
 
 static void
-add_command(String8 name, u32 min, u32 max, Proc* proc){
-    CommandInfo command = {0};
-    command.name = name;
-    command.min_args = min;
-    command.max_args = max;
-    command.proc = proc;
-    commands[commands_count++] = command;
+add_command(String8 name, String8 desc, u32 min, u32 max, Proc* proc){
+    CommandInfo* command = commands + commands_count;
+    ++commands_count;
+
+    command->name = name;
+    command->description = desc;
+    command->min_args = min;
+    command->max_args = max;
+    command->proc = proc;
 }
 
 static void
 command_help(String8* args){
-    for(s32 i=0; i < commands_count; ++i){
-        CommandInfo command = commands[i];
-        console.output_history[console.output_history_count++] = command.name;
+    if(command_args_count){
+        for(s32 i=0; i < commands_count; ++i){
+            CommandInfo command = commands[i];
+            if(str8_compare(*args, command.name)){
+                console.output_history[console.output_history_count++] = command.description;
+            }
+        }
+    }
+    else{
+        for(s32 i=0; i < commands_count; ++i){
+            CommandInfo command = commands[i];
+            console.output_history[console.output_history_count++] = command.name;
+        }
     }
 }
 
@@ -92,19 +104,21 @@ command_saves(String8* args){
 
 static String8
 push_str8(Arena* arena, String8 value){
-    u8* str = push_array(arena, u8, value.count + 1);
+    u8* str = push_array_zero(arena, u8, value.count + 1);
     memcpy(str, value.data, value.count);
     String8 result = {str, value.count};
     return(result);
 }
 
-static u64
+static s32
 command_parse_args(String8 line){
-    u64 args_count = 0;
+    command_args_count = 0;
+
+    s32 args_count = 0;
     String8 remaining = line;
     while(remaining.size){
         remaining = str8_eat_spaces(remaining);
-        if(remaining.size < 1){ break; }
+        if(!remaining.size){ break; }
 
         s64 index = byte_index_from_left(remaining, ' ');
         if(index != -1){
@@ -125,37 +139,31 @@ command_parse_args(String8 line){
 }
 
 static void
-run_command(String8 line){
-    // separate command from arguments
-    String8 command_name = command_args[0];
-    String8* arguments = command_args + 1;
-    command_args_count -= 1;
-
+run_command(String8 command){
     // run command proc
     bool found = false;
     for(s32 i=0; i < commands_count; ++i){
-        CommandInfo command = commands[i];
-        if(str8_compare(command_name, command.name)){
+        CommandInfo c = commands[i];
+        if(str8_compare(command, c.name)){
             found = true;
-            if(command.min_args > command_args_count){
-                console.output_history[console.output_history_count++] = str8_formatted(console.arena, "Argument count less than min - Expected %i - Got: %i", command.min_args, command_args_count);
+            if(c.min_args > command_args_count){
+                console.output_history[console.output_history_count++] = str8_formatted(console.arena, "Argument count less than min - Expected %i - Got: %i", c.min_args, command_args_count);
                 break;
             }
-            if(command.max_args < command_args_count){
-                console.output_history[console.output_history_count++] = str8_formatted(console.arena, "Argument count greater than max - Expected %i - Got: %i", command.max_args, command_args_count);
+            if(c.max_args < command_args_count){
+                console.output_history[console.output_history_count++] = str8_formatted(console.arena, "Argument count greater than max - Expected %i - Got: %i", c.max_args, command_args_count);
                 break;
             }
 
-            command.proc(arguments);
+            c.proc(command_args);
             break;
         }
     }
 
     // output unkown command
     if(!found){
-        console.output_history[console.output_history_count++] = str8_formatted(console.arena, "Unkown command: %s", command_name.str);
+        console.output_history[console.output_history_count++] = str8_formatted(console.arena, "Unkown command: %s", command.str);
     }
-    command_args_count = 0;
 }
 
 #endif

@@ -30,6 +30,15 @@ rect_from_entity(Entity* e){
     return(result);
 }
 
+static Rect
+collision_box_from_entity(Entity* e){
+    Rect result = make_rect(
+        make_v2(e->pos.x - e->dim.w/2 + e->collision_padding, e->pos.y - e->dim.h/2 + e->collision_padding),
+        make_v2(e->pos.x + e->dim.x/2 - e->collision_padding, e->pos.y + e->dim.h/2 - e->collision_padding)
+    );
+    return(result);
+}
+
 static Quad
 quad_from_entity(Entity* e){
     Quad result = {0};

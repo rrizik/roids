@@ -130,9 +130,6 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
     LRESULT result = 0;
 
     switch(message){
-        //case WM_SIZE:{
-            //resize_window(hwnd, 0, 0);
-        //} break;
         case WM_CLOSE:
         case WM_QUIT:
         case WM_DESTROY:{
@@ -141,7 +138,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             events_add(&events, event);
         } break;
 
-        case WM_NCHITTEST:{ // prevent resizing on edges
+        case WM_NCHITTEST:{ // note: prevent resizing on edges
             LRESULT hit = DefWindowProcW(hwnd, message, w_param, l_param);
             if (hit == HTLEFT       || hit == HTRIGHT || // edges of window
                 hit == HTTOP        || hit == HTBOTTOM ||
@@ -204,6 +201,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             else{
                 event.keycode = MOUSE_WHEEL_DOWN;
             }
+            event.key_pressed = true;
 
             event.alt_pressed   = alt_pressed;
             event.shift_pressed = shift_pressed;
@@ -289,7 +287,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             event.keycode = w_param;
             event.repeat = ((s32)l_param) & 0x40000000;
 
-            event.key_pressed = 1;
+            event.key_pressed = true;
             event.alt_pressed   = alt_pressed;
             event.shift_pressed = shift_pressed;
             event.ctrl_pressed  = ctrl_pressed;
@@ -306,7 +304,7 @@ static LRESULT win_message_handler_callback(HWND hwnd, u32 message, u64 w_param,
             event.type = KEYBOARD;
             event.keycode = w_param;
 
-            event.key_pressed = 0;
+            event.key_pressed = false;
             event.alt_pressed   = alt_pressed;
             event.shift_pressed = shift_pressed;
             event.ctrl_pressed  = ctrl_pressed;
@@ -377,7 +375,8 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         ts->hash_arena = push_arena(&ts->arena, MB(100));
         ts->batch_arena = push_arena(&ts->arena, MB(100));
 
-        state->game_mode = GameMode_Game;
+        state->scene_state = SceneState_Menu;
+        state->game_state = GameState_None;
 
         show_cursor(true);
         load_assets(ts->asset_arena, &assets);
@@ -399,7 +398,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
         state->ship = add_ship(TextureAsset_Ship, make_v2(0, 0), make_v2(150, 150));
         state->ship_loaded = true;
-        state->lives = 1;
+        state->lives = MAX_LIVES;
 
         state->level_index = 0;
         init_levels();
@@ -437,20 +436,6 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             //handled = handle_camera_events(event);
             handled = handle_controller_events(event);
             handled = handle_game_events(event);
-
-            if(event.type == KEYBOARD){
-                if(event.key_pressed){
-                    if(event.keycode == KeyCode_ONE){
-                        toggle = !toggle;
-                        if(toggle){
-                            change_resolution(&window, 1920, 1080);
-                        }
-                        else{
-                            change_resolution(&window, SCREEN_WIDTH, SCREEN_HEIGHT);
-                        }
-                    }
-                }
-            }
         }
 
         //----constant buffer----
@@ -461,14 +446,82 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
         d3d_context->Unmap(d3d_constant_buffer, 0);
 
         //draw_clear_color(BACKGROUND_COLOR);
-        d3d_clear_color(BACKGROUND_COLOR);
 
         console_update();
         camera_2d_update(&camera, window.aspect_ratio);
-        if(state->game_mode == GameMode_Game){
 
-            begin_timed_scope("GameMode_Game");
-            if(!pause){
+        d3d_clear_color(BACKGROUND_COLOR);
+        //if(state->editor)
+        //    if(controller.button[MOUSE_WHEEL_UP].pressed){
+        //        camera.size -= 50;
+        //    }
+        //    if(controller.button[MOUSE_WHEEL_DOWN].pressed){
+        //        camera.size += 50;
+        //    }
+        //}
+
+        //if(state->scene_state == SceneState_Game &&
+        //   state->game_state == GameState_Finished &&
+        //   (state->game_result == GameResult_Won || state->game_result == GameResult_Lost)){
+        //    if(controller.button[KeyCode_R].pressed){
+        //        game_reset();
+        //    }
+        //}
+        if(game_lost()){
+            if(state->game_state != GameState_Finished){
+                state->game_state = GameState_Finished;
+                state->game_result = GameResult_Lost;
+                wasapi_play(&assets.waves[WaveAsset_GameLost], 0.1f, false);
+            }
+        }
+
+        if(game_won()){
+            if(state->game_state != GameState_Finished){
+                state->game_state = GameState_Finished;
+                state->game_result = GameResult_Won;
+                wasapi_play(&assets.waves[WaveAsset_GameWon], 0.1f, false);
+            }
+        }
+
+
+        if(state->scene_state == SceneState_Menu){
+            show_cursor(true);
+
+            {
+                ui_begin(ts->ui_arena);
+
+                ui_push_pos_x(window.width/2 - 50);
+                ui_push_pos_y(window.height/2 - 100);
+                ui_push_size_w(ui_size_children(0));
+                ui_push_size_h(ui_size_children(0));
+
+                UI_Box* box1 = ui_box(str8_literal("box1##1"));
+                ui_push_parent(box1);
+                ui_pop_pos_x();
+                ui_pop_pos_y();
+
+                ui_push_size_w(ui_size_pixel(100, 0));
+                ui_push_size_h(ui_size_pixel(50, 0));
+                ui_push_background_color(BLUE);
+                if(ui_button(str8_literal("Play##1")).pressed_left){
+                    wasapi_play(&assets.waves[WaveAsset_Music], 0.5f, true);
+                    state->scene_state = SceneState_Game;
+                    state->game_state = GameState_Running;
+                    game_reset();
+                    ui_close();
+                }
+                ui_spacer(10);
+                if(ui_button(str8_literal("Exit##1")).pressed_left){
+                    events_quit(&events);
+                    ui_close();
+                }
+                ui_layout();
+                ui_draw(ui_root());
+                ui_end();
+            }
+        }
+        else if(state->scene_state == SceneState_Game){
+            if(state->game_state != GameState_Paused){
                 simulations = 0;
                 accumulator += frame_time;
                 while(accumulator >= clock.dt){
@@ -481,205 +534,45 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 }
             }
 
-            // todo: also use flags here
-            for(s32 index = 0; index < array_count(state->entities); ++index){
-                Entity *e = state->entities + index;
+            draw_entities(state);
+            draw_level_info();
+            if(state->game_state == GameState_Running){
+                show_cursor(false);
+            }
+            else if(state->game_state == GameState_Paused){
+                show_cursor(true);
+                game_paused_ui();
+            }
+            else if(state->game_state == GameState_Finished){
+                show_cursor(true);
+                if(controller.button[KeyCode_R].pressed){
+                    game_reset();
+                }
 
-                v2 pos = pos_screen_from_world(e->pos, &camera, &window);
-                Quad quad2 = quad_from_entity(e);
-                if(has_flags(e->flags, EntityFlag_Active)){
+                if(state->game_result == GameResult_Won){
+                    String8 text = str8_formatted(ts->frame_arena, "CHICKEN DINNER - Score: %i", state->score);
+                    f32 font_width = font_string_width(state->font, text);
+                    f32 x = window.width/2 - font_width/2;
+                    draw_text(state->font, text, make_v2(x, window.height/2 - 200), ORANGE);
 
-                    switch(e->type){
-                        case EntityType_Quad:{
-                            quad2 = rotate_quad(quad2, e->deg, e->pos);
-                            quad2 = quad_screen_from_world(quad2, &camera, &window);
+                    game_finished_ui();
+                }
+                if(state->game_result == GameResult_Lost){
+                    String8 text = str8_formatted(ts->frame_arena, "GAME OVER - Score: %i", state->score);
+                    f32 font_width = font_string_width(state->font, text);
+                    f32 x = window.width/2 - font_width/2;
+                    draw_text(state->font, text, make_v2(x, window.height/2 - 200), ORANGE);
 
-                            draw_quad(quad2, e->color);
-                        } break;
-                        case EntityType_Asteroid:{
-                            quad2 = rotate_quad(quad2, e->deg, e->pos);
-                            quad2 = quad_screen_from_world(quad2, &camera, &window);
-
-                            set_texture(&r_assets->textures[TextureAsset_Asteroid]);
-                            draw_texture(e->texture, quad2, e->color);
-                            draw_bounding_box(quad2, 5, GREEN);
-                        } break;
-                        case EntityType_Bullet:{
-                            quad2 = rotate_quad(quad2, e->deg, e->pos);
-                            quad2 = quad_screen_from_world(quad2, &camera, &window);
-
-                            set_texture(&r_assets->textures[TextureAsset_Bullet]);
-                            draw_texture(e->texture, quad2, e->color);
-                        } break;
-                        case EntityType_Particle:{
-                            quad2 = rotate_quad(quad2, e->deg, e->pos);
-                            quad2 = quad_screen_from_world(quad2, &camera, &window);
-
-                            set_texture(&r_assets->textures[e->texture]);
-                            draw_texture(e->texture, quad2, e->color);
-                        } break;
-                        case EntityType_Texture:{
-                            quad2 = rotate_quad(quad2, e->deg, e->pos);
-                            quad2 = quad_screen_from_world(quad2, &camera, &window);
-
-                            set_texture(&r_assets->textures[e->texture]);
-                            draw_texture(e->texture, quad2, e->color);
-                        } break;
-                        case EntityType_Ship:{
-                            if(state->ship->accelerating){
-                                v2 exhaust_pos = make_v2(e->pos.x - (e->dir.x * 50), e->pos.y - (e->dir.y * 50));
-
-                                Quad e_quad = make_quad(exhaust_pos, e->dim);
-                                e_quad = rotate_quad(e_quad, e->deg, exhaust_pos);
-                                e_quad = quad_screen_from_world(e_quad, &camera, &window);
-
-                                u32 random_flame = random_range_u32(5) + 4;
-                                set_texture(&r_assets->textures[random_flame]);
-                                draw_texture(random_flame, e_quad, e->color);
-                            }
-
-                            quad2 = rotate_quad(quad2, e->deg, e->pos);
-                            quad2 = quad_screen_from_world(quad2, &camera, &window);
-
-                            set_texture(&r_assets->textures[e->texture]);
-                            if(state->ship->immune){
-                                draw_texture(e->texture, quad2, ORANGE);
-                            }
-                            else{
-                                draw_texture(e->texture, quad2, e->color);
-                            }
-                            draw_bounding_box(quad2, 5, GREEN);
-
-                        } break;
-                    }
+                    game_finished_ui();
                 }
             }
+        }
 
-            String8 score = str8_formatted(ts->frame_arena, "SCORE: %i", state->score);
-            draw_text(state->font, score, make_v2(text_padding, text_padding + ((f32)state->font->ascent * state->font->scale)), ORANGE);
+        // todo: remove this
+        if(state->scene_state == SceneState_Game){
 
-            String8 lives = str8_formatted(ts->frame_arena, "LIVES: %i", state->lives);
-            f32 width = font_string_width(state->font, lives);
-            draw_text(state->font, lives, make_v2(window.width - width - text_padding, ((f32)(state->font->ascent) * state->font->scale) + text_padding), ORANGE);
+            begin_timed_scope("GameMode_Game");
 
-            String8 level_str = str8_formatted(ts->frame_arena, "LEVEL: %i", state->level_index + 1);
-            draw_text(state->font, level_str, make_v2(text_padding, text_padding + ((f32)state->font->ascent * state->font->scale) + ((f32)state->font->vertical_offset)), ORANGE);
-
-
-            Level* level = state->current_level;
-            String8 info_str = str8_formatted(ts->frame_arena, "level: %i\ntotal: %i\nspawned: %i\ndestroyed:%i", state->level_index, level->asteroid_count_max, level->asteroid_spawned, level->asteroid_destroyed);
-            //draw_text(state->font, info_str, make_v2(50, window.height/2), TEAL);
-
-            s32 found_count = 0;
-            for(s32 i=0; i < array_count(state->entities); i++){
-                Entity* e = state->entities + i;
-                if(e->type == EntityType_Asteroid){
-                    if(has_flags(e->flags, EntityFlag_Active)){
-                        String8 str = str8_formatted(ts->frame_arena, "Asteroids - (%i)", e->health);
-                        f32 str_width = font_string_width(state->font, str);
-                        //draw_text(state->font, str, make_v2(window.width - str_width, (f32)(100 + (found_count * state->font->vertical_offset))), TEAL);
-                        found_count++;
-                    }
-                }
-            }
-
-            if(game_won()){
-                String8 text = str8_formatted(ts->frame_arena, "CHICKEN DINNER - Score: %i", state->score);
-                f32 font_width = font_string_width(state->font, text);
-                f32 x = window.width/2 - font_width/2;
-                draw_text(state->font, text, make_v2(x, window.height/2 - 200), ORANGE);
-
-                ui_begin(ts->ui_arena);
-
-                ui_push_pos_x(window.width/2 - 50);
-                ui_push_pos_y(window.height/2 - 100);
-                ui_push_size_w(ui_size_children(0));
-                ui_push_size_h(ui_size_children(0));
-
-                UI_Box* box1 = ui_box(str8_literal("box1"));
-                ui_push_parent(box1);
-                ui_pop_pos_x();
-                ui_pop_pos_y();
-
-                ui_push_size_w(ui_size_pixel(100, 0));
-                ui_push_size_h(ui_size_pixel(50, 0));
-                ui_push_background_color(BLUE);
-                if(ui_button(str8_literal("Restart")).pressed_left){
-                    reset_game();
-                    ui_close();
-                }
-                ui_spacer(10);
-                if(ui_button(str8_literal("Exit")).pressed_left){
-                    events_quit(&events);
-                    ui_close();
-                }
-                ui_layout();
-                ui_draw(ui_root());
-                ui_end();
-            }
-            else if(game_over()){
-                String8 text = str8_formatted(ts->frame_arena, "GAME OVER - Score: %i", state->score);
-                f32 font_width = font_string_width(state->font, text);
-                f32 x = window.width/2 - font_width/2;
-                draw_text(state->font, text, make_v2(x, window.height/2 - 200), ORANGE);
-
-                ui_begin(ts->ui_arena);
-
-                ui_push_pos_x(window.width/2 - 50);
-                ui_push_pos_y(window.height/2 - 100);
-                ui_push_size_w(ui_size_children(0));
-                ui_push_size_h(ui_size_children(0));
-
-                UI_Box* box1 = ui_box(str8_literal("box1"));
-                ui_push_parent(box1);
-                ui_pop_pos_x();
-                ui_pop_pos_y();
-
-                ui_push_size_w(ui_size_pixel(100, 0));
-                ui_push_size_h(ui_size_pixel(50, 0));
-                ui_push_background_color(BLUE);
-                if(ui_button(str8_literal("Restart")).pressed_left){
-                    reset_game();
-                    ui_close();
-                }
-                ui_spacer(10);
-                if(ui_button(str8_literal("Exit")).pressed_left){
-                    events_quit(&events);
-                    ui_close();
-                }
-                ui_layout();
-                ui_draw(ui_root());
-                ui_end();
-            }
-            else if(pause && !game_won() && !game_over()){
-                ui_begin(ts->ui_arena);
-
-                ui_push_pos_x(window.width/2 - 50);
-                ui_push_pos_y(window.height/2 - 100);
-                ui_push_size_w(ui_size_children(0));
-                ui_push_size_h(ui_size_children(0));
-
-                UI_Box* box1 = ui_box(str8_literal("box1"));
-                ui_push_parent(box1);
-                ui_pop_pos_x();
-                ui_pop_pos_y();
-
-                ui_push_size_w(ui_size_pixel(100, 0));
-                ui_push_size_h(ui_size_pixel(50, 0));
-                ui_push_background_color(BLUE);
-                if(ui_button(str8_literal("Resume")).pressed_left){
-                    pause = false;
-                    ui_close();
-                }
-                ui_spacer(10);
-                if(ui_button(str8_literal("Exit")).pressed_left){
-                    events_quit(&events);
-                    ui_close();
-                }
-                ui_layout();
-                ui_draw(ui_root());
-                ui_end();
-            }
 
             ui_begin(ts->ui_arena);
 
@@ -691,7 +584,9 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             ui_push_border_thickness(10);
             ui_push_background_color(ORANGE);
             UI_Box* box1 = ui_box(str8_literal("box1##4"),
-                    UI_BoxFlag_DrawBackground|UI_BoxFlag_Draggable|UI_BoxFlag_Clickable);
+                                  UI_BoxFlag_DrawBackground|
+                                  UI_BoxFlag_Draggable|
+                                  UI_BoxFlag_Clickable);
             ui_push_parent(box1);
             ui_pop_pos_x();
             ui_pop_pos_y();
@@ -720,7 +615,7 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
                 }
             }
             ui_spacer(10);
-            if(ui_button(str8_literal("640x360")).pressed_left){
+            if(ui_button(str8_literal("1280x720")).pressed_left){
                 if(window.width != 640){
                     change_resolution(&window, 640, 360);
                     d3d_resize_window(window.width, window.height);
@@ -732,44 +627,16 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
             ui_end();
         }
 
-        if(state->game_mode == GameMode_Menu){
-            ui_begin(ts->ui_arena);
-
-            ui_push_pos_x(window.width/2 - 50);
-            ui_push_pos_y(window.height/2 - 100);
-            ui_push_size_w(ui_size_children(0));
-            ui_push_size_h(ui_size_children(0));
-
-            UI_Box* box1 = ui_box(str8_literal("box1##1"));
-            ui_push_parent(box1);
-            ui_pop_pos_x();
-            ui_pop_pos_y();
-
-            ui_push_size_w(ui_size_pixel(100, 0));
-            ui_push_size_h(ui_size_pixel(50, 0));
-            ui_push_background_color(BLUE);
-            if(ui_button(str8_literal("Play##1")).pressed_left){
-                state->game_mode = GameMode_Game;
-                reset_game();
-                ui_close();
-            }
-            ui_spacer(10);
-            if(ui_button(str8_literal("Exit##1")).pressed_left){
-                events_quit(&events);
-                ui_close();
-            }
-            ui_layout();
-            ui_draw(ui_root());
-            ui_end();
-        }
-
         String8 fps = str8_formatted(ts->frame_arena, "FPS: %.2f", FPS);
         draw_text(state->font, fps, make_v2(window.width - text_padding - font_string_width(state->font, fps), window.height - text_padding), ORANGE);
 
+        String8 count = str8_formatted(ts->frame_arena, "count: %i", wave_cursors_count);
+        draw_text(state->font, count, make_v2(window.width - text_padding - font_string_width(state->font, fps), window.height - text_padding - 200), ORANGE);
+
         wasapi_play_cursors();
         console_draw();
-        String8 stuff = str8_formatted(ts->frame_arena, "(%f, %f)", camera.pos.x, camera.pos.y);
-        draw_text(state->font, stuff, make_v2(200, 200), ORANGE);
+        //String8 stuff = str8_formatted(ts->frame_arena, "(%f, %f)", camera.pos.x, camera.pos.y);
+        //draw_text(state->font, stuff, make_v2(200, 200), ORANGE);
 
         // draw everything
         //v2 p0 = pos_screen_from_world(make_v2(camera.left_border, camera.top_border), &camera, &window);
@@ -783,13 +650,16 @@ s32 WinMain(HINSTANCE instance, HINSTANCE pinstance, LPSTR command_line, s32 win
 
 
         clear_controller_pressed();
-        //print("batch_arena_size: %i, batch_arena_at: %i\n",  ts->batch_arena->size, ts->batch_arena->at);
-        //for(RenderBatch* batch = render_batches.first; batch != 0; batch = batch->next){
-        //    print("id: %i, total batches: %i, batch_count: %i, batch_cap: %i\n",
-        //            batch->id, render_batches.count, batch->count, batch->cap);
-        //}
-        //print("last_id: %i - total: %i\n", render_batches.last->id, render_batches.count);
-        //print("-----------------------------\n");
+        print("batch_arena_size: %i, batch_arena_at: %i\n",  ts->batch_arena->size, ts->batch_arena->at);
+        for(RenderBatch* batch = render_batches.first; batch != 0; batch = batch->next){
+            print("total_batches: %i, batches_id: %i, batch_count: %i, batch_cap: %i\n",
+                    render_batches.count, batch->id, batch->count, batch->cap);
+            if(render_batches.count > bcount){
+                bcount = render_batches.count;
+            }
+        }
+        print("last_id: %i - total: %i - highest_count: %i\n", render_batches.last->id, render_batches.count, bcount);
+        print("-----------------------------\n");
 
         {
             draw_render_batches();

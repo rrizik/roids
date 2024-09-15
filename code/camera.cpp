@@ -37,7 +37,9 @@ camera_update(Camera* camera, f32 dx, f32 dy, f32 dt){
 static void
 init_camera_2d(Camera2D* camera, v2 pos, f32 size){
     camera->pos = pos;
+    camera->default_pos = pos;
     camera->size = size;
+    camera->default_size = size;
 }
 
 static void
@@ -46,6 +48,12 @@ camera_2d_update(Camera2D* camera, f32 aspect_ratio){
     camera->left_border =   camera->x - (camera->size * aspect_ratio);
     camera->top_border =    camera->y + (camera->size);
     camera->bottom_border = camera->y - (camera->size);
+}
+
+static void
+camera_2d_reset(Camera2D* camera){
+    camera->size = camera->default_size;
+    camera->pos = camera->default_pos;
 }
 
 #endif
